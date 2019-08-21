@@ -15,9 +15,9 @@ ENV LANG=C.UTF-8
 
 WORKDIR /opt/app
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY setup.py .
+RUN pip install --editable .
 
 COPY . .
 
-CMD ["python", "tarentula.py", "--help"]
+CMD ["tarentula", "--help"]

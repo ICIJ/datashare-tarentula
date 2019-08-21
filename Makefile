@@ -1,7 +1,7 @@
 DOCKER_USER := icij
 DOCKER_NAME := datashate-tarentula
 VIRTUALENV := venv/
-CURRENT_VERSION ?= `python -c "from _version import __version__ ; print(__version__)"`
+CURRENT_VERSION ?= `python setup.py --version`
 
 clean:
 		find . -name "*.pyc" -exec rm -rf {} \;

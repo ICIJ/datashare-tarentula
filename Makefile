@@ -34,6 +34,8 @@ docker-build:
 
 docker-tag:
 		docker tag $(DOCKER_NAME) $(DOCKER_USER)/$(DOCKER_NAME):${CURRENT_VERSION}
+		docker tag $(DOCKER_NAME) $(DOCKER_USER)/$(DOCKER_NAME):latest
 
 docker-push:
 		docker push $(DOCKER_USER)/$(DOCKER_NAME):${CURRENT_VERSION}
+		docker push $(DOCKER_USER)/$(DOCKER_NAME):latest

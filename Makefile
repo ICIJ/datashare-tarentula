@@ -1,5 +1,5 @@
 DOCKER_USER := icij
-DOCKER_NAME := datashate-tarentula
+DOCKER_NAME := datashare-tarentula
 VIRTUALENV := venv/
 CURRENT_VERSION ?= `python setup.py --version`
 

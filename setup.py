@@ -13,5 +13,5 @@ setup(name='tarentula',
     ],
     entry_points='''
         [console_scripts]
-        tarentula=tarentula.cli:cli
+        tarentula-cli=tarentula.cli:cli
     ''')

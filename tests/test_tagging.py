@@ -41,12 +41,20 @@ class TestTagging(TestCase):
             self.assertIn('Added "Dipluridae" to document "vYl1C4bsWphUKvXEBDhM"', result.output)
             self.assertTrue(result.exit_code == 0)
 
-    @responses.activate
     def test_http_tagging_requests(self):
         with self.mock_tagging_endpoint() as resp:
             runner = CliRunner()
             result = runner.invoke(cli, ['tagging', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, self.csv_path])
             self.assertTrue(len(resp.calls) == 10)
+
+    def test_routing_is_correct(self):
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_path)
+        self.assertEqual(tagger.tree['l7VnZZEzg2fr960NWWEG']['routing'], 'l7VnZZEzg2fr960NWWEG')
+        self.assertEqual(tagger.tree['6VE7cVlWszkUd94XeuSd']['routing'], 'vZJQpKQYhcI577gJR0aN')
+
+    def test_routing_uses_fallback(self):
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_path)
+        self.assertEqual(tagger.tree['DWLOskax28jPQ2CjFrCo']['routing'], 'DWLOskax28jPQ2CjFrCo')
 
     def test_tagger_tree(self):
         tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_path)

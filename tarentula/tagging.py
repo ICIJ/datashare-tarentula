@@ -30,7 +30,7 @@ class Tagger:
         tree = dict()
         for row in self.csv_rows:
             # Extract row values
-            tag, document_id, routing = (row['tag'], row['documentId'], row['routing'])
+            tag, document_id, routing = (row['tag'], row['documentId'], row['routing'] or row['documentId'],)
             # Append to an existing dictionary or create one
             tree[document_id] = tree[document_id] if document_id in tree else dict(tags = set(), routing = routing, document_id = document_id)
             # Tags are added to a set so they are unique

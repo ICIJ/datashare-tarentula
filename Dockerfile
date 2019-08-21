@@ -20,4 +20,4 @@ RUN pip install --editable .
 
 COPY . .
 
-CMD ["tarentula", "--help"]
+CMD ["tarentula-cli", "--help"]

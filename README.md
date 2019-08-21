@@ -1,4 +1,4 @@
-# Datashare Tarentula
+# Datashare Tarentula [![CircleCI](https://circleci.com/gh/ICIJ/datashare-tarentula.svg?style=svg)](https://circleci.com/gh/ICIJ/datashare-tarentula)
 
 CSV manipulation cli for [Datashare](https://datashare.icij.org).
 

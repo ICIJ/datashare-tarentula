@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='tarentula',
-    version='0.2.0',
+    version='0.3.0',
     packages=find_packages(),
     test_suite='nose.collector',
     tests_require=['nose', 'responses'],

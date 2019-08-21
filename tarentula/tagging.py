@@ -1,13 +1,15 @@
 import csv
 import json
 import requests
+from time import sleep
 
 from tarentula.logger import logger
 
 class Tagger:
-    def __init__(self, datashare_url, datashare_project, csv_path):
+    def __init__(self, datashare_url, datashare_project, throttle, csv_path):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
+        self.throttle = throttle
         self.csv_path = csv_path
 
     @property
@@ -53,5 +55,6 @@ class Tagger:
             endpoint_url = self.leaf_tagging_endpoint(leaf)
             data = json.dumps(list(leaf['tags']))
             requests.put(endpoint_url, data = data)
+            sleep(self.throttle / 1000)
             for tag in leaf['tags']:
                 logger.info('Added "%s" to document "%s"' % (tag, document_id,))

@@ -14,6 +14,7 @@ def cli(syslog_address, syslog_port, syslog_facility):
 @click.command()
 @click.option('--datashare-url', help='Datashare URL', default='http://localhost:8080')
 @click.option('--datashare-project', help='Datashare project', default='local-datashare')
+@click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.argument('csv-path', type=click.Path(exists=True))
 def tagging(**options):
     # Instanciate a Tagger class with all the open and

@@ -49,7 +49,7 @@ class TestTagging(TestCase):
             self.assertTrue(len(resp.calls) == 10)
 
     def test_tagger_tree(self):
-        tagger = Tagger(self.datashare_url, self.datashare_project, self.csv_path)
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_path)
         self.assertIn('l7VnZZEzg2fr960NWWEG', tagger.tree)
         self.assertEqual(tagger.tree['vYl1C4bsWphUKvXEBDhM']['routing'], 'vYl1C4bsWphUKvXEBDhM')
         self.assertIn('Antrodiaetidae', tagger.tree['DWLOskax28jPQ2CjFrCo']['tags'])

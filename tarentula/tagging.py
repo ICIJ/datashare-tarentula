@@ -1,9 +1,12 @@
 import csv
 import json
+import re
 import requests
 from time import sleep
 
 from tarentula.logger import logger
+
+DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/d/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
 
 class Tagger:
     def __init__(self, datashare_url, datashare_project, throttle, csv_path):
@@ -15,7 +18,7 @@ class Tagger:
     @property
     def csv_rows(self):
         with open(self.csv_path, newline='') as csv_file:
-            return list(csv.DictReader(csv_file))
+            return list(self.sanitize_row(row) for row in csv.DictReader(csv_file))
 
     @property
     def tags(self):
@@ -36,6 +39,13 @@ class Tagger:
             # Tags are added to a set so they are unique
             tree[document_id]['tags'].add(tag)
         return tree
+
+    def sanitize_row(self, row):
+        if 'documentUrl' in row:
+            groups = DATASHARE_DOCUMENT_ROUTE.findall(row['documentUrl'])
+            if len(groups) > 0:
+                row['documentId'], row['routing'] = groups[0]
+        return row
 
     def leaf_tagging_endpoint(self, leaf):
         document_id, tags, routing = (leaf['document_id'], leaf['tags'], leaf['routing'])

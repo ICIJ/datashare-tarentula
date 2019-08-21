@@ -56,10 +56,15 @@ class TestTagging(TestCase):
         tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_path)
         self.assertEqual(tagger.tree['DWLOskax28jPQ2CjFrCo']['routing'], 'DWLOskax28jPQ2CjFrCo')
 
-    def test_tagger_tree(self):
+    def test_document_is_in_tree(self):
         tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_path)
         self.assertIn('l7VnZZEzg2fr960NWWEG', tagger.tree)
-        self.assertEqual(tagger.tree['vYl1C4bsWphUKvXEBDhM']['routing'], 'vYl1C4bsWphUKvXEBDhM')
+
+    def test_tags_are_in_tree(self):
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_path)
         self.assertIn('Antrodiaetidae', tagger.tree['DWLOskax28jPQ2CjFrCo']['tags'])
         self.assertIn('Idiopidae', tagger.tree['DWLOskax28jPQ2CjFrCo']['tags'])
+
+    def tst_document_has_two_tags(self):
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_path)
         self.assertEqual(len(tagger.tree['DWLOskax28jPQ2CjFrCo']['tags']), 2)

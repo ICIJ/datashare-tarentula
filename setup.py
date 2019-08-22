@@ -7,7 +7,7 @@ setup(name='tarentula',
     tests_require=['nose', 'responses'],
     include_package_data=True,
     install_requires=[
-        'Click==7.0',
+        'Click',
         'requests==2.22.0',
         'bumpversion'
     ],

@@ -10,7 +10,7 @@ install: install_virtualenv install_pip
 
 install_virtualenv:
 		# Check if venv folder is already created and create it
-		if [ ! -d venv ]; then virtualenv $(VIRTUALENV) --python=python3.5 --no-site-package --distribute; fi
+		if [ ! -d venv ]; then virtualenv $(VIRTUALENV) --python=python3 --no-site-package --distribute; fi
 
 install_pip:
 		. $(VIRTUALENV)bin/activate; pip install --editable .

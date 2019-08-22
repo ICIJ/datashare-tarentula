@@ -9,14 +9,17 @@ from unittest import  TestCase
 
 from tarentula.cli import cli
 from tarentula.tagging import Tagger
+from tarentula.datashare_client import DatashareClient
 
 root = lambda x: os.path.join(os.path.abspath(dirname(dirname(__file__))), x)
 
 class TestTagging(TestCase):
     @classmethod
     def setUpClass(self):
-        self.datashare_url = 'http://localhost:8080'
-        self.datashare_project = 'local-tests'
+        self.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://localhost:9292')
+        self.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8181')
+        self.datashare_project = 'local-datashare'
+        self.datashare_client = DatashareClient(self.datashare_url, self.elasticsearch_url)
         self.csv_with_ids_path = root('tests/fixtures/tags-with-document-id.csv')
         self.csv_with_urls_path = root('tests/fixtures/tags-with-document-url.csv')
 
@@ -70,7 +73,6 @@ class TestTagging(TestCase):
         tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path)
         self.assertEqual(len(tagger.tree['DWLOskax28jPQ2CjFrCo']['tags']), 2)
 
-
     def test_tags_are_in_tree_with_url(self):
         tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_urls_path)
         self.assertIn('Antrodiaetidae', tagger.tree['DWLOskax28jPQ2CjFrCo']['tags'])
@@ -80,3 +82,22 @@ class TestTagging(TestCase):
         tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_urls_path)
         self.assertEqual(tagger.tree['l7VnZZEzg2fr960NWWEG']['routing'], 'l7VnZZEzg2fr960NWWEG')
         self.assertEqual(tagger.tree['6VE7cVlWszkUd94XeuSd']['routing'], 'vZJQpKQYhcI577gJR0aN')
+
+    def test_tags_are_created(self):
+        with self.datashare_client.temporary_project() as project:
+            tagger = Tagger(self.datashare_url, project, 0, self.csv_with_ids_path)
+            # Ensure there is no documents yet
+            self.assertEqual(self.datashare_client.query(index = project, size = 0).get('hits', {}).get('total'), 0)
+            # Create all the docs
+            for document_id, leaf in tagger.tree.items():
+                self.datashare_client.index(project, { "tags": [] }, document_id, leaf['routing'])
+            # Ensure the docs exists
+            self.assertEqual(self.datashare_client.query(index = project, size = 0).get('hits', {}).get('total'), 10)
+            # Ensure the docs are not tagged yet
+            self.assertEqual(self.datashare_client.query(index = project, size = 0, q = 'tags:*').get('hits', {}).get('total'), 0)
+            # Tag them all!
+            tagger.start()
+            # Refresh the index
+            self.datashare_client.refresh(project)
+            # Ensure the docs have been tagged
+            self.assertEqual(self.datashare_client.query(index = project, size = 0, q = 'tags:*').get('hits', {}).get('total'), 10)

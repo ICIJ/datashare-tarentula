@@ -1,6 +1,7 @@
-import responses
+import csv
 import os
 import re
+import responses
 
 from click.testing import CliRunner
 from contextlib import contextmanager
@@ -49,7 +50,7 @@ class TestTagging(TestCase):
         with self.mock_tagging_endpoint() as resp:
             runner = CliRunner()
             result = runner.invoke(cli, ['tagging', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, self.csv_with_ids_path])
-            self.assertTrue(len(resp.calls) == 10)
+            self.assertTrue(len(resp.calls) == 20)
 
     def test_routing_is_correct(self):
         tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path)
@@ -83,7 +84,7 @@ class TestTagging(TestCase):
         self.assertEqual(tagger.tree['l7VnZZEzg2fr960NWWEG']['routing'], 'l7VnZZEzg2fr960NWWEG')
         self.assertEqual(tagger.tree['6VE7cVlWszkUd94XeuSd']['routing'], 'vZJQpKQYhcI577gJR0aN')
 
-    def test_tags_are_created(self):
+    def test_tags_are_all_created(self):
         with self.datashare_client.temporary_project() as project:
             tagger = Tagger(self.datashare_url, project, 0, self.csv_with_ids_path)
             # Ensure there is no documents yet
@@ -101,3 +102,34 @@ class TestTagging(TestCase):
             self.datashare_client.refresh(project)
             # Ensure the docs have been tagged
             self.assertEqual(self.datashare_client.query(index = project, size = 0, q = 'tags:*').get('hits', {}).get('total'), 10)
+
+    def test_tag_is_correct(self):
+        with self.datashare_client.temporary_project() as project:
+            # Create the document
+            self.datashare_client.index(index = project,  document = { 'name': 'Atypidae', 'tags': [] }, id ='atypidae')
+            runner = CliRunner()
+            with runner.isolated_filesystem():
+                # Create a small CSV with just one tag
+                with open('tags.csv', 'w') as file:
+                    writer = csv.writer(file)
+                    writer.writerows([ ['tag','documentId'], ['mygalomorph','atypidae'] ])
+                runner.invoke(cli, ['tagging', '--datashare-url', self.datashare_url, '--datashare-project', project, 'tags.csv'])
+            # Get the document from Elasticsearch
+            document = self.datashare_client.document(index = project, id = "atypidae")
+            self.assertIn('mygalomorph', document.get('_source').get('tags', []))
+
+    def test_tags_are_correct(self):
+        with self.datashare_client.temporary_project() as project:
+            # Create the document
+            self.datashare_client.index(index = project,  document = { 'name': 'Atypidae', 'tags': [] }, id ='atypidae')
+            runner = CliRunner()
+            with runner.isolated_filesystem():
+                # Create a small CSV with just one tag
+                with open('tags.csv', 'w') as file:
+                    writer = csv.writer(file)
+                    writer.writerows([ ['tag','documentId'], ['mygalomorph','atypidae'], ['spider','atypidae'] ])
+                r = runner.invoke(cli, ['tagging', '--datashare-url', self.datashare_url, '--datashare-project', project, 'tags.csv'])
+            # Get the document from Elasticsearch
+            document = self.datashare_client.document(index = project, id = "atypidae")
+            self.assertIn('mygalomorph', document.get('_source').get('tags', []))
+            self.assertIn('spider', document.get('_source').get('tags', []))

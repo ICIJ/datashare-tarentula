@@ -49,6 +49,9 @@ class DatashareClient:
         params = { "q": q, "size": size }
         return requests.get('%s/%s/_search' % (self.elasticsearchUrl, index), params = params).json()
 
+    def document(self, index = 'local-datashare', id = None, routing = None):
+        return requests.get('%s/%s/doc/%s' % (self.elasticsearchUrl, index, id), params = { routing: routing }).json()
+
     @contextmanager
     def temporary_project(self, source = 'local-datashare', delete = True):
         project = None

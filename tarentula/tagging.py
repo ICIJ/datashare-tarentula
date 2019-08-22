@@ -1,5 +1,4 @@
 import csv
-import json
 import re
 import requests
 from time import sleep
@@ -33,7 +32,7 @@ class Tagger:
         tree = dict()
         for row in self.csv_rows:
             # Extract row values
-            tag, document_id, routing = (row['tag'], row['documentId'], row['routing'] or row['documentId'],)
+            tag, document_id, routing = (row['tag'], row['documentId'], row.get('routing', row['documentId']) or row['documentId'],)
             # Append to an existing dictionary or create one
             tree[document_id] = tree[document_id] if document_id in tree else dict(tags = set(), routing = routing, document_id = document_id)
             # Tags are added to a set so they are unique
@@ -63,8 +62,11 @@ class Tagger:
     def start(self):
         for document_id, leaf in self.tree.items():
             endpoint_url = self.leaf_tagging_endpoint(leaf)
-            data = json.dumps(list(leaf['tags']))
-            requests.put(endpoint_url, data = data)
-            sleep(self.throttle / 1000)
             for tag in leaf['tags']:
-                logger.info('Added "%s" to document "%s"' % (tag, document_id,))
+                result = requests.put(endpoint_url, json = [tag])
+                sleep(self.throttle / 1000)
+                if result.status_code == requests.codes.ok:
+                    logger.info('Added "%s" to document "%s"' % (tag, document_id,))
+                else:
+                    error = result.json().get('error')
+                    logger.warning('Unable to add "%s" to document "%s": %s' % (tag, document_id, error))

@@ -89,3 +89,9 @@ class TestDatashareClient(TestCase):
             self.datashare_client.index(index = project,  document = { 'name': 'Migidae' })
             total = self.datashare_client.query(index = project, q = 'name:Migi*').get('hits', {}).get('total')
             self.assertEqual(total, 1)
+
+    def test_get_document(self):
+        with self.datashare_client.temporary_project() as project:
+            self.datashare_client.index(index = project,  document = { 'name': 'Atypidae' }, id = 'atypidae')
+            document = self.datashare_client.document(index = project, id = 'atypidae')
+            self.assertEqual(document.get('_source', {}).get('name'), 'Atypidae')

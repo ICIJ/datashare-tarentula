@@ -8,7 +8,7 @@ jobs:
           - "TEST_DATASHARE_URL=http://datashare:8080"
       - name: datashare
         image: icij/datashare:4.3.2
-      - name: elasticsearch:
+      - name: elasticsearch
         image: docker.elastic.co/elasticsearch/elasticsearch:6.3.0
         restart: on-failure
         environment:

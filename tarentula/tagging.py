@@ -68,5 +68,4 @@ class Tagger:
                 if result.status_code == requests.codes.ok:
                     logger.info('Added "%s" to document "%s"' % (tag, document_id,))
                 else:
-                    error = result.json().get('error')
-                    logger.warning('Unable to add "%s" to document "%s": %s' % (tag, document_id, error))
+                    logger.warning('Unable to add "%s" to document "%s"' % (tag, document_id))

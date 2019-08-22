@@ -50,11 +50,12 @@ class DatashareClient:
         return requests.get('%s/%s/_search' % (self.elasticsearchUrl, index), params = params).json()
 
     @contextmanager
-    def temporary_project(self, source = 'local-datashare'):
+    def temporary_project(self, source = 'local-datashare', delete = True):
         project = None
         try:
             project = self.reindex(source)
             yield project
         finally:
-            if project is not None:
+            if delete and project is not None:
                 self.delete_index(project)
+        return project

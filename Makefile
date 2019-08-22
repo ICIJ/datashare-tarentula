@@ -15,6 +15,9 @@ install_virtualenv:
 install_pip:
 		. $(VIRTUALENV)bin/activate; pip install --editable .
 
+test:
+		. $(VIRTUALENV)bin/activate; python setup.py test
+
 minor:
 		. $(VIRTUALENV)bin/activate; bumpversion --commit --tag --current-version ${CURRENT_VERSION} minor setup.py
 

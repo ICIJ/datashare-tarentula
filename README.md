@@ -63,3 +63,17 @@ Paratropididae,http://localhost:8080/#/d/local-datashare/vYl1C4bsWphUKvXEBDhM/vY
 Porrhothelidae,http://localhost:8080/#/d/local-datashare/fgCt6JLfHSl160fnsjRp/fgCt6JLfHSl160fnsjRp
 Theraphosidae,http://localhost:8080/#/d/local-datashare/WvwVvNjEDQJXkwHISQIu/WvwVvNjEDQJXkwHISQIu
 ```
+
+## Testing
+
+To test this tool, you must have Datashare and Elasticsearch running on your development machine. We profice a Docker Compose file to simplify the installation.
+
+```
+docker-compose -p tarentula -f tests/docker-compose.yml up
+```
+
+Then in a separated terminal, just run:
+
+```
+make test
+```

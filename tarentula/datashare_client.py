@@ -51,8 +51,10 @@ class DatashareClient:
 
     @contextmanager
     def temporary_project(self, source = 'local-datashare'):
+        project = None
         try:
             project = self.reindex(source)
             yield project
         finally:
-            self.delete_index(project)
+            if project is not None:
+                self.delete_index(project)

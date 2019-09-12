@@ -35,6 +35,9 @@ Options:
   --datashare-url TEXT      Datashare URL
   --datashare-project TEXT  Datashare project
   --throttle INTEGER        Request throttling (in ms)
+  --cookies TEXT            Key/value pair to add a cookie to each request to
+                            the API. You can separate semicolons:
+                            key1=val1;key2=val2;...
   --help                    Show this message and exit.
 ```
 

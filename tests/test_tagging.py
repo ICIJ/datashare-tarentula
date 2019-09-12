@@ -133,3 +133,47 @@ class TestTagging(TestCase):
             document = self.datashare_client.document(index = project, id = "atypidae")
             self.assertIn('mygalomorph', document.get('_source').get('tags', []))
             self.assertIn('spider', document.get('_source').get('tags', []))
+
+    def test_cookies_are_parsed_by_tagger(self):
+        cookies = 'session=mygalomorph;age=14'
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, cookies)
+        self.assertEqual(tagger.cookies['session'], 'mygalomorph')
+        self.assertEqual(tagger.cookies['age'], '14')
+        self.assertEqual(len(tagger.cookies.keys()), 2)
+
+    def test_multiple_cookies_are_parsed_by_tagger(self):
+        cookies = 'session=mygalomorph'
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, cookies)
+        self.assertEqual(tagger.cookies['session'], 'mygalomorph')
+        self.assertEqual(len(tagger.cookies.keys()), 1)
+
+    def test_session_cookies_are_parsed_by_tagger(self):
+        cookies = r'_ds_session_id="{\"login\":\"\",\"roles\":[],\"sessionId\":\"dq18s0kj08dq10skLYGSu8SFVsg\",\"redirectAfterLogin\":\"/\"}"'
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, cookies)
+        self.assertEqual(tagger.cookies['_ds_session_id'], r'{"login":"","roles":[],"sessionId":"dq18s0kj08dq10skLYGSu8SFVsg","redirectAfterLogin":"/"}')
+        self.assertEqual(len(tagger.cookies.keys()), 1)
+
+    def test_cookies_are_send_while_tagging(self):
+        with self.mock_tagging_endpoint() as resp:
+            cookies = 'session=mygalomorph'
+            Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, cookies).start()
+            self.assertEqual(resp.calls[0].request.headers['Cookie'], cookies)
+            self.assertEqual(resp.calls[2].request.headers['Cookie'], cookies)
+            self.assertEqual(resp.calls[6].request.headers['Cookie'], cookies)
+            self.assertEqual(resp.calls[9].request.headers['Cookie'], cookies)
+
+    def test_cookies_arent_send_while_tagging(self):
+        with self.mock_tagging_endpoint() as resp:
+            Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path).start()
+            self.assertNotIn('Cookie', resp.calls[0].request.headers)
+            self.assertNotIn('Cookie', resp.calls[2].request.headers)
+            self.assertNotIn('Cookie', resp.calls[6].request.headers)
+            self.assertNotIn('Cookie', resp.calls[9].request.headers)
+
+    def test_cookies_are_send_while_tagging_with_the_cli(self):
+        with self.mock_tagging_endpoint() as resp:
+            cookies = r'_ds_session_id="{\"login\":\"\",\"roles\":[],\"sessionId\":\"dq18s0kj08dq10skLYGSu8SFVsg\",\"redirectAfterLogin\":\"/\"}"'
+            runner = CliRunner()
+            result = runner.invoke(cli, ['tagging', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, '--cookies', cookies, self.csv_with_ids_path])
+            self.assertEqual(resp.calls[1].request.headers['Cookie'], '_ds_session_id={"login":"","roles":[],"sessionId":"dq18s0kj08dq10skLYGSu8SFVsg","redirectAfterLogin":"/"}')
+            self.assertEqual(resp.calls[3].request.headers['Cookie'], '_ds_session_id={"login":"","roles":[],"sessionId":"dq18s0kj08dq10skLYGSu8SFVsg","redirectAfterLogin":"/"}')

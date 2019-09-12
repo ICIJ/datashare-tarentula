@@ -2,15 +2,17 @@ import csv
 import re
 import requests
 from time import sleep
+from http.cookies import SimpleCookie
 
 from tarentula.logger import logger
 
 DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/d/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
 
 class Tagger:
-    def __init__(self, datashare_url, datashare_project, throttle, csv_path):
+    def __init__(self, datashare_url, datashare_project, throttle, csv_path, cookies = ''):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
+        self.cookies_string = cookies
         self.throttle = throttle
         self.csv_path = csv_path
 
@@ -39,6 +41,15 @@ class Tagger:
             tree[document_id]['tags'].add(tag)
         return tree
 
+    @property
+    def cookies(self):
+        cookies = SimpleCookie()
+        try:
+            cookies.load(self.cookies_string)
+            return {key: morsel.value for (key, morsel) in cookies.items()}
+        except (TypeError, AttributeError):
+            return {}
+
     def sanitize_row(self, row):
         if 'documentUrl' in row:
             groups = DATASHARE_DOCUMENT_ROUTE.findall(row['documentUrl'])
@@ -63,7 +74,7 @@ class Tagger:
         for document_id, leaf in self.tree.items():
             endpoint_url = self.leaf_tagging_endpoint(leaf)
             for tag in leaf['tags']:
-                result = requests.put(endpoint_url, json = [tag])
+                result = requests.put(endpoint_url, json = [tag], cookies = self.cookies)
                 sleep(self.throttle / 1000)
                 if result.status_code == requests.codes.ok:
                     logger.info('Added "%s" to document "%s"' % (tag, document_id,))

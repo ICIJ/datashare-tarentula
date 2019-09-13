@@ -77,6 +77,8 @@ class Tagger:
                 result = requests.put(endpoint_url, json = [tag], cookies = self.cookies)
                 sleep(self.throttle / 1000)
                 if result.status_code == requests.codes.ok:
+                    logger.info('Tag "%s" already exists on document "%s"' % (tag, document_id,))
+                elif result.status_code == requests.codes.created:
                     logger.info('Added "%s" to document "%s"' % (tag, document_id,))
                 else:
                     logger.warning('Unable to add "%s" to document "%s"' % (tag, document_id))

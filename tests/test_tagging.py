@@ -28,7 +28,7 @@ class TestTagging(TestCase):
     def mock_tagging_endpoint(self):
         with responses.RequestsMock() as resp:
             tagging_endpoint_re = r"^%s\/api/document/project/tag/%s" % (self.datashare_url, self.datashare_project)
-            resp.add(responses.PUT, re.compile(tagging_endpoint_re), body='')
+            resp.add(responses.PUT, re.compile(tagging_endpoint_re), body='', status=201)
             yield resp
 
     def test_summary(self):

@@ -81,4 +81,4 @@ class Tagger:
                 elif result.status_code == requests.codes.created:
                     logger.info('Added "%s" to document "%s"' % (tag, document_id,))
                 else:
-                    logger.warning('Unable to add "%s" to document "%s"' % (tag, document_id))
+                    logger.warning('Unable to add "%s" to document "%s": %s' % (tag, document_id, result.status_code))

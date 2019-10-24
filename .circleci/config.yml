@@ -7,7 +7,7 @@ jobs:
           - "TEST_ELASTICSEARCH_URL=http://elasticsearch:9200"
           - "TEST_DATASHARE_URL=http://datashare:8080"
       - name: datashare
-        image: icij/datashare:4.3.2
+        image: icij/datashare:4.17.3
       - name: elasticsearch
         image: docker.elastic.co/elasticsearch/elasticsearch:6.3.0
         environment:

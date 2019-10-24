@@ -11,7 +11,7 @@ class DatashareClient:
         self.create()
 
     def create(self):
-        return requests.put('%s/api/index/create' % self.datashareUrl)
+        return requests.put('%s/api/index/local-datashare' % self.datashareUrl)
 
     def index(self, index = 'local-datashare', document = {}, id = None, routing = None):
         params = { "routing": routing }

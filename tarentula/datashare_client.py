@@ -10,8 +10,8 @@ class DatashareClient:
         # Create the datrashare default index
         self.create()
 
-    def create(self):
-        return requests.put('%s/api/index/local-datashare' % self.datashareUrl)
+    def create(self, index = 'local-datashare'):
+        return requests.put('%s/api/index/%s' % (self.datashareUrl, index))
 
     def index(self, index = 'local-datashare', document = {}, id = None, routing = None):
         params = { "routing": routing }

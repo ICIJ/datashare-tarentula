@@ -3,14 +3,16 @@ import requests
 import shutil
 
 from os import makedirs
-from os.path import join, dirname, basename
+from os.path import join, dirname, basename, exists
 from time import sleep
 
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
+from elasticsearch.exceptions import ElasticsearchException
+from requests.exceptions import HTTPError
 
 class Download:
-    def __init__(self, datashare_url, datashare_project, destination_directory, query = '*', throttle = 0, cookies = '', elasticsearch_url =  None, path_format = '{id_2b}/{id_4b}/{id}', scroll = '10m'):
+    def __init__(self, datashare_url, datashare_project, destination_directory, query = '*', throttle = 0, cookies = '', elasticsearch_url =  None, path_format = '{id_2b}/{id_4b}/{id}', scroll = '10m', once = False):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, cookies, scroll)
@@ -19,6 +21,7 @@ class Download:
         self.throttle = throttle
         self.cookies_string = cookies
         self.path_format = path_format
+        self.once = once
 
     @property
     def query_body(self):
@@ -92,15 +95,26 @@ class Download:
         logger.info('Downloading document %s' % id)
         document_file_stream = self.datashare_client.download(self.datashare_project, id, routing)
         document_file_stream.raw.decode_content = True
+        document_file_stream.raise_for_status()
         self.save(document, document_file_stream)
+
+    def exists(self, document):
+        file_path = self.document_file_path(document)
+        return exists(file_path)
 
     def save(self, document, document_file_stream):
         file_path = self.document_file_path(document)
         with open(file_path, 'wb') as file:
             shutil.copyfileobj(document_file_stream.raw, file)
-        logger.info('Document %s downloaded in %s' % (document.get('_id'), file_path))
 
     def start(self):
         for document in self.scan_or_query_all():
-            self.download(document)
-            self.sleep()
+            try:
+                if not self.once or not self.exists(document):
+                    self.download(document)
+                    logger.info('Document %s downloaded' % document.get('_id'))
+                    self.sleep()
+                else:
+                    logger.info('Skipping document %s' % document.get('_id'))
+            except (ElasticsearchException, HTTPError):
+                logger.error('Unable to download document %s' % document.get('_id'))

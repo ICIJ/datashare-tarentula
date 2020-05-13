@@ -7,8 +7,8 @@ from tarentula.datashare_client import DatashareClient
 class TestDatashareClient(TestCase):
     @classmethod
     def setUpClass(self):
-        self.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://localhost:9292')
-        self.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8181')
+        self.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8080')
+        self.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://localhost:9200')
         self.datashare_client = DatashareClient(self.datashare_url, self.elasticsearch_url)
 
     def test_default_index_creation(self):

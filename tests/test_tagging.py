@@ -17,8 +17,8 @@ root = lambda x: os.path.join(os.path.abspath(dirname(dirname(__file__))), x)
 class TestTagging(TestCase):
     @classmethod
     def setUpClass(self):
-        self.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://localhost:9292')
-        self.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8181')
+        self.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://localhost:9200')
+        self.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8080')
         self.datashare_project = 'local-datashare'
         self.datashare_client = DatashareClient(self.datashare_url, self.elasticsearch_url)
         self.csv_with_ids_path = root('tests/fixtures/tags-with-document-id.csv')

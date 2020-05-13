@@ -1,31 +1,27 @@
 DOCKER_USER := icij
 DOCKER_NAME := datashare-tarentula
-VIRTUALENV := venv/
 CURRENT_VERSION ?= `python setup.py --version`
 
 clean:
 		find . -name "*.pyc" -exec rm -rf {} \;
+		rm -rf dist *.egg-info __pycache__
 
-install: install_virtualenv install_pip
-
-install_virtualenv:
-		# Check if venv folder is already created and create it
-		if [ ! -d venv ]; then virtualenv $(VIRTUALENV) --python=python3 --no-site-package --distribute; fi
+install: install_pip
 
 install_pip:
-		. $(VIRTUALENV)bin/activate; pip install --editable .
+		pipenv install
 
 test:
-		. $(VIRTUALENV)bin/activate; python setup.py test
+		pipenv run python setup.py test
 
 minor:
-		. $(VIRTUALENV)bin/activate; bumpversion --commit --tag --current-version ${CURRENT_VERSION} minor setup.py
+		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} minor setup.py
 
 major:
-		. $(VIRTUALENV)bin/activate; bumpversion --commit --tag --current-version ${CURRENT_VERSION} major setup.py
+		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} major setup.py
 
 patch:
-		. $(VIRTUALENV)bin/activate; bumpversion --commit --tag --current-version ${CURRENT_VERSION} patch setup.py
+		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} patch setup.py
 
 docker-publish: docker-build docker-tag docker-push
 

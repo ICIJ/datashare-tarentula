@@ -69,10 +69,17 @@ Theraphosidae,http://localhost:8080/#/d/local-datashare/WvwVvNjEDQJXkwHISQIu/Wvw
 
 ## Testing
 
-To test this tool, you must have Datashare and Elasticsearch running on your development machine. We profice a Docker Compose file to simplify the installation.
+To test this tool, you must have Datashare and Elasticsearch running on your development machine. We provide a Docker Compose file to simplify the installation.
 
 ```
 docker-compose -p tarentula -f tests/docker-compose.yml up
+```
+
+Install the development dependencies:
+
+```
+sudo apt install pipenv
+make install
 ```
 
 Then in a separated terminal, just run:

@@ -7,7 +7,7 @@ jobs:
           - "TEST_ELASTICSEARCH_URL=http://elasticsearch:9200"
           - "TEST_DATASHARE_URL=http://datashare:8080"
       - name: datashare
-        image: icij/datashare:4.17.3
+        image: icij/datashare:6.3.6
       - name: elasticsearch
         image: docker.elastic.co/elasticsearch/elasticsearch:6.3.0
         environment:
@@ -30,12 +30,6 @@ jobs:
     steps:
       - checkout
 
-      - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "setup.py" }}
-          - v1-dependencies-
-          - checkout
-
       - run:
           name: Install dockerize
           command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
@@ -49,21 +43,12 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install --editable . nose responses
+            sudo apt install pipenv
+            make install
 
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "setup.py" }}
 
       - run:
           name: Run tests
           command: |
             . venv/bin/activate
-            python setup.py test
-
-      - store_artifacts:
-          path: test-reports
-          destination: test-reports
+            pipenv run nosetests

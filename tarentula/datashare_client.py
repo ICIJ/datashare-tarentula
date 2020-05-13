@@ -83,6 +83,7 @@ class DatashareClient:
         result = requests.post(url + '?refresh', json = json)
         # Delete the dummy docs
         self.delete(source, document_id)
+        self.delete(dest, document_id)
         self.delete_all(dest)
         # Return the dest name
         return dest if result.status_code == requests.codes.ok else None

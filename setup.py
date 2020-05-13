@@ -9,7 +9,8 @@ setup(name='tarentula',
     install_requires=[
         'Click',
         'requests==2.22.0',
-        'bumpversion'
+        'bumpversion',
+        'elasticsearch>=6.0.0,<7.0.0'
     ],
     entry_points='''
         [console_scripts]

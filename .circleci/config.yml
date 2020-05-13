@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/python:3.6
+      - image: circleci/python:3.8
         environment:
           - "TEST_ELASTICSEARCH_URL=http://elasticsearch:9200"
           - "TEST_DATASHARE_URL=http://datashare:8080"
@@ -51,4 +51,4 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            pipenv run nosetests
+            pipenv run nosetestsno

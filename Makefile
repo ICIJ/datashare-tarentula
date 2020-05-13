@@ -9,7 +9,7 @@ clean:
 install: install_pip
 
 install_pip:
-		pipenv install
+		pipenv install -d
 
 test:
 		pipenv run python setup.py test

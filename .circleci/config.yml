@@ -46,9 +46,7 @@ jobs:
             sudo apt install pipenv
             make install
 
-
       - run:
           name: Run tests
           command: |
-            . venv/bin/activate
             pipenv run nosetestsno

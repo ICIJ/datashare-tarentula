@@ -35,6 +35,7 @@ def tagging(**options):
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...')
 @click.option('--path-format', help='Downloaded document path template', default='{id_2b}/{id_4b}/{id}')
+@click.option('--scroll', help='Scroll duration', default='10m')
 def download(**options):
     # Instanciate a Download class with all the options
     download = Download(**options)

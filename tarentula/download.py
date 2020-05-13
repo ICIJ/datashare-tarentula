@@ -10,10 +10,10 @@ from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
 
 class Download:
-    def __init__(self, datashare_url, datashare_project, destination_directory, query = '*', throttle = 0, cookies = '', elasticsearch_url =  None, path_format = '{id_2b}/{id_4b}/{id}'):
+    def __init__(self, datashare_url, datashare_project, destination_directory, query = '*', throttle = 0, cookies = '', elasticsearch_url =  None, path_format = '{id_2b}/{id_4b}/{id}', scroll = '10m'):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
-        self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, cookies)
+        self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, cookies, scroll)
         self.query = query
         self.destination_directory = destination_directory
         self.throttle = throttle

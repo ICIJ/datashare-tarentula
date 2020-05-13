@@ -9,9 +9,10 @@ def urljoin(*args):
     return '/'.join(s.strip('/') for s in args if s is not None)
 
 class DatashareClient:
-    def __init__(self, datashare_url = 'http://localhost:8080', elasticsearch_url = 'http://localhost:9200', cookies = ''):
+    def __init__(self, datashare_url = 'http://localhost:8080', elasticsearch_url = 'http://localhost:9200', cookies = '', scroll =  '10m'):
         self.datashare_url = datashare_url
         self.cookies_string = cookies
+        self.scroll = scroll
         # Instanciate the Elasticsearch client
         self.elasticsearch_url = elasticsearch_url
         self.elasticsearch = Elasticsearch(self.elasticsearch_host)
@@ -94,8 +95,7 @@ class DatashareClient:
         return requests.post(url, params = params, json = query, cookies = self.cookies).json()
 
     def scan_all(self, index = 'local-datashare', query = {}, _source_includes = None):
-        scroll = '10m'
-        return helpers.scan(self.elasticsearch, query = query, scroll = scroll, index = index, doc_type = 'doc', _source_includes = _source_includes)
+        return helpers.scan(self.elasticsearch, query = query, scroll = self.scroll, index = index, doc_type = 'doc', _source_includes = _source_includes)
 
     def query_all(self, index = 'local-datashare', query = {}, _source_includes = None):
         offset = 0

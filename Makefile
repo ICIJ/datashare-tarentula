@@ -1,6 +1,6 @@
 DOCKER_USER := icij
 DOCKER_NAME := datashare-tarentula
-CURRENT_VERSION ?= `python setup.py --version`
+CURRENT_VERSION ?= `pipenv run python setup.py --version`
 
 clean:
 		find . -name "*.pyc" -exec rm -rf {} \;

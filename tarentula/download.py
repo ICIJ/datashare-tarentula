@@ -91,6 +91,7 @@ class Download:
         routing = document.get('_routing', id)
         logger.info('Downloading document %s' % id)
         document_file_stream = self.datashare_client.download(self.datashare_project, id, routing)
+        document_file_stream.raw.decode_content = True
         self.save(document, document_file_stream)
 
     def save(self, document, document_file_stream):

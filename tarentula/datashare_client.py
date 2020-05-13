@@ -122,8 +122,8 @@ class DatashareClient:
 
     def download(self, index = 'local-datashare', id = None, routing = None):
         routing = routing or id
-        url = urljoin(self.datashare_url, index, '/documents/src', id)
-        return requests.get(url, params = { routing: routing }, stream=True, cookies = self.cookies)
+        url = urljoin(self.datashare_url, 'api', index, '/documents/src', id)
+        return requests.get(url, params = { routing: routing }, cookies = self.cookies, stream = True)
 
     @contextmanager
     def temporary_project(self, source = 'local-datashare', delete = True):

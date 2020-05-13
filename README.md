@@ -21,6 +21,7 @@ Options:
   --help                  Show this message and exit.
 
 Commands:
+  download
   tagging
 ```
 
@@ -65,6 +66,32 @@ Nemesiidae,http://localhost:8080/#/d/local-datashare/vZJQpKQYhcI577gJR0aN/vZJQpK
 Paratropididae,http://localhost:8080/#/d/local-datashare/vYl1C4bsWphUKvXEBDhM/vYl1C4bsWphUKvXEBDhM
 Porrhothelidae,http://localhost:8080/#/d/local-datashare/fgCt6JLfHSl160fnsjRp/fgCt6JLfHSl160fnsjRp
 Theraphosidae,http://localhost:8080/#/d/local-datashare/WvwVvNjEDQJXkwHISQIu/WvwVvNjEDQJXkwHISQIu
+```
+
+## Tagging
+
+A command to download all files matching a query.
+
+```
+Usage: tarentula download [OPTIONS]
+
+Options:
+  --datashare-url TEXT          Datashare URL
+  --datashare-project TEXT      Datashare project
+  --elasticsearch-url TEXT      You can additionally pass the Elasticsearch
+                                URL in order to use scrolling capabilities of
+                                Elasticsearch (useful when dealing with a lot
+                                of results)
+
+  --query TEXT                  The query string to filter documents
+  --destination-directory TEXT  Directory documents will be downloaded
+  --throttle INTEGER            Request throttling (in ms)
+  --cookies TEXT                Key/value pair to add a cookie to each request
+                                to the API. You can separate semicolons:
+                                key1=val1;key2=val2;...
+
+  --path-format TEXT            Downloaded document path template
+  --help                        Show this message and exit.
 ```
 
 ## Testing

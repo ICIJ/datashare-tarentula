@@ -113,16 +113,17 @@ class DatashareClient:
             return self.scan_all(index, query, _source_includes)
 
     def count(self, index = 'local-datashare', query = {}):
-        return self.elasticsearch.count(index = index, body = query)
+        url = urljoin(self.datashare_url, '/api/index/search/', index, '_count')
+        return requests.post(url, json = query, cookies = self.cookies).json()
 
     def document(self, index = 'local-datashare', id = None, routing = None):
         url = urljoin(self.elasticsearch_url, index, '/doc/', id)
-        return requests.get(url, params = { routing: routing }).json()
+        return requests.get(url, params = { routing: routing }, cookies = self.cookies).json()
 
     def download(self, index = 'local-datashare', id = None, routing = None):
         routing = routing or id
         url = urljoin(self.datashare_url, index, '/documents/src', id)
-        return requests.get(url, params = { routing: routing }, stream=True)
+        return requests.get(url, params = { routing: routing }, stream=True, cookies = self.cookies)
 
     @contextmanager
     def temporary_project(self, source = 'local-datashare', delete = True):

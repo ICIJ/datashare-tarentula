@@ -8,7 +8,7 @@ from time import sleep
 
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
-from elasticsearch.exceptions import ElasticsearchException, ConnectionTimeout
+from elasticsearch.exceptions import ElasticsearchException, ConnectionTimeout, NotFoundError
 from requests.exceptions import HTTPError, ConnectionError
 from urllib3.exceptions import ProtocolError
 
@@ -130,7 +130,7 @@ class Download:
                 break
             except (ElasticsearchException, HTTPError):
                 logger.error('Unable to download document %s' % document.get('_id'), exc_info=self.traceback)
-            except ConnectionTimeout:
+            except (ConnectionTimeout, NotFoundError):
                 logger.error('Scroll expired', exc_info=self.traceback)
             except ProtocolError:
                 logger.error('Exception while search documents', exc_info=self.traceback)

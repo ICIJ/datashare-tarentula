@@ -9,20 +9,26 @@ from time import sleep
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
 from elasticsearch.exceptions import ElasticsearchException, ConnectionTimeout
-from requests.exceptions import HTTPError
+from requests.exceptions import HTTPError, ConnectionError
 from urllib3.exceptions import ProtocolError
 
 class Download:
-    def __init__(self, datashare_url, datashare_project, destination_directory, query = '*', throttle = 0, cookies = '', elasticsearch_url =  None, path_format = '{id_2b}/{id_4b}/{id}', scroll = '10m', once = False):
+    def __init__(self, datashare_url, datashare_project, destination_directory, query = '*', throttle = 0, cookies = '', elasticsearch_url =  None, path_format = '{id_2b}/{id_4b}/{id}', scroll = '10m', once = False, traceback = False):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
-        self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, cookies, scroll)
         self.query = query
         self.destination_directory = destination_directory
         self.throttle = throttle
         self.cookies_string = cookies
         self.path_format = path_format
         self.once = once
+        self.traceback = traceback
+        try:
+            self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, cookies, scroll)
+        except (ConnectionRefusedError, ConnectionError):
+            logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
+            exit()
+
 
     @property
     def query_body(self):
@@ -120,10 +126,11 @@ class Download:
                 else:
                     logger.info('Skipping document %s' % document.get('_id'))
             except StopIteration:
+                logger.info('Search reached the end')
                 break
             except (ElasticsearchException, HTTPError):
-                logger.error('Unable to download document %s' % document.get('_id'))
+                logger.error('Unable to download document %s' % document.get('_id'), exc_info=self.traceback)
             except ConnectionTimeout:
-                logger.error('Scroll expired.')
-            except ProtocolError as e:
-                logger.error('Exception while search documents: %s' % e)
+                logger.error('Scroll expired', exc_info=self.traceback)
+            except ProtocolError:
+                logger.error('Exception while search documents', exc_info=self.traceback)

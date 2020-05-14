@@ -37,6 +37,7 @@ def tagging(**options):
 @click.option('--path-format', help='Downloaded document path template', default='{id_2b}/{id_4b}/{id}')
 @click.option('--scroll', help='Scroll duration', default='10m')
 @click.option('--once/--not-once', help='Download file only once', default=False)
+@click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 def download(**options):
     # Instanciate a Download class with all the options
     download = Download(**options)

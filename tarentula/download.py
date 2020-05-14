@@ -121,7 +121,9 @@ class Download:
                     logger.info('Skipping document %s' % document.get('_id'))
             except StopIteration:
                 break
-            except (ElasticsearchException, HTTPError, ProtocolError):
+            except (ElasticsearchException, HTTPError):
                 logger.error('Unable to download document %s' % document.get('_id'))
-            except (ConnectionTimeout):
+            except ConnectionTimeout:
                 logger.error('Scroll expired.')
+            except ProtocolError as e:
+                logger.error('Exception while search documents: %s' % e)

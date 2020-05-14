@@ -95,7 +95,7 @@ class DatashareClient:
         return requests.post(url, params = params, json = query, cookies = self.cookies).json()
 
     def scan_all(self, index = 'local-datashare', query = {}, _source_includes = None):
-        return helpers.scan(self.elasticsearch, query = query, scroll = self.scroll, index = index, doc_type = 'doc', _source_includes = _source_includes)
+        return helpers.scan(self.elasticsearch, query = query, scroll = self.scroll, index = index, doc_type = 'doc', _source_includes = _source_includes, request_timeout = 60)
 
     def query_all(self, index = 'local-datashare', query = {}, _source_includes = None):
         offset = 0

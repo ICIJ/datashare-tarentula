@@ -10,6 +10,7 @@ from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
 from elasticsearch.exceptions import ElasticsearchException, ConnectionTimeout
 from requests.exceptions import HTTPError
+from urllib3.exceptions import ProtocolError
 
 class Download:
     def __init__(self, datashare_url, datashare_project, destination_directory, query = '*', throttle = 0, cookies = '', elasticsearch_url =  None, path_format = '{id_2b}/{id_4b}/{id}', scroll = '10m', once = False):
@@ -107,7 +108,7 @@ class Download:
         with open(file_path, 'wb') as file:
             shutil.copyfileobj(document_file_stream.raw, file)
 
-    def start(self):                
+    def start(self):
         documents = self.scan_or_query_all()
         while True:
             try:
@@ -120,5 +121,7 @@ class Download:
                     logger.info('Skipping document %s' % document.get('_id'))
             except StopIteration:
                 break
-            except (ElasticsearchException, HTTPError, ConnectionTimeout):
+            except (ElasticsearchException, HTTPError, ProtocolError):
                 logger.error('Unable to download document %s' % document.get('_id'))
+            except (ConnectionTimeout):
+                logger.error('Scroll expired.')

@@ -68,7 +68,7 @@ Porrhothelidae,http://localhost:8080/#/d/local-datashare/fgCt6JLfHSl160fnsjRp/fg
 Theraphosidae,http://localhost:8080/#/d/local-datashare/WvwVvNjEDQJXkwHISQIu/WvwVvNjEDQJXkwHISQIu
 ```
 
-## Tagging
+## Download
 
 A command to download all files matching a query.
 

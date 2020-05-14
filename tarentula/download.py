@@ -107,14 +107,18 @@ class Download:
         with open(file_path, 'wb') as file:
             shutil.copyfileobj(document_file_stream.raw, file)
 
-    def start(self):
-        for document in self.scan_or_query_all():
+    def start(self):                
+        documents = self.scan_or_query_all()
+        while True:
             try:
+                document = next(documents)
                 if not self.once or not self.exists(document):
                     self.download(document)
                     logger.info('Document %s downloaded' % document.get('_id'))
                     self.sleep()
                 else:
                     logger.info('Skipping document %s' % document.get('_id'))
+            except StopIteration:
+                break
             except (ElasticsearchException, HTTPError, ConnectionTimeout):
                 logger.error('Unable to download document %s' % document.get('_id'))

@@ -8,7 +8,7 @@ from time import sleep
 
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
-from elasticsearch.exceptions import ElasticsearchException
+from elasticsearch.exceptions import ElasticsearchException, ConnectionTimeout
 from requests.exceptions import HTTPError
 
 class Download:
@@ -116,5 +116,5 @@ class Download:
                     self.sleep()
                 else:
                     logger.info('Skipping document %s' % document.get('_id'))
-            except (ElasticsearchException, HTTPError):
+            except (ElasticsearchException, HTTPError, ConnectionTimeout):
                 logger.error('Unable to download document %s' % document.get('_id'))

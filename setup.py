@@ -11,7 +11,8 @@ setup(name='tarentula',
         'requests==2.22.0',
         'bumpversion',
         'elasticsearch>=6.0.0,<7.0.0',
-        'coloredlogs'
+        'coloredlogs',
+        'tqdm',
     ],
     entry_points='''
         [console_scripts]

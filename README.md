@@ -18,6 +18,9 @@ Options:
   --syslog-address TEXT   Syslog address
   --syslog-port INTEGER   Syslog port
   --syslog-facility TEXT  Syslog facility
+  --stdout-loglevel TEXT  Change the default log level for stdout error
+                          handler
+
   --help                  Show this message and exit.
 
 Commands:
@@ -33,13 +36,17 @@ A command to batch tag documents with a CSV file.
 Usage: tarentula tagging [OPTIONS] CSV_PATH
 
 Options:
-  --datashare-url TEXT      Datashare URL
-  --datashare-project TEXT  Datashare project
-  --throttle INTEGER        Request throttling (in ms)
-  --cookies TEXT            Key/value pair to add a cookie to each request to
-                            the API. You can separate semicolons:
-                            key1=val1;key2=val2;...
-  --help                    Show this message and exit.
+  --datashare-url TEXT            Datashare URL
+  --datashare-project TEXT        Datashare project
+  --throttle INTEGER              Request throttling (in ms)
+  --cookies TEXT                  Key/value pair to add a cookie to each
+                                  request to the API. You can separate
+                                  semicolons: key1=val1;key2=val2;...
+
+  --traceback / --no-traceback    Display a traceback in case of error
+  --progressbar / --no-progressbar
+                                  Display a progressbar
+  --help                          Show this message and exit.
 ```
 
 ### CSV formats
@@ -76,22 +83,27 @@ A command to download all files matching a query.
 Usage: tarentula download [OPTIONS]
 
 Options:
-  --datashare-url TEXT          Datashare URL
-  --datashare-project TEXT      Datashare project
-  --elasticsearch-url TEXT      You can additionally pass the Elasticsearch
-                                URL in order to use scrolling capabilities of
-                                Elasticsearch (useful when dealing with a lot
-                                of results)
+  --datashare-url TEXT            Datashare URL
+  --datashare-project TEXT        Datashare project
+  --elasticsearch-url TEXT        You can additionally pass the Elasticsearch
+                                  URL in order to use scrolling capabilities
+                                  of Elasticsearch (useful when dealing with a
+                                  lot of results)
 
-  --query TEXT                  The query string to filter documents
-  --destination-directory TEXT  Directory documents will be downloaded
-  --throttle INTEGER            Request throttling (in ms)
-  --cookies TEXT                Key/value pair to add a cookie to each request
-                                to the API. You can separate semicolons:
-                                key1=val1;key2=val2;...
+  --query TEXT                    The query string to filter documents
+  --destination-directory TEXT    Directory documents will be downloaded
+  --throttle INTEGER              Request throttling (in ms)
+  --cookies TEXT                  Key/value pair to add a cookie to each
+                                  request to the API. You can separate
+                                  semicolons: key1=val1;key2=val2;...
 
-  --path-format TEXT            Downloaded document path template
-  --help                        Show this message and exit.
+  --path-format TEXT              Downloaded document path template
+  --scroll TEXT                   Scroll duration
+  --once / --not-once             Download file only once
+  --traceback / --no-traceback    Display a traceback in case of error
+  --progressbar / --no-progressbar
+                                  Display a progressbar
+  --help                          Show this message and exit.
 ```
 
 ## Testing

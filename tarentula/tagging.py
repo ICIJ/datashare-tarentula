@@ -1,20 +1,29 @@
 import csv
 import re
 import requests
+import sys
 from time import sleep
+from tqdm import tqdm
 from http.cookies import SimpleCookie
+from requests.exceptions import HTTPError, ConnectionError
 
 from tarentula.logger import logger
 
 DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/d/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
 
 class Tagger:
-    def __init__(self, datashare_url, datashare_project, throttle, csv_path, cookies = ''):
+    def __init__(self, datashare_url, datashare_project, throttle, csv_path, cookies = '', traceback = False, progressbar = True):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.cookies_string = cookies
         self.throttle = throttle
         self.csv_path = csv_path
+        self.traceback = traceback
+        self.progressbar = progressbar
+
+    @property
+    def no_progressbar(self):
+        return not self.progressbar
 
     @property
     def csv_rows(self):
@@ -50,6 +59,9 @@ class Tagger:
         except (TypeError, AttributeError):
             return {}
 
+    def sleep(self):
+        sleep(self.throttle / 1000)
+
     def sanitize_row(self, row):
         if 'documentUrl' in row:
             groups = DATASHARE_DOCUMENT_ROUTE.findall(row['documentUrl'])
@@ -69,17 +81,21 @@ class Tagger:
         )
 
     def summarize(self):
-        logger.info('Adding %s tags to %s documents' % (len(self.tags), len(self.documentIds)))
+        summary = 'Adding %s tags to %s documents' % (len(self.tags), len(self.documentIds))
+        logger.info(summary)
+        return summary
 
     def start(self):
-        for document_id, leaf in self.tree.items():
+        for document_id, leaf in tqdm(self.tree.items(), desc=self.summarize(), file=sys.stdout, disable=self.no_progressbar):
             endpoint_url = self.leaf_tagging_endpoint(leaf)
             for tag in leaf['tags']:
-                result = requests.put(endpoint_url, json = [tag], cookies = self.cookies)
-                sleep(self.throttle / 1000)
-                if result.status_code == requests.codes.ok:
-                    logger.info('Tag "%s" already exists on document "%s"' % (tag, document_id,))
-                elif result.status_code == requests.codes.created:
-                    logger.info('Added "%s" to document "%s"' % (tag, document_id,))
-                else:
-                    logger.warning('Unable to add "%s" to document "%s": %s' % (tag, document_id, result.status_code))
+                try:
+                    result = requests.put(endpoint_url, json = [tag], cookies = self.cookies)
+                    result.raise_for_status()
+                    self.sleep()
+                    if result.status_code == requests.codes.ok:
+                        logger.info('Tag "%s" already exists on document "%s"' % (tag, document_id,))
+                    elif result.status_code == requests.codes.created:
+                        logger.info('Added "%s" to document "%s"' % (tag, document_id,))
+                except (HTTPError, ConnectionError):
+                    logger.warning('Unable to add "%s" to document "%s"' % (tag, document_id), exc_info=self.traceback)

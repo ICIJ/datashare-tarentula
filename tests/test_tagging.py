@@ -40,7 +40,7 @@ class TestTagging(TestCase):
     def test_progression(self):
         with self.mock_tagging_endpoint():
             runner = CliRunner()
-            result = runner.invoke(cli, ['tagging', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, self.csv_with_ids_path])
+            result = runner.invoke(cli, ['--stdout-loglevel', 'INFO', 'tagging', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, self.csv_with_ids_path])
             self.assertIn('Added "Actinopodidae" to document "l7VnZZEzg2fr960NWWEG"', result.output)
             self.assertIn('Added "Hexathelidae" to document "l7VnZZEzg2fr960NWWEG"', result.output)
             self.assertIn('Added "Dipluridae" to document "vYl1C4bsWphUKvXEBDhM"', result.output)

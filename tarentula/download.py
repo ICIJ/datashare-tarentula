@@ -1,6 +1,8 @@
 import json
 import requests
 import shutil
+import sys
+from tqdm import tqdm
 
 from os import makedirs
 from os.path import join, dirname, basename, exists
@@ -13,7 +15,7 @@ from requests.exceptions import HTTPError, ConnectionError
 from urllib3.exceptions import ProtocolError
 
 class Download:
-    def __init__(self, datashare_url, datashare_project, destination_directory, query = '*', throttle = 0, cookies = '', elasticsearch_url =  None, path_format = '{id_2b}/{id_4b}/{id}', scroll = '10m', once = False, traceback = False):
+    def __init__(self, datashare_url, datashare_project, destination_directory, query = '*', throttle = 0, cookies = '', elasticsearch_url =  None, path_format = '{id_2b}/{id_4b}/{id}', scroll = '10m', once = False, traceback = False, progressbar = True):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.query = query
@@ -23,6 +25,7 @@ class Download:
         self.path_format = path_format
         self.once = once
         self.traceback = traceback
+        self.progressbar = progressbar
         try:
             self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, cookies, scroll)
         except (ConnectionRefusedError, ConnectionError):
@@ -64,6 +67,10 @@ class Download:
             query_body = json.load(json_file)
         return query_body
 
+    @property
+    def no_progressbar(self):
+        return not self.progressbar
+
     def sleep(self):
         sleep(self.throttle / 1000)
 
@@ -85,10 +92,15 @@ class Download:
             makedirs(parents_path, exist_ok=True)
         return file_path
 
+    def count_matches(self):
+        index = self.datashare_project
+        return self.datashare_client.count(index = index, query = self.query_body).get('count')
+
     def log_matches(self):
         index = self.datashare_project
-        count = self.datashare_client.count(index = index, query = self.query_body)
-        logger.info('%s matching document(s) in %s' % (count.get('count'), index))
+        count = self.count_matches()
+        logger.info('%s matching document(s) in %s' % (count, index))
+        return count
 
     def scan_or_query_all(self):
         index = self.datashare_project
@@ -115,22 +127,19 @@ class Download:
             shutil.copyfileobj(document_file_stream.raw, file)
 
     def start(self):
-        documents = self.scan_or_query_all()
-        while True:
-            try:
-                document = next(documents)
-                if not self.once or not self.exists(document):
-                    self.download(document)
-                    logger.info('Document %s downloaded' % document.get('_id'))
-                    self.sleep()
-                else:
-                    logger.info('Skipping document %s' % document.get('_id'))
-            except StopIteration:
-                logger.info('Search reached the end')
-                break
-            except (ElasticsearchException, HTTPError):
-                logger.error('Unable to download document %s' % document.get('_id'), exc_info=self.traceback)
-            except (ConnectionTimeout, NotFoundError):
-                logger.error('Scroll expired', exc_info=self.traceback)
-            except ProtocolError:
-                logger.error('Exception while search documents', exc_info=self.traceback)
+        count = self.log_matches()
+        try:
+            documents = self.scan_or_query_all()
+            pbar = tqdm(documents, total=count, desc="Downloading %s document(s)" % count, file=sys.stdout, disable=self.no_progressbar)
+            for document in pbar:
+                try:
+                    if not self.once or not self.exists(document):
+                        self.download(document)
+                        logger.info('Saved document %s' % document.get('_id'))
+                        self.sleep()
+                    else:
+                        logger.info('Skipping document %s' % document.get('_id'))
+                except (ElasticsearchException, HTTPError):
+                    logger.error('Unable to download document %s' % document.get('_id'), exc_info=self.traceback)
+        except (ProtocolError, ConnectionTimeout, NotFoundError):
+            logger.error('Exception while searching documents', exc_info=self.traceback)

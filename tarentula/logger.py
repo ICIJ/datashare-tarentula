@@ -1,5 +1,5 @@
-import sys
 import logging
+import coloredlogs
 from logging.handlers import SysLogHandler
 
 logger = logging.getLogger('tarentula')
@@ -15,9 +15,6 @@ def add_syslog_handler(address = 'localhost', port = 514, facility = 'local7'):
     sysLogHandler.setFormatter(sysLogFormatter)
     logger.addHandler(sysLogHandler)
 
-def add_stdout_handler():
-    stdoutFormatter = default_log_formatter()
-    stdoutHandler = logging.StreamHandler(sys.stdout)
-    stdoutHandler.setLevel(logging.INFO)
-    stdoutHandler.setFormatter(stdoutFormatter)
-    logger.addHandler(stdoutHandler)
+def add_stdout_handler(level = logging.ERROR):
+    fmt = '%(levelname)s %(message)s'
+    coloredlogs.install(level=level, logger=logger, fmt=fmt)

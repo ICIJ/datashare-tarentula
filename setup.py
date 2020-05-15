@@ -10,7 +10,8 @@ setup(name='tarentula',
         'Click',
         'requests==2.22.0',
         'bumpversion',
-        'elasticsearch>=6.0.0,<7.0.0'
+        'elasticsearch>=6.0.0,<7.0.0',
+        'coloredlogs'
     ],
     entry_points='''
         [console_scripts]

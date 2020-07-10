@@ -15,7 +15,7 @@ from requests.exceptions import HTTPError, ConnectionError
 from urllib3.exceptions import ProtocolError
 
 class Download:
-    def __init__(self, datashare_url, datashare_project, destination_directory, query = '*', throttle = 0, cookies = '', elasticsearch_url =  None, path_format = '{id_2b}/{id_4b}/{id}', scroll = '10m', once = False, traceback = False, progressbar = True):
+    def __init__(self, datashare_url, datashare_project, destination_directory, query = '*', throttle = 0, cookies = '', elasticsearch_url =  None, path_format = '{id_2b}/{id_4b}/{id}', scroll = '10m', once = False, traceback = False, progressbar = True, type = 'Document'):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.query = query
@@ -26,6 +26,7 @@ class Download:
         self.once = once
         self.traceback = traceback
         self.progressbar = progressbar
+        self.type = type
         try:
             self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, cookies, scroll)
         except (ConnectionRefusedError, ConnectionError):
@@ -48,7 +49,7 @@ class Download:
                     "must": [
                         {
                             "match": {
-                                "type": "Document"
+                                "type": self.type
                             }
                         },
                         {
@@ -80,8 +81,8 @@ class Download:
             "id_2b": document.get('_id')[0:2],
             "id_4b": document.get('_id')[2:4],
             "project": self.datashare_project,
-            "basename": basename(document.get('_source').get("path")),
-            "parentDocument": document.get('_source').get('parentDocument')
+            "basename": basename(document.get('_source', {}).get("path", '')),
+            "parentDocument": document.get('_source', {}).get('parentDocument', None)
         }
 
     def raw_file_path(self, document, parents = True):
@@ -115,11 +116,14 @@ class Download:
         index = self.datashare_project
         self.log_matches()
         logger.info('Searching document(s) metadata in %s' % index)
-        return self.datashare_client.scan_or_query_all(index = index, query = self.query_body, _source_includes = ["path", "parentDocument"])
+        return self.datashare_client.scan_or_query_all(index = index, query = self.query_body, _source_includes = ["path", "parentDocument", "type"])
 
     def download_raw_file(self, document):
         id = document.get('_id')
         routing = document.get('_routing', id)
+        if document.get('_source', {}).get('type', None) != 'Document':
+            logger.warning('Not a raw document. Skipping %s' % id)
+            return
         logger.info('Downloading raw file %s' % id)
         document_file_stream = self.datashare_client.download(self.datashare_project, id, routing)
         document_file_stream.raw.decode_content = True

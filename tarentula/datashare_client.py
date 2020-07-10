@@ -9,7 +9,7 @@ def urljoin(*args):
     return '/'.join(s.strip('/') for s in args if s is not None)
 
 class DatashareClient:
-    def __init__(self, datashare_url = 'http://localhost:8080', elasticsearch_url = 'http://localhost:9200', cookies = '', scroll =  '10m'):
+    def __init__(self, datashare_url = 'http://localhost:8080', elasticsearch_url = None, cookies = '', scroll =  '10m'):
         self.datashare_url = datashare_url
         self.cookies_string = cookies
         self.scroll = scroll
@@ -89,22 +89,31 @@ class DatashareClient:
         # Return the dest name
         return dest if result.status_code == requests.codes.ok else None
 
-    def query(self, index = 'local-datashare', query = {}, q = None, size = None, offset = 0, _source_includes = None):
-        params = { "q": q, "size": size, "from": offset, "_source_includes": _source_includes }
+    def query(self, index = 'local-datashare', query = {}, search_after = None, q = None, size = None, _source_includes = None):
+        local_query = {
+            "size": size,
+            "_source": _source_includes,
+            "sort": { "_id": "asc" }
+        }
+        if search_after is not None:
+            local_query["search_after"] = search_after
         url = urljoin(self.elasticsearch_host, index, '/doc/_search')
-        return requests.post(url, params = params, json = query, cookies = self.cookies).json()
+        response = requests.post(url, params = { "q": q }, json = { **local_query, **query }, cookies = self.cookies)
+        response.raise_for_status()
+        return response.json()
 
     def scan_all(self, index = 'local-datashare', query = {}, _source_includes = None):
         return helpers.scan(self.elasticsearch, query = query, scroll = self.scroll, index = index, doc_type = 'doc', _source_includes = _source_includes, request_timeout = 60)
 
     def query_all(self, index = 'local-datashare', query = {}, _source_includes = None):
-        offset = 0
-        response = self.query(offset = offset, size = 25, index = index, query = query, _source_includes = _source_includes)
+        search_after = None
+        response = self.query(search_after = search_after, size = 25, index = index, query = query, _source_includes = _source_includes)
         while len(response['hits']['hits']) > 0:
             for item in response['hits']['hits']:
                 yield item
-            offset = offset + len(response['hits']['hits'])
-            response = self.query(offset = offset, size = 25, index = index, query = query, _source_includes = _source_includes)
+            search_after = response['hits']['hits'][-1]['sort']
+            response = self.query(search_after = search_after, size = 25, index = index, query = query, _source_includes = _source_includes)
+
 
     def scan_or_query_all(self, index = 'local-datashare', query = {}, _source_includes = None):
         if self.is_elasticsearch_behind_proxy:
@@ -117,8 +126,8 @@ class DatashareClient:
         return requests.post(url, json = query, cookies = self.cookies).json()
 
     def document(self, index = 'local-datashare', id = None, routing = None):
-        url = urljoin(self.elasticsearch_url, index, '/doc/', id)
-        return requests.get(url, params = { routing: routing }, cookies = self.cookies).json()
+        url = urljoin(self.datashare_url, '/api/index/search/', index, '/doc/', id)
+        return requests.get(url, params = { "routing": routing }, cookies = self.cookies).json()
 
     def download(self, index = 'local-datashare', id = None, routing = None):
         routing = routing or id

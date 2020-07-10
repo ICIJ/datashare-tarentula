@@ -84,8 +84,17 @@ class Download:
             "parentDocument": document.get('_source').get('parentDocument')
         }
 
-    def document_file_path(self, document, parents = True):
+    def raw_file_path(self, document, parents = True):
         formatted_path = self.path_format.format(**self.document_file_options(document))
+        file_path = join(self.destination_directory, formatted_path)
+        if parents:
+            parents_path = dirname(file_path)
+            makedirs(parents_path, exist_ok=True)
+        return file_path
+
+    def indexed_document_path(self, document, parents = True):
+        formatted_path = self.path_format.format(**self.document_file_options(document))
+        formatted_path = '.'.join((formatted_path, 'json'))
         file_path = join(self.destination_directory, formatted_path)
         if parents:
             parents_path = dirname(file_path)
@@ -108,23 +117,36 @@ class Download:
         logger.info('Searching document(s) metadata in %s' % index)
         return self.datashare_client.scan_or_query_all(index = index, query = self.query_body, _source_includes = ["path", "parentDocument"])
 
-    def download(self, document):
+    def download_raw_file(self, document):
         id = document.get('_id')
         routing = document.get('_routing', id)
-        logger.info('Downloading document %s' % id)
+        logger.info('Downloading raw file %s' % id)
         document_file_stream = self.datashare_client.download(self.datashare_project, id, routing)
         document_file_stream.raw.decode_content = True
         document_file_stream.raise_for_status()
-        self.save(document, document_file_stream)
+        self.save_raw_file(document, document_file_stream)
+
+    def download_indexed_document(self, document):
+        id = document.get('_id')
+        routing = document.get('_routing', id)
+        logger.info('Downloading indexed document %s' % id)
+        indexed_document = self.datashare_client.document(self.datashare_project, id, routing)
+        self.save_indexed_document(indexed_document)
 
     def exists(self, document):
-        file_path = self.document_file_path(document)
-        return exists(file_path)
+        raw_file_path = self.raw_file_path(document)
+        indexed_document_path = self.indexed_document_path(document)
+        return exists(raw_file_path) and exists(indexed_document_path)
 
-    def save(self, document, document_file_stream):
-        file_path = self.document_file_path(document)
+    def save_raw_file(self, document, document_file_stream):
+        file_path = self.raw_file_path(document)
         with open(file_path, 'wb') as file:
             shutil.copyfileobj(document_file_stream.raw, file)
+
+    def save_indexed_document(self, indexed_document):
+        file_path = self.indexed_document_path(indexed_document)
+        with open(file_path, 'w') as file:
+            json.dump(indexed_document, file)
 
     def start(self):
         count = self.log_matches()
@@ -134,7 +156,8 @@ class Download:
             for document in pbar:
                 try:
                     if not self.once or not self.exists(document):
-                        self.download(document)
+                        self.download_raw_file(document)
+                        self.download_indexed_document(document)
                         logger.info('Saved document %s' % document.get('_id'))
                         self.sleep()
                     else:

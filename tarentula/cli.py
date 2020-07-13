@@ -61,7 +61,6 @@ def tagging(**options):
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None, callback=validate_progressbar)
 @click.option('--raw-file/--no-raw-file', help='Download raw file from Datashare', default=True)
-@click.option('--indexed-document/--no-indexed-document', help='Download raw file from Datashare', default=True)
 @click.option('--type', help='Type of indexed documents to download', default='Document', type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 def download(ctx, **options):
     # Instanciate a Download class with all the options

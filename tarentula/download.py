@@ -29,7 +29,6 @@ class Download:
                 traceback = False,
                 progressbar = True,
                 raw_file = True,
-                indexed_document = True,
                 source = None,
                 type = 'Document'):
         self.datashare_url = datashare_url
@@ -43,7 +42,6 @@ class Download:
         self.traceback = traceback
         self.progressbar = progressbar
         self.raw_file = raw_file
-        self.indexed_document = indexed_document
         self.source = source
         self.type = type
         try:
@@ -133,9 +131,10 @@ class Download:
 
     def scan_or_query_all(self):
         index = self.datashare_project
+        source = ["path", "parentDocument", "type"] + str(self.source).split(',')
         self.log_matches()
         logger.info('Searching document(s) metadata in %s' % index)
-        return self.datashare_client.scan_or_query_all(index = index, query = self.query_body, _source_includes = ["path", "parentDocument", "type"])
+        return self.datashare_client.scan_or_query_all(index = index, query = self.query_body, source = source)
 
     def download_raw_file(self, document):
         id = document.get('_id')
@@ -154,24 +153,8 @@ class Download:
         document_file_stream.raise_for_status()
         self.save_raw_file(document, document_file_stream)
 
-    def download_indexed_document(self, document):
-        id = document.get('_id')
-        routing = document.get('_routing', id)
-        # Skip indexed document
-        if not self.indexed_document: return
-        # Skip existing
-        if self.once and self.indexed_document_exists(document):
-            return logger.info('Skipping existing document %s' % document.get('_id'))
-        logger.info('Downloading indexed document %s' % id)
-        indexed_document = self.datashare_client.document(self.datashare_project, id, routing, self.source)
-        self.save_indexed_document(indexed_document)
-
     def raw_file_exists(self, document):
         raw_file_path = self.raw_file_path(document)
-        return exists(raw_file_path)
-
-    def indexed_document_exists(self, document):
-        indexed_document_path = self.indexed_document_path(document)
         return exists(raw_file_path)
 
     def save_raw_file(self, document, document_file_stream):
@@ -192,7 +175,7 @@ class Download:
             for document in pbar:
                 try:
                     self.download_raw_file(document)
-                    self.download_indexed_document(document)
+                    self.save_indexed_document(document)
                     logger.info('Processed document %s' % document.get('_id'))
                     self.sleep()
                 except (ElasticsearchException, HTTPError):

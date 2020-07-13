@@ -125,9 +125,10 @@ class DatashareClient:
         url = urljoin(self.elasticsearch_host, index, '_count')
         return requests.post(url, json = query, cookies = self.cookies).json()
 
-    def document(self, index = 'local-datashare', id = None, routing = None):
+    def document(self, index = 'local-datashare', id = None, routing = None, source = None):
         url = urljoin(self.elasticsearch_host, index, '/doc/', id)
-        return requests.get(url, params = { "routing": routing }, cookies = self.cookies).json()
+        params = { "routing": routing, "_source": source }
+        return requests.get(url, params = params, cookies = self.cookies).json()
 
     def download(self, index = 'local-datashare', id = None, routing = None):
         routing = routing or id

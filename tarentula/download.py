@@ -15,7 +15,23 @@ from requests.exceptions import HTTPError, ConnectionError
 from urllib3.exceptions import ProtocolError
 
 class Download:
-    def __init__(self, datashare_url, datashare_project, destination_directory, query = '*', throttle = 0, cookies = '', elasticsearch_url =  None, path_format = '{id_2b}/{id_4b}/{id}', scroll = '10m', once = False, traceback = False, progressbar = True, type = 'Document'):
+    def __init__(self,
+                datashare_url,
+                datashare_project,
+                destination_directory,
+                query = '*',
+                throttle = 0,
+                cookies = '',
+                elasticsearch_url =  None,
+                path_format = '{id_2b}/{id_4b}/{id}',
+                scroll = '10m',
+                once = False,
+                traceback = False,
+                progressbar = True,
+                raw_file = True,
+                indexed_document = True,
+                source = None,
+                type = 'Document'):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.query = query
@@ -26,6 +42,9 @@ class Download:
         self.once = once
         self.traceback = traceback
         self.progressbar = progressbar
+        self.raw_file = raw_file
+        self.indexed_document = indexed_document
+        self.source = source
         self.type = type
         try:
             self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, cookies, scroll)
@@ -121,9 +140,14 @@ class Download:
     def download_raw_file(self, document):
         id = document.get('_id')
         routing = document.get('_routing', id)
+        # Skip raw file
+        if not self.raw_file: return
+        # Skip existing
+        if self.once and self.raw_file_exists(document):
+            return logger.info('Skipping existing document %s' % document.get('_id'))
+        # Skip non-downloadable file
         if document.get('_source', {}).get('type', None) != 'Document':
-            logger.warning('Not a raw document. Skipping %s' % id)
-            return
+            return logger.warning('Not a raw document. Skipping %s' % id)
         logger.info('Downloading raw file %s' % id)
         document_file_stream = self.datashare_client.download(self.datashare_project, id, routing)
         document_file_stream.raw.decode_content = True
@@ -133,14 +157,22 @@ class Download:
     def download_indexed_document(self, document):
         id = document.get('_id')
         routing = document.get('_routing', id)
+        # Skip indexed document
+        if not self.indexed_document: return
+        # Skip existing
+        if self.once and self.indexed_document_exists(document):
+            return logger.info('Skipping existing document %s' % document.get('_id'))
         logger.info('Downloading indexed document %s' % id)
-        indexed_document = self.datashare_client.document(self.datashare_project, id, routing)
+        indexed_document = self.datashare_client.document(self.datashare_project, id, routing, self.source)
         self.save_indexed_document(indexed_document)
 
-    def exists(self, document):
+    def raw_file_exists(self, document):
         raw_file_path = self.raw_file_path(document)
+        return exists(raw_file_path)
+
+    def indexed_document_exists(self, document):
         indexed_document_path = self.indexed_document_path(document)
-        return exists(raw_file_path) and exists(indexed_document_path)
+        return exists(raw_file_path)
 
     def save_raw_file(self, document, document_file_stream):
         file_path = self.raw_file_path(document)
@@ -159,13 +191,10 @@ class Download:
             pbar = tqdm(documents, total=count, desc="Downloading %s document(s)" % count, file=sys.stdout, disable=self.no_progressbar)
             for document in pbar:
                 try:
-                    if not self.once or not self.exists(document):
-                        self.download_raw_file(document)
-                        self.download_indexed_document(document)
-                        logger.info('Saved document %s' % document.get('_id'))
-                        self.sleep()
-                    else:
-                        logger.info('Skipping document %s' % document.get('_id'))
+                    self.download_raw_file(document)
+                    self.download_indexed_document(document)
+                    logger.info('Processed document %s' % document.get('_id'))
+                    self.sleep()
                 except (ElasticsearchException, HTTPError):
                     logger.error('Unable to download document %s' % document.get('_id'), exc_info=self.traceback)
         except (ProtocolError, ConnectionTimeout, NotFoundError):

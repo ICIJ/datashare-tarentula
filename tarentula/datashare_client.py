@@ -89,7 +89,7 @@ class DatashareClient:
         # Return the dest name
         return dest if result.status_code == requests.codes.ok else None
 
-    def query(self, index = 'local-datashare', query = {}, search_after = None, q = None, size = None, _source_includes = None):
+    def query(self, index = 'local-datashare', query = {}, search_after = None, q = None, size = 0, _source_includes = None):
         local_query = {
             "size": size,
             "sort": { "_id": "asc" }

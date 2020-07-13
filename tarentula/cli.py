@@ -59,7 +59,7 @@ def tagging(**options):
 @click.option('--once/--not-once', help='Download file only once', default=False)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None, callback=validate_progressbar)
-@click.option('--type', help='Type of indexed documents to download', default='Document')
+@click.option('--type', help='Type of indexed documents to download', default='Document', type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 def download(ctx, **options):
     # Instanciate a Download class with all the options
     download = Download(**options)

@@ -76,7 +76,7 @@ class DatashareClient:
         # Create a default destination index name
         if dest is None: dest = '%s-copy-%s' % (source, uuid4().hex[:6])
         # Source index must at least have one document
-        document_id = self.index(source)
+        document_id = self.index(source, document = { "content": "This is a temporary document", "tags": ["tmp"] })
         # Copy everything
         json = { "source": { "index": source }, "dest": { "index": dest }, "size": size }
         # Send the request to elasticsearch
@@ -92,11 +92,12 @@ class DatashareClient:
     def query(self, index = 'local-datashare', query = {}, search_after = None, q = None, size = None, _source_includes = None):
         local_query = {
             "size": size,
-            "_source": _source_includes,
             "sort": { "_id": "asc" }
         }
         if search_after is not None:
             local_query["search_after"] = search_after
+        if _source_includes is not None:
+            local_query["_source"] = _source_includes
         url = urljoin(self.elasticsearch_host, index, '/doc/_search')
         response = requests.post(url, params = { "q": q }, json = { **local_query, **query }, cookies = self.cookies)
         response.raise_for_status()
@@ -106,8 +107,7 @@ class DatashareClient:
         return helpers.scan(self.elasticsearch, query = query, scroll = self.scroll, index = index, doc_type = 'doc', _source_includes = _source_includes, request_timeout = 60)
 
     def query_all(self, index = 'local-datashare', query = {}, _source_includes = None):
-        search_after = None
-        response = self.query(search_after = search_after, size = 25, index = index, query = query, _source_includes = _source_includes)
+        response = self.query(size = 25, index = index, query = query, _source_includes = _source_includes)
         while len(response['hits']['hits']) > 0:
             for item in response['hits']['hits']:
                 yield item
@@ -122,11 +122,11 @@ class DatashareClient:
             return self.scan_all(index, query, _source_includes)
 
     def count(self, index = 'local-datashare', query = {}):
-        url = urljoin(self.datashare_url, '/api/index/search/', index, '_count')
+        url = urljoin(self.elasticsearch_host, index, '_count')
         return requests.post(url, json = query, cookies = self.cookies).json()
 
     def document(self, index = 'local-datashare', id = None, routing = None):
-        url = urljoin(self.datashare_url, '/api/index/search/', index, '/doc/', id)
+        url = urljoin(self.elasticsearch_host, index, '/doc/', id)
         return requests.get(url, params = { "routing": routing }, cookies = self.cookies).json()
 
     def download(self, index = 'local-datashare', id = None, routing = None):

@@ -53,20 +53,20 @@ class TestTagging(TestCase):
             self.assertTrue(len(resp.calls) == 20)
 
     def test_routing_is_correct(self):
-        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path)
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, progressbar = False)
         self.assertEqual(tagger.tree['l7VnZZEzg2fr960NWWEG']['routing'], 'l7VnZZEzg2fr960NWWEG')
         self.assertEqual(tagger.tree['6VE7cVlWszkUd94XeuSd']['routing'], 'vZJQpKQYhcI577gJR0aN')
 
     def test_routing_uses_fallback(self):
-        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path)
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, progressbar = False)
         self.assertEqual(tagger.tree['DWLOskax28jPQ2CjFrCo']['routing'], 'DWLOskax28jPQ2CjFrCo')
 
     def test_document_is_in_tree(self):
-        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path)
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, progressbar = False)
         self.assertIn('l7VnZZEzg2fr960NWWEG', tagger.tree)
 
     def test_tags_are_in_tree(self):
-        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path)
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, progressbar = False)
         self.assertIn('Antrodiaetidae', tagger.tree['DWLOskax28jPQ2CjFrCo']['tags'])
         self.assertIn('Idiopidae', tagger.tree['DWLOskax28jPQ2CjFrCo']['tags'])
 
@@ -86,7 +86,7 @@ class TestTagging(TestCase):
 
     def test_tags_are_all_created(self):
         with self.datashare_client.temporary_project() as project:
-            tagger = Tagger(self.datashare_url, project, 0, self.csv_with_ids_path)
+            tagger = Tagger(self.datashare_url, project, 0, self.csv_with_ids_path, progressbar = False)
             # Ensure there is no documents yet
             self.assertEqual(self.datashare_client.query(index = project, size = 0).get('hits', {}).get('total'), 0)
             # Create all the docs
@@ -116,7 +116,7 @@ class TestTagging(TestCase):
                 runner.invoke(cli, ['tagging', '--datashare-url', self.datashare_url, '--datashare-project', project, 'tags.csv'])
             # Get the document from Elasticsearch
             document = self.datashare_client.document(index = project, id = "atypidae")
-            self.assertIn('mygalomorph', document.get('_source').get('tags', []))
+            self.assertIn('mygalomorph', document.get('_source', {}).get('tags', []))
 
     def test_tags_are_correct(self):
         with self.datashare_client.temporary_project() as project:
@@ -136,27 +136,27 @@ class TestTagging(TestCase):
 
     def test_cookies_are_parsed_by_tagger(self):
         cookies = 'session=mygalomorph;age=14'
-        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, cookies)
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, cookies, progressbar = False)
         self.assertEqual(tagger.cookies['session'], 'mygalomorph')
         self.assertEqual(tagger.cookies['age'], '14')
         self.assertEqual(len(tagger.cookies.keys()), 2)
 
     def test_multiple_cookies_are_parsed_by_tagger(self):
         cookies = 'session=mygalomorph'
-        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, cookies)
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, cookies, progressbar = False)
         self.assertEqual(tagger.cookies['session'], 'mygalomorph')
         self.assertEqual(len(tagger.cookies.keys()), 1)
 
     def test_session_cookies_are_parsed_by_tagger(self):
         cookies = r'_ds_session_id="{\"login\":\"\",\"roles\":[],\"sessionId\":\"dq18s0kj08dq10skLYGSu8SFVsg\",\"redirectAfterLogin\":\"/\"}"'
-        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, cookies)
+        tagger = Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, cookies, progressbar = False)
         self.assertEqual(tagger.cookies['_ds_session_id'], r'{"login":"","roles":[],"sessionId":"dq18s0kj08dq10skLYGSu8SFVsg","redirectAfterLogin":"/"}')
         self.assertEqual(len(tagger.cookies.keys()), 1)
 
     def test_cookies_are_send_while_tagging(self):
         with self.mock_tagging_endpoint() as resp:
             cookies = 'session=mygalomorph'
-            Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, cookies).start()
+            Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, cookies, progressbar = False).start()
             self.assertEqual(resp.calls[0].request.headers['Cookie'], cookies)
             self.assertEqual(resp.calls[2].request.headers['Cookie'], cookies)
             self.assertEqual(resp.calls[6].request.headers['Cookie'], cookies)
@@ -164,7 +164,7 @@ class TestTagging(TestCase):
 
     def test_cookies_arent_send_while_tagging(self):
         with self.mock_tagging_endpoint() as resp:
-            Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path).start()
+            Tagger(self.datashare_url, self.datashare_project, 0, self.csv_with_ids_path, progressbar = False).start()
             self.assertNotIn('Cookie', resp.calls[0].request.headers)
             self.assertNotIn('Cookie', resp.calls[2].request.headers)
             self.assertNotIn('Cookie', resp.calls[6].request.headers)

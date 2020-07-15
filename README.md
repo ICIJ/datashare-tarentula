@@ -108,20 +108,22 @@ Options:
 
 ## Testing
 
-To test this tool, you must have Datashare and Elasticsearch running on your development machine. We provide a Docker Compose file to simplify the installation.
+To test this tool, you must have Datashare and Elasticsearch running on your development machine.
+
+After you [installed Datashare](https://datashare.icij.org/), just run it with the default options:
 
 ```
-docker-compose -p tarentula -f tests/docker-compose.yml up
+datashare
 ```
 
-Install the development dependencies:
+In a separate terminale, install the development dependencies:
 
 ```
 sudo apt install pipenv
 make install
 ```
 
-Then in a separated terminal, just run:
+Finally, run the test
 
 ```
 make test

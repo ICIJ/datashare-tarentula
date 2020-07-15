@@ -1,5 +1,6 @@
 DOCKER_USER := icij
 DOCKER_NAME := datashare-tarentula
+PIP_PACKAGE_NAME := tarentula
 CURRENT_VERSION ?= `pipenv run python setup.py --version`
 
 clean:
@@ -25,6 +26,7 @@ patch:
 
 distribute:
 		pipenv run python setup.py sdist bdist_wheel
+		pipenv run python -m twine upload --repository ${PIP_PACKAGE_NAME} dist/*
 
 docker-publish: docker-build docker-tag docker-push
 

@@ -14,6 +14,7 @@ coloredlogs = "*"
 bumpversion = "==0.5.3"
 nose = "*"
 responses = "*"
+twine = "*"
 
 [requires]
 python_version = "3.6"

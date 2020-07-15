@@ -25,7 +25,7 @@ patch:
 
 distribute:
 		pipenv run python setup.py sdist bdist_wheel
-		pipenv run python twine upload dist/*
+		pipenv run twine upload dist/*
 
 docker-publish: docker-build docker-tag docker-push
 

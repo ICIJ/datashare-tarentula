@@ -16,6 +16,7 @@ ENV LANG=C.UTF-8
 WORKDIR /opt/app
 
 COPY setup.py .
+COPY README.md .
 RUN pip install --editable .
 
 COPY . .

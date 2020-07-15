@@ -24,7 +24,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            sudo apt install pipenv
+            (sudo apt update || /bin/true) && sudo apt install pipenv
             make install
       - run:
           name: Wait for Datashare to be up

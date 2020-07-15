@@ -22,14 +22,14 @@ jobs:
           command: datashare
           background: true
       - run:
-          name: Wait for Datashare to be up
-          shell: /bin/sh
-          command: wget --retry-connrefused --waitretry=5 --read-timeout=30 --timeout=30 -t 10 http://localhost:8080
-      - run:
           name: Install dependencies
           command: |
             sudo apt install pipenv
             make install
+      - run:
+          name: Wait for Datashare to be up
+          shell: /bin/sh
+          command: wget --retry-connrefused --waitretry=5 --read-timeout=30 --timeout=30 -t 10 http://localhost:8080
       - run:
           name: Run tests
           command: |

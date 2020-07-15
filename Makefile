@@ -30,7 +30,7 @@ distribute:
 docker-publish: docker-build docker-tag docker-push
 
 docker-run:
-		docker run -p 3000:3000 -it $(DOCKER_NAME)
+		docker run -it $(DOCKER_NAME)
 
 docker-build:
 		docker build -t $(DOCKER_NAME) .

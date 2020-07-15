@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='tarentula',
-    version='1.4.1',
+    version='1.4.2',
     packages=find_packages(),
     description="Cli toolbelt for Datashare.",
     long_description=long_description,

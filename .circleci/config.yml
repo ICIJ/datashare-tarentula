@@ -1,9 +1,9 @@
 version: 2
 jobs:
   build:
-    working_directory: ~/repo    
+    working_directory: ~/repo
     docker:
-      - image: circleci/python:3.8.4-buster
+      - image: circleci/python:3.8-buster
         environment:
           - "DATASHARE_VERSION=7.1.3"
     steps:
@@ -24,7 +24,7 @@ jobs:
       - run:
           name: Wait for Datashare to be up
           shell: /bin/sh
-          command: wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 10 http://localhost:8080
+          command: wget --retry-connrefused --waitretry=5 --read-timeout=30 --timeout=30 -t 10 http://localhost:8080
       - run:
           name: Install dependencies
           command: |

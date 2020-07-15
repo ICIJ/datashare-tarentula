@@ -30,5 +30,5 @@ setup(name='tarentula',
     python_requires='>=3.6',
     entry_points='''
         [console_scripts]
-        tarentula-cli=tarentula.cli:cli
+        tarentula=tarentula.cli:cli
     ''')

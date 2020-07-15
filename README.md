@@ -99,11 +99,17 @@ Options:
 
   --path-format TEXT              Downloaded document path template
   --scroll TEXT                   Scroll duration
+  --source TEXT                   A commat-separated list of field to include
+                                  in the downloaded document from the index
+
   --once / --not-once             Download file only once
   --traceback / --no-traceback    Display a traceback in case of error
   --progressbar / --no-progressbar
                                   Display a progressbar
+  --raw-file / --no-raw-file      Download raw file from Datashare
+  --type [Document|NamedEntity]   Type of indexed documents to download
   --help                          Show this message and exit.
+
 ```
 
 ## Testing

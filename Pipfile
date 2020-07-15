@@ -15,6 +15,7 @@ bumpversion = "==0.5.3"
 nose = "*"
 responses = "*"
 twine = "*"
+importlib-metadata = "*"
 
 [requires]
 python_version = "3.6"

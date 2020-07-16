@@ -1,9 +1,11 @@
 import os
 import requests
+import time
 import uuid
 
-from unittest import  TestCase
+from requests.exceptions import HTTPError
 from tarentula.datashare_client import DatashareClient
+from unittest import TestCase
 
 class TestDatashareClient(TestCase):
     @classmethod
@@ -97,3 +99,35 @@ class TestDatashareClient(TestCase):
             self.datashare_client.index(index = project,  document = { 'name': 'Atypidae' }, id = 'atypidae')
             document = self.datashare_client.document(index = project, id = 'atypidae')
             self.assertEqual(document.get('_source', {}).get('name'), 'Atypidae')
+
+    def test_query_is_made_over_all_documents(self):
+        with self.datashare_client.temporary_project(self.datashare_project) as project:
+            self.datashare_client.index(index = project,  document = { 'name': 'Actinopodidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Antrodiaetidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Atracidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Atypidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Barychelidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Barychelidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Ctenizidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Cyrtaucheniidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Dipluridae' }, id = str(uuid.uuid4()))
+
+            count = 0
+            for document in self.datashare_client.query_all(index = project, q = 'name:*', size = 2):
+                count = count + 1
+            self.assertEqual(count, 9)
+
+    def test_scan_is_made_over_all_documents(self):
+        with self.datashare_client.temporary_project(self.datashare_project) as project:
+            self.datashare_client.index(index = project,  document = { 'name': 'Actinopodidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Antrodiaetidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Atracidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Atypidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Barychelidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Barychelidae' }, id = str(uuid.uuid4()))
+            self.datashare_client.index(index = project,  document = { 'name': 'Ctenizidae' }, id = str(uuid.uuid4()))
+
+            count = 0
+            for document in self.datashare_client.scan_all(index = project, q = 'name:*', size = 2):
+                count = count + 1
+            self.assertEqual(count, 7)

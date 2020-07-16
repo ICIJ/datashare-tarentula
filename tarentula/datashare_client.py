@@ -90,7 +90,6 @@ class DatashareClient:
         local_query = { "sort": { "_id": "asc" }, **query, **kwargs }
         if source is not None:
             local_query.update({ '_source': source })
-        print(local_query)
         url = urljoin(self.elasticsearch_host, index, '/doc/_search')
         response = requests.post(url, params = { "q": q, "scroll": scroll }, json = local_query, cookies = self.cookies)
         response.raise_for_status()
@@ -103,8 +102,8 @@ class DatashareClient:
         response.raise_for_status()
         return response.json()
 
-    def scan_all(self, index = DATASHARE_DEFAULT_PROJECT, query = {}, source = None, scroll = '10m'):
-        response = self.query(size = 25, index = index, query = query, source = source, scroll = scroll)
+    def scan_all(self, scroll = '10m', **kwargs):
+        response = self.query(scroll = scroll, **kwargs)
         while len(response['hits']['hits']) > 0:
             for item in response['hits']['hits']:
                 yield item
@@ -112,13 +111,13 @@ class DatashareClient:
             scroll_id = response['_scroll_id']
             response = self.scroll(scroll_id, scroll)
 
-    def query_all(self, index = DATASHARE_DEFAULT_PROJECT, query = {}, source = None):
-        response = self.query(size = 25, index = index, query = query, source = source)
+    def query_all(self, **kwargs):
+        response = self.query(**kwargs)
         while len(response['hits']['hits']) > 0:
             for item in response['hits']['hits']:
                 yield item
             search_after = response['hits']['hits'][-1]['sort']
-            response = self.query(search_after = search_after, size = 25, index = index, query = query, source = source)
+            response = self.query(search_after = search_after, **kwargs)
 
     def count(self, index = DATASHARE_DEFAULT_PROJECT, query = {}):
         url = urljoin(self.elasticsearch_host, index, '_count')

@@ -97,7 +97,7 @@ class TestDatashareClient(TestCase):
     def test_get_document(self):
         with self.datashare_client.temporary_project(self.datashare_project) as project:
             self.datashare_client.index(index = project, document = { 'name': 'Atypidae' }, id = 'atypidae')
-        document = self.datashare_client.document(index = project, id = 'atypidae')
+            document = self.datashare_client.document(index = project, id = 'atypidae')
             self.assertEqual(document.get('_source', {}).get('name'), 'Atypidae')
 
     def test_query_is_made_over_all_documents(self):

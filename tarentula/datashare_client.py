@@ -13,7 +13,6 @@ class DatashareClient:
     def __init__(self, datashare_url = 'http://localhost:8080', elasticsearch_url = None, cookies = ''):
         self.datashare_url = datashare_url
         self.cookies_string = cookies
-        # Instanciate the Elasticsearch client
         self.elasticsearch_url = elasticsearch_url
         # Create the datrashare default index
         self.create()

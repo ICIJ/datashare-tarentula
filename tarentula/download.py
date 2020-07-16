@@ -24,7 +24,7 @@ class Download:
                 cookies = '',
                 elasticsearch_url =  None,
                 path_format = '{id_2b}/{id_4b}/{id}',
-                scroll = '10m',
+                scroll = None,
                 once = False,
                 traceback = False,
                 progressbar = True,
@@ -43,9 +43,10 @@ class Download:
         self.progressbar = progressbar
         self.raw_file = raw_file
         self.source = source
+        self.scroll = scroll
         self.type = type
         try:
-            self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, cookies, scroll)
+            self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, cookies)
         except (ConnectionRefusedError, ConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
             exit()
@@ -132,9 +133,12 @@ class Download:
     def scan_or_query_all(self):
         index = self.datashare_project
         source = ["path", "parentDocument", "type"] + str(self.source).split(',')
-        self.log_matches()
-        logger.info('Searching document(s) metadata in %s' % index)
-        return self.datashare_client.scan_or_query_all(index = index, query = self.query_body, source = source)
+        if self.scroll is None:
+            logger.info('Searching document(s) metadata in %s' % index)
+            return self.datashare_client.query_all(index = index, query = self.query_body, source = source)
+        else:
+            logger.info('Scrolling over document(s) metadata in %s' % index)
+            return self.datashare_client.scan_all(index = index, query = self.query_body, source = source, scroll = self.scroll)
 
     def download_raw_file(self, document):
         id = document.get('_id')

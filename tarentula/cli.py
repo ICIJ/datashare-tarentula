@@ -55,7 +55,7 @@ def tagging(**options):
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...')
 @click.option('--path-format', help='Downloaded document path template', default='{id_2b}/{id_4b}/{id}')
-@click.option('--scroll', help='Scroll duration', default='10m')
+@click.option('--scroll', help='Scroll duration', default=None)
 @click.option('--source', help='A commat-separated list of field to include in the downloaded document from the index', default=None)
 @click.option('--once/--not-once', help='Download file only once', default=False)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)

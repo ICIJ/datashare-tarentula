@@ -8,11 +8,12 @@ from http.cookies import SimpleCookie
 def urljoin(*args):
     return '/'.join(s.strip('/') for s in args if s is not None)
 
+DATASHARE_DEFAULT_PROJECT = 'local-datashare'
+
 class DatashareClient:
-    def __init__(self, datashare_url = 'http://localhost:8080', elasticsearch_url = None, cookies = '', scroll =  '10m'):
+    def __init__(self, datashare_url = 'http://localhost:8080', elasticsearch_url = None, cookies = ''):
         self.datashare_url = datashare_url
         self.cookies_string = cookies
-        self.scroll = scroll
         # Instanciate the Elasticsearch client
         self.elasticsearch_url = elasticsearch_url
         self.elasticsearch = Elasticsearch(self.elasticsearch_host)
@@ -36,15 +37,11 @@ class DatashareClient:
             # @see https://github.com/ICIJ/datashare/wiki/Datashare-API
             return urljoin(self.datashare_url, '/api/index/search/')
 
-    @property
-    def is_elasticsearch_behind_proxy(self):
-        return self.elasticsearch_url is None
-
-    def create(self, index = 'local-datashare'):
+    def create(self, index = DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.datashare_url, '/api/index/', index)
         return requests.put(url)
 
-    def index(self, index = 'local-datashare', document = {}, id = None, routing = None):
+    def index(self, index = DATASHARE_DEFAULT_PROJECT, document = {}, id = None, routing = None):
         params = { "routing": routing }
         if id is None:
             url = urljoin(self.elasticsearch_url, index, '/doc?refresh')
@@ -54,11 +51,11 @@ class DatashareClient:
             result = requests.put(url, json = document, params = params)
         return result.json().get('_id')
 
-    def delete(self, index = 'local-datashare', id = None):
+    def delete(self, index = DATASHARE_DEFAULT_PROJECT, id = None):
         url = urljoin(self.elasticsearch_url, index, '/doc/', id, '?refresh')
         return requests.delete(url)
 
-    def refresh(self, index = 'local-datashare'):
+    def refresh(self, index = DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.elasticsearch_url, index, '/_refresh')
         return requests.post(url)
 
@@ -72,7 +69,7 @@ class DatashareClient:
         params = { "conflicts": "proceed", "refresh": True }
         return requests.post(url, json = body, params = params)
 
-    def reindex(self, source = 'local-datashare', dest = None, size = 1):
+    def reindex(self, source = DATASHARE_DEFAULT_PROJECT, dest = None, size = 1):
         # Create a default destination index name
         if dest is None: dest = '%s-copy-%s' % (source, uuid4().hex[:6])
         # Source index must at least have one document
@@ -89,24 +86,33 @@ class DatashareClient:
         # Return the dest name
         return dest if result.status_code == requests.codes.ok else None
 
-    def query(self, index = 'local-datashare', query = {}, search_after = None, q = None, size = 0, source = None):
-        local_query = {
-            "size": size,
-            "sort": { "_id": "asc" }
-        }
-        if search_after is not None:
-            local_query["search_after"] = search_after
+    def query(self, index = DATASHARE_DEFAULT_PROJECT, query = {}, q = None, source = None, scroll = None, **kwargs):
+        local_query = { "sort": { "_id": "asc" }, **query, **kwargs }
         if source is not None:
-            local_query["_source"] = source
+            local_query.update({ '_source': source })
+        print(local_query)
         url = urljoin(self.elasticsearch_host, index, '/doc/_search')
-        response = requests.post(url, params = { "q": q }, json = { **local_query, **query }, cookies = self.cookies)
+        response = requests.post(url, params = { "q": q, "scroll": scroll }, json = local_query, cookies = self.cookies)
         response.raise_for_status()
         return response.json()
 
-    def scan_all(self, index = 'local-datashare', query = {}, source = None):
-        return helpers.scan(self.elasticsearch, query = query, scroll = self.scroll, index = index, doc_type = 'doc', _source = source, request_timeout = 60)
+    def scroll(self, scroll_id, scroll = None):
+        url = urljoin(self.elasticsearch_host, '/_search/scroll')
+        body = { "scroll_id": scroll_id, "scroll": scroll }
+        response = requests.post(url, json = body, cookies = self.cookies)
+        response.raise_for_status()
+        return response.json()
 
-    def query_all(self, index = 'local-datashare', query = {}, source = None):
+    def scan_all(self, index = DATASHARE_DEFAULT_PROJECT, query = {}, source = None, scroll = '10m'):
+        response = self.query(size = 25, index = index, query = query, source = source, scroll = scroll)
+        while len(response['hits']['hits']) > 0:
+            for item in response['hits']['hits']:
+                yield item
+            if '_scroll_id' not in response: break
+            scroll_id = response['_scroll_id']
+            response = self.scroll(scroll_id, scroll)
+
+    def query_all(self, index = DATASHARE_DEFAULT_PROJECT, query = {}, source = None):
         response = self.query(size = 25, index = index, query = query, source = source)
         while len(response['hits']['hits']) > 0:
             for item in response['hits']['hits']:
@@ -114,29 +120,22 @@ class DatashareClient:
             search_after = response['hits']['hits'][-1]['sort']
             response = self.query(search_after = search_after, size = 25, index = index, query = query, source = source)
 
-
-    def scan_or_query_all(self, index = 'local-datashare', query = {}, source = None):
-        if self.is_elasticsearch_behind_proxy:
-            return self.query_all(index, query, source)
-        else:
-            return self.scan_all(index, query, source)
-
-    def count(self, index = 'local-datashare', query = {}):
+    def count(self, index = DATASHARE_DEFAULT_PROJECT, query = {}):
         url = urljoin(self.elasticsearch_host, index, '_count')
         return requests.post(url, json = query, cookies = self.cookies).json()
 
-    def document(self, index = 'local-datashare', id = None, routing = None, source = None):
+    def document(self, index = DATASHARE_DEFAULT_PROJECT, id = None, routing = None, source = None):
         url = urljoin(self.elasticsearch_host, index, '/doc/', id)
         params = { "routing": routing, "_source": source }
         return requests.get(url, params = params, cookies = self.cookies).json()
 
-    def download(self, index = 'local-datashare', id = None, routing = None):
+    def download(self, index = DATASHARE_DEFAULT_PROJECT, id = None, routing = None):
         routing = routing or id
         url = urljoin(self.datashare_url, 'api', index, '/documents/src', id)
         return requests.get(url, params = { "routing": routing }, cookies = self.cookies, stream = True)
 
     @contextmanager
-    def temporary_project(self, source = 'local-datashare', delete = True):
+    def temporary_project(self, source = DATASHARE_DEFAULT_PROJECT, delete = True):
         project = None
         try:
             project = self.reindex(source)

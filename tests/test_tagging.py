@@ -85,7 +85,7 @@ class TestTagging(TestCase):
         self.assertEqual(tagger.tree['6VE7cVlWszkUd94XeuSd']['routing'], 'vZJQpKQYhcI577gJR0aN')
 
     def test_tags_are_all_created(self):
-        with self.datashare_client.temporary_project() as project:
+        with self.datashare_client.temporary_project(self.datashare_project) as project:
             tagger = Tagger(self.datashare_url, project, 0, self.csv_with_ids_path, progressbar = False)
             # Ensure there is no documents yet
             self.assertEqual(self.datashare_client.query(index = project, size = 0).get('hits', {}).get('total'), 0)
@@ -104,7 +104,7 @@ class TestTagging(TestCase):
             self.assertEqual(self.datashare_client.query(index = project, size = 0, q = 'tags:*').get('hits', {}).get('total'), 10)
 
     def test_tag_is_correct(self):
-        with self.datashare_client.temporary_project() as project:
+        with self.datashare_client.temporary_project(self.datashare_project) as project:
             # Create the document
             self.datashare_client.index(index = project,  document = { 'name': 'Atypidae', 'tags': [] }, id ='atypidae')
             runner = CliRunner()
@@ -119,7 +119,7 @@ class TestTagging(TestCase):
             self.assertIn('mygalomorph', document.get('_source', {}).get('tags', []))
 
     def test_tags_are_correct(self):
-        with self.datashare_client.temporary_project() as project:
+        with self.datashare_client.temporary_project(self.datashare_project) as project:
             # Create the document
             self.datashare_client.index(index = project,  document = { 'name': 'Atypidae', 'tags': [] }, id ='atypidae')
             runner = CliRunner()

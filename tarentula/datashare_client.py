@@ -1,6 +1,5 @@
 import requests
 
-from elasticsearch import Elasticsearch, helpers
 from uuid import uuid4
 from contextlib import contextmanager
 from http.cookies import SimpleCookie
@@ -16,7 +15,6 @@ class DatashareClient:
         self.cookies_string = cookies
         # Instanciate the Elasticsearch client
         self.elasticsearch_url = elasticsearch_url
-        self.elasticsearch = Elasticsearch(self.elasticsearch_host)
         # Create the datrashare default index
         self.create()
 

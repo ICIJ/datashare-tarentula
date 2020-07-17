@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 
 from click.testing import CliRunner
 from contextlib import contextmanager
@@ -20,6 +21,10 @@ class TestDownload(TestCase):
         self.datashare_project = 'local-datashare'
         self.datashare_client = DatashareClient(self.datashare_url, self.elasticsearch_url)
         self.species_path = root('tests/fixtures/species.json')
+
+    @classmethod
+    def tearDown(self):
+        shutil.rmtree(root('tmp'))
 
     def index_documents(self, documents = []):
         for document in documents:
@@ -83,7 +88,7 @@ class TestDownload(TestCase):
         with self.existing_species_documents() as species:
             runner = CliRunner()
             runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, '--no-raw-file', '--query', 'name:Idiopidae'])
-            json = loadJsonFile('tmp/DW/LO/DWLOskax28jPQ2CjFrCo.json')
+            json = loadJsonFile('tmp/Dz/LO/DzLOskax28jPQ2CjFrCo.json')
             self.assertIn('_id', json)
             self.assertIn('_source', json)
             self.assertNotIn('name', json['_source'])

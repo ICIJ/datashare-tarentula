@@ -1,50 +1,18 @@
-import os
 import json
 import shutil
 
 from click.testing import CliRunner
-from contextlib import contextmanager
-from os.path import dirname
-from unittest import  TestCase
 
+from .test_abstract import TestAbstract, root
 from tarentula.cli import cli
-from tarentula.datashare_client import DatashareClient
 
-root = lambda x: os.path.join(os.path.abspath(dirname(dirname(__file__))), x)
 loadJsonFile = lambda x: json.loads(open(root(x), 'r').read())
 
-class TestDownload(TestCase):
-    @classmethod
-    def setUpClass(self):
-        self.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://localhost:9200')
-        self.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8080')
-        self.datashare_project = 'local-datashare'
-        self.datashare_client = DatashareClient(self.datashare_url, self.elasticsearch_url)
-        self.species_path = root('tests/fixtures/species.json')
+class TestDownload(TestAbstract):
 
-    @classmethod
     def tearDown(self):
+        super().tearDown()
         shutil.rmtree(root('tmp'))
-
-    def index_documents(self, documents = []):
-        for document in documents:
-            self.datashare_client.index(index = self.datashare_project, document = document, id = document['_id'])
-        self.datashare_client.refresh(index = self.datashare_project)
-
-    def delete_documents(self, documents = []):
-        for document in documents:
-            self.datashare_client.delete(index = self.datashare_project, id = document['_id'])
-        self.datashare_client.refresh(index = self.datashare_project)
-
-    @contextmanager
-    def existing_species_documents(self):
-        with open(self.species_path, 'r') as species_file:
-            species = json.loads(species_file.read())
-            self.index_documents(species)
-            try:
-                yield species
-            finally:
-                self.delete_documents(species)
 
     def test_summary(self):
         with self.existing_species_documents() as species:

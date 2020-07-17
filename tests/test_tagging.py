@@ -1,26 +1,18 @@
 import csv
-import os
 import re
 import responses
 
 from click.testing import CliRunner
 from contextlib import contextmanager
-from os.path import dirname
-from unittest import  TestCase
 
+from .test_abstract import TestAbstract, root
 from tarentula.cli import cli
 from tarentula.tagging import Tagger
-from tarentula.datashare_client import DatashareClient
 
-root = lambda x: os.path.join(os.path.abspath(dirname(dirname(__file__))), x)
-
-class TestTagging(TestCase):
+class TestTagging(TestAbstract):
     @classmethod
     def setUpClass(self):
-        self.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://localhost:9200')
-        self.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8080')
-        self.datashare_project = 'local-datashare'
-        self.datashare_client = DatashareClient(self.datashare_url, self.elasticsearch_url)
+        super().setUpClass()
         self.csv_with_ids_path = root('tests/fixtures/tags-with-document-id.csv')
         self.csv_with_urls_path = root('tests/fixtures/tags-with-document-url.csv')
 

@@ -1,19 +1,9 @@
-import os
 import requests
-import time
 import uuid
 
-from requests.exceptions import HTTPError
-from tarentula.datashare_client import DatashareClient
-from unittest import TestCase
+from .test_abstract import TestAbstract
 
-class TestDatashareClient(TestCase):
-    @classmethod
-    def setUpClass(self):
-        self.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8080')
-        self.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://localhost:9200')
-        self.datashare_client = DatashareClient(self.datashare_url, self.elasticsearch_url)
-        self.datashare_project = 'local-datashare'
+class TestDatashareClient(TestAbstract):
 
     def test_default_index_creation(self):
         self.assertEqual(requests.get('%s/%s' % (self.elasticsearch_url, 'local-datashare')).status_code, requests.codes.ok)

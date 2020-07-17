@@ -69,13 +69,13 @@ class TestDownload(TestCase):
         with self.existing_species_documents() as species:
             runner = CliRunner()
             runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, '--no-raw-file', '--query', 'name:Actinopodidae'])
-            self.assertTrue(os.path.exists(root('tmp/l7/Vn/l7VnZZEzg2fr960NWWEG.json')))
+            self.assertTrue(os.path.isfile(root('tmp/l7/Vn/l7VnZZEzg2fr960NWWEG.json')))
 
     def test_meta_is_downloaded_for_ctenizidae(self):
         with self.existing_species_documents() as species:
             runner = CliRunner()
             runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, '--no-raw-file', '--query', 'name:Ctenizidae'])
-            self.assertTrue(os.path.exists(root('tmp/Bm/ov/BmovvXBisWtyyx6o9cuG.json')))
+            self.assertTrue(os.path.isfile(root('tmp/Bm/ov/BmovvXBisWtyyx6o9cuG.json')))
 
     def test_meta_is_downloaded_for_idiopidae_with_default_properties(self):
         with self.existing_species_documents() as species:

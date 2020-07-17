@@ -40,12 +40,19 @@ class DatashareClient:
 
     def index(self, index = DATASHARE_DEFAULT_PROJECT, document = {}, id = None, routing = None):
         params = { "routing": routing }
+        # Clone the document to perform changes
+        document = dict(document)
+        # Elastichsearch doesn't allow passing the _id as a property in the document
+        if '_id' in document: document.pop('_id', None)
+        # When no id is provided, we use POST method (to create the resource)
         if id is None:
             url = urljoin(self.elasticsearch_url, index, '/doc?refresh')
             result = requests.post(url, json = document, params = params)
+        # When an id is provided, we use PUT method (to update the resource)
         else:
             url = urljoin(self.elasticsearch_url, index, '/doc/', id, '?refresh')
             result = requests.put(url, json = document, params = params)
+        result.raise_for_status()
         return result.json().get('_id')
 
     def delete(self, index = DATASHARE_DEFAULT_PROJECT, id = None):

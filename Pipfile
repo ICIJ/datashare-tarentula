@@ -15,6 +15,7 @@ nose = "*"
 responses = "*"
 twine = "*"
 importlib-metadata = "*"
+nose-watch = "*"
 
 [requires]
 python_version = "3.8"

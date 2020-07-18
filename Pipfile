@@ -16,6 +16,8 @@ responses = "*"
 twine = "*"
 importlib-metadata = "*"
 nose-watch = "*"
+pyyaml = "*"
+argh = "*"
 
 [requires]
 python_version = "3.8"

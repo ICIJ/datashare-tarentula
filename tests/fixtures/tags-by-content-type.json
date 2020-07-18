@@ -1,0 +1,340 @@
+{
+  "audio-type": {
+    "query" : {
+      "bool": {
+        "must": [
+          {
+            "query_string": {
+              "query": "name:*"
+            }
+          },
+          {
+            "terms" : {
+              "contentType" : [
+                "audio/mpeg",
+                "audio/vnd.wave",
+                "audio/mp4",
+                "audio/vorbis",
+                "audio/x-wav",
+                "audio/x-ms-wma"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "document-type": {
+    "query" : {
+      "bool": {
+        "must": [
+          {
+            "query_string": {
+              "query": "name:*"
+            }
+          },
+          {
+            "terms" : {
+              "contentType" : [
+                "application/pdf",
+                "application/msword",
+                "application/vnd.wordperfect",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "application/xml",
+                "text/plain",
+                "application/rtf",
+                "application/vnd.ms-word.document.macroenabled.12",
+                "application/vnd.oasis.opendocument.text",
+                "application/vnd.ms-word2006ml",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+                "application/vnd.ms-wordml",
+                "application/vnd.ms-word.template.macroenabled.12",
+                "application/vnd.ms-works",
+                "application/msword.document"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "email-type": {
+    "query" : {
+      "bool": {
+        "must": [
+          {
+            "query_string": {
+              "query": "name:*"
+            }
+          },
+          {
+            "terms" : {
+              "contentType" : [
+                "application/vnd.ms-outlook",
+                "message/rfc822",
+                "application/vnd.ms-outlook-pst"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "image-type": {
+    "query" : {
+      "bool": {
+        "must": [
+          {
+            "query_string": {
+              "query": "name:*"
+            }
+          },
+          {
+            "terms" : {
+              "contentType" : [
+                "image/jpeg",
+                "image/png",
+                "image/gif",
+                "image/wmf",
+                "image/emf",
+                "image/tiff",
+                "image/bmp",
+                "image/unknown",
+                "image/vnd.dwg",
+                "image/vnd.adobe.photoshop",
+                "image/jpx",
+                "image/vnd.microsoft.icon",
+                "image/svg+xml",
+                "image/webp",
+                "image/vnd.ms-modi",
+                "image/x-pict",
+                "image/x-tga",
+                "image/icns",
+                "image/jp2",
+                "image/jpg",
+                "image/x-ms-bmp"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "other-type": {
+    "query" : {
+      "bool": {
+        "must": [
+          {
+            "query_string": {
+              "query": "name:*"
+            }
+          },
+          {
+            "terms" : {
+              "contentType" : [
+                "application/x-tika-msoffice",
+                "application/zip",
+                "text/html",
+                "application/octet-stream",
+                "application/coreldraw",
+                "application/gzip",
+                "application/javascript",
+                "text/x-log",
+                "text/css",
+                "application/x-msdownload",
+                "application/x-font-ttf",
+                "application/x-tika-msoffice-embedded",
+                "application/x-dbf",
+                "application/xhtml+xml",
+                "application/x-ms-owner",
+                "application/json",
+                "unknown",
+                "application/vnd.ms-cab-compressed",
+                "application/x-sqlite3",
+                "text/x-ini",
+                "text/x-vcard",
+                "application/x-rar-compressed",
+                "application/x-7z-compressed",
+                "text/x-matlab",
+                "application/vnd.ms-graph",
+                "multipart/related",
+                "application/pkcs7-signature",
+                "application/rss+xml",
+                "text/x-vbasic",
+                "application/x-ms-installer",
+                "application/vnd.ms-xpsdocument",
+                "application/java-vm",
+                "application/x-quattro-pro",
+                "application/vnd.visio",
+                "application/x-tika-ooxml-protected",
+                "application/x-mspublisher",
+                "application/vnd.openxmlformats-officedocument.oleObject",
+                "text/x-php",
+                "application/x-bat",
+                "application/java-archive",
+                "application/vnd.ms-tnef",
+                "application/x-123",
+                "text/x-java-properties",
+                "application/vnd.ms-htmlhelp",
+                "application/xslt+xml",
+                "application/vnd.oasis.opendocument.spreadsheet",
+                "application/vnd.ms-equation",
+                "text/calendar",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
+                "application/x-tika-ooxml",
+                "text/x-vbdotnet",
+                "application/x-dosexec",
+                "application/smil+xml",
+                "text/aspdotnet",
+                "application/vnd.openxmlformats-officedocument",
+                "application/x-elc",
+                "application/vnd.google-earth.kml+xml",
+                "application/pgp-signature",
+                "application/vnd.apple.pages",
+                "application/x-archive",
+                "application/rdf+xml",
+                "application/x-executable",
+                "application/vnd.ms-visio.drawing",
+                "application/x-object",
+                "application/x-ms-asx",
+                "text/x-csrc",
+                "application/mac-binhex40",
+                "application/vnd.ms-project",
+                "application/x-apple-diskimage",
+                "application/x-bzip2",
+                "text/asp",
+                "text/x-jsp",
+                "application/x-shockwave-flash",
+                "application/x-tar",
+                "application/zlib",
+                "application/dif+xml",
+                "application/fits",
+                "application/pls+xml",
+                "application/postscript",
+                "application/vnd.google-earth.kmz",
+                "application/vnd.openxmlformats-officedocument.presentationml.template",
+                "application/x-webarchive",
+                "application/xspf+xml",
+                "text/x-ada",
+                "application/dita+xml",
+                "application/inf",
+                "application/patch-ops-error+xml",
+                "application/pkix-cert",
+                "application/vnd.apple.numbers",
+                "application/vnd.groove-tool-template",
+                "application/vnd.mozilla.xul+xml",
+                "application/x-font-otf",
+                "application/xml-dtd",
+                "message/x-emlx",
+                "multipart/appledouble",
+                "text/x-common-lisp",
+                "text/x-csharp",
+                "text/x-perl",
+                "text/x-vcalendar",
+                "application/vnd.ibm.modcap",
+                "application/x-msaccess",
+                "application/vnd.stardivision.writer",
+                "application/rsd+xml",
+                "application/vnd.ms-pki.seccat",
+                "text/x-vbscript",
+                "text/x-sql",
+                "application/x-bplist",
+                "application/vnd.ms-fontobject",
+                "application/wsdl+xml",
+                "application/mbox",
+                "application/pgp-encrypted",
+                "application/vnd.adobe.indesign-idml-package",
+                "application/x-adobe-indesign",
+                "chemical/x-pdb"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "presentation-type": {
+    "query" : {
+      "bool": {
+        "must": [
+          {
+            "query_string": {
+              "query": "name:*"
+            }
+          },
+          {
+            "terms" : {
+              "contentType" : [
+                "application/x-corelpresentations",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                "application/vnd.ms-powerpoint",
+                "application/vnd.openxmlformats-officedocument.presentationml.slideshow",
+                "application/vnd.ms-powerpoint.presentation.macroenabled.12",
+                "application/vnd.ms-powerpoint.slideshow.macroenabled.12"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "spreadsheet-type": {
+    "query" : {
+      "bool": {
+        "must": [
+          {
+            "query_string": {
+              "query": "name:*"
+            }
+          },
+          {
+            "terms" : {
+              "contentType" : [
+                "application/vnd.ms-excel",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "application/vnd.ms-excel.sheet.macroenabled.12",
+                "text/csv",
+                "text/tsv",
+                "application/vnd.ms-excel.sheet.binary.macroenabled.12",
+                "application/x-tika-msworks-spreadsheet",
+                "application/vnd.ms-spreadsheetml",
+                "application/vnd.ms-excel.sheet.4",
+                "application/x-msexcel",
+                "application/vnd.ms-excel.template.macroenabled.12",
+                "application/vnd.ms-excel.sheet.3"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "video-type": {
+    "query" : {
+      "bool": {
+        "must": [
+          {
+            "query_string": {
+              "query": "name:*"
+            }
+          },
+          {
+            "terms" : {
+              "contentType" : [
+                "video/mp4",
+                "application/mp4",
+                "video/3gpp",
+                "video/x-m4v",
+                "video/quicktime",
+                "video/x-ms-wmv",
+                "video/mpeg",
+                "video/x-ms-asf",
+                "video/x-msvideo"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

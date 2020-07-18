@@ -2,6 +2,7 @@ import click
 import logging
 from tarentula.logger import add_syslog_handler, add_stdout_handler
 from tarentula.tagging import Tagger
+from tarentula.tagging_by_query import TaggerByQuery
 from tarentula.download import Download
 
 def validate_loglevel(ctx, param, value):
@@ -46,7 +47,21 @@ def tagging(**options):
     tagger.start()
 
 @click.command()
-@click.pass_context
+@click.option('--datashare-url', help='Datashare URL', default='http://localhost:8080')
+@click.option('--datashare-project', help='Datashare project', default='local-datashare')
+@click.option('--elasticsearch-url', help='', default='http://localhost:9200')
+@click.option('--throttle', help='Request throttling (in ms)', default=0)
+@click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...')
+@click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
+@click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None, callback=validate_progressbar)
+@click.argument('json-path', type=click.Path(exists=True))
+def tagging_by_query(**options):
+    # Instanciate a TaggerByQuery class with all the options
+    tagger = TaggerByQuery(**options)
+    # Proceed to tagging
+    tagger.start()
+
+@click.command()
 @click.option('--datashare-url', help='Datashare URL', default='http://localhost:8080')
 @click.option('--datashare-project', help='Datashare project', default='local-datashare')
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling capabilities of Elasticsearch (useful when dealing with a lot of results)', default=None)
@@ -62,7 +77,7 @@ def tagging(**options):
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None, callback=validate_progressbar)
 @click.option('--raw-file/--no-raw-file', help='Download raw file from Datashare', default=True)
 @click.option('--type', help='Type of indexed documents to download', default='Document', type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
-def download(ctx, **options):
+def download(**options):
     # Instanciate a Download class with all the options
     download = Download(**options)
     # Proceed to tagging
@@ -70,6 +85,7 @@ def download(ctx, **options):
 
 cli.add_command(tagging)
 cli.add_command(download)
+cli.add_command(tagging_by_query)
 
 if __name__ == '__main__':
     cli()

@@ -2,106 +2,127 @@
   {
     "name": "Actinopodidae",
     "type": "Document",
+    "contentType": "audio/mpeg",
     "_id": "l7VnZZEzg2fr960NWWEG"
   },
   {
     "name": "Antrodiaetidae",
     "type": "Document",
+    "contentType": "audio/vnd.wave",
     "_id": "DWLOskax28jPQ2CjFrCo"
   },
   {
     "name": "Atracidae",
     "type": "Document",
+    "contentType": "audio/mp4",
     "_id": "6VE7cVlWszkUd94XeuSd"
   },
   {
     "name": "Atypidae",
     "type": "Document",
+    "contentType": "audio/vorbis",
     "_id": "DbhveTJEwQfJL5Gn3Zgi"
   },
   {
     "name": "Barychelidae",
     "type": "Document",
+    "contentType": "audio/x-wav",
     "_id": "iuL6GUBpO7nKyfSSFaS0"
   },
   {
     "name": "Barychelidae",
     "type": "Document",
+    "contentType": "audio/vorbis",
     "_id": "iuL6GUBpO7nKyfSSFaS0"
   },
   {
     "name": "Ctenizidae",
     "type": "Document",
+    "contentType": "application/msword",
     "_id": "BmovvXBisWtyyx6o9cuG"
   },
   {
     "name": "Cyrtaucheniidae",
     "type": "Document",
+    "contentType": "application/vnd.wordperfect",
     "_id": "vZJQpKQYhcI577gJR0aN"
   },
   {
     "name": "Dipluridae",
     "type": "Document",
+    "contentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "_id": "vYl1C4bsWphUKvXEBDhM"
   },
   {
     "name": "Euctenizidae",
     "type": "Document",
+    "contentType": "application/xml",
     "_id": "fgCt6JLfHSl160fnsjRp"
   },
   {
     "name": "Halonoproctidae",
     "type": "Document",
+    "contentType": "application/vnd.ms-outlook",
     "_id": "WvwVvNjEDQJXkwHISQIu"
   },
   {
     "name": "Hexathelidae",
     "type": "Document",
+    "contentType": "message/rfc822",
     "_id": "luVnZZEzg2fr960NWWEG"
   },
   {
     "name": "Idiopidae",
     "type": "Document",
+    "contentType": "application/vnd.ms-outlook-pst",
     "_id": "DzLOskax28jPQ2CjFrCo"
   },
   {
     "name": "Macrothelidae",
     "type": "Document",
+    "contentType": "image/jpeg",
     "_id": "6VEdcVlWszkUd94XeuSd"
   },
   {
     "name": "Mecicobothriidae",
     "type": "Document",
+    "contentType": "image/png",
     "_id": "DbhrrTJEwQfJL5Gn3Zgi"
   },
   {
     "name": "Microstigmatidae",
     "type": "Document",
+    "contentType": "image/gif",
     "_id": "AAL6GUBpO7nKyfSSFaS0"
   },
   {
     "name": "Migidae",
     "type": "Document",
+    "contentType": "image/wmf",
     "_id": "Bmot1XBisWtyyx6o9cuG"
   },
   {
     "name": "Nemesiidae",
     "type": "Document",
+    "contentType": "image/emf",
     "_id": "vZeQpKQYhcI577gJR1aN"
   },
   {
     "name": "Paratropididae",
     "type": "Document",
+    "contentType": "image/tiff",
     "_id": "vyl1C4bsWphU2vXEBDhM"
   },
   {
     "name": "Porrhothelidae",
     "type": "Document",
+    "contentType": "application/vnd.openxmlformats-officedocument.oleObject",
     "_id": "fgC36JL7HSl160fnsjRp"
   },
   {
     "name": "Theraphosidae",
     "type": "Document",
+    "contentType": "text/x-php",
     "_id": "111VvNjEDQJXkwHISQIu"
   }
 ]

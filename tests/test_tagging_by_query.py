@@ -70,3 +70,14 @@ class TestTaggingByQuery(TestAbstract):
         result = runner.invoke(cli, ['tagging-by-query', '--datashare-project', self.datashare_project, self.json_tags_path, '--wait-for-completion'])
         self.assertEqual(result.output.count('task created'), 0)
         self.assertEqual(result.output.count('documents updated in'), 8)
+
+    def test_progressbar_is_not_created(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['tagging-by-query', '--datashare-project', self.datashare_project, self.json_tags_path, '--no-progressbar'])
+        self.assertNotIn('This action will add 8 tag(s)', result.output)
+
+    def test_logs_are_printed_to_stdout(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['--stdout-loglevel', 'INFO', 'tagging-by-query', '--datashare-project', self.datashare_project, self.json_tags_path])
+        self.assertNotIn('This action will add 8 tag(s)', result.output)
+        self.assertEqual(result.output.count('Documents tagged with'), 8)

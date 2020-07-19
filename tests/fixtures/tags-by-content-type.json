@@ -2,6 +2,13 @@
   "audio-type": {
     "query" : {
       "bool": {
+        "must_not": [
+          {
+            "match": {
+              "tags": "audio-type"
+            }
+          }
+        ],
         "must": [
           {
             "query_string": {
@@ -27,6 +34,13 @@
   "document-type": {
     "query" : {
       "bool": {
+        "must_not": [
+          {
+            "match": {
+              "tags": "document-type"
+            }
+          }
+        ],
         "must": [
           {
             "query_string": {
@@ -61,6 +75,13 @@
   "email-type": {
     "query" : {
       "bool": {
+        "must_not": [
+          {
+            "match": {
+              "tags": "email-type"
+            }
+          }
+        ],
         "must": [
           {
             "query_string": {

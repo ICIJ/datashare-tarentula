@@ -90,18 +90,17 @@ class TaggerByQuery:
 
     def start(self):
         count = self.tags_count
-        pbar = tqdm(self.tags.items(), total=count, desc="This action will add %s tag(s)" % count, file=sys.stdout, disable=self.no_progressbar)
+        pbar = tqdm(self.tags.items(), total=count, desc="This action will add %s tag(s)" % count, file=sys.stderr, disable=self.no_progressbar)
         for (tag, query) in pbar:
-            if not self.no_progressbar:
-                try:
-                    tqdm.write('Adding "%s" tag' % tag)
-                    result = self.tag_documents(tag, query).json()
-                    if self.wait_for_completion:
-                        tqdm.write('└── documents updated in %sms' % result['took'])
-                        logger.info('Documents tagged with [%s] in %sms' % (tag, result['took']))
-                    else:
-                        tqdm.write('└── task created: %s' % self.task_url(result['task']))
-                        logger.info('Task [%s] created for tag [%s]' % (result['task'], tag))
-                    self.sleep()
-                except (HTTPError, ConnectionError):
-                    logger.error('Unable to add tag [%s] (connection error)' % tag, exc_info=self.traceback)
+            try:
+                tqdm.write('Adding "%s" tag' % tag)
+                result = self.tag_documents(tag, query).json()
+                if self.wait_for_completion:
+                    tqdm.write('└── documents updated in %sms' % result['took'])
+                    logger.info('Documents tagged with [%s] in %sms' % (tag, result['took']))
+                else:
+                    tqdm.write('└── task created: %s' % self.task_url(result['task']))
+                    logger.info('Task [%s] created for tag [%s]' % (result['task'], tag))
+                self.sleep()
+            except (HTTPError, ConnectionError):
+                logger.error('Unable to add tag [%s] (connection error)' % tag, exc_info=self.traceback)

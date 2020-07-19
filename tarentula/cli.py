@@ -47,13 +47,13 @@ def tagging(**options):
     tagger.start()
 
 @click.command()
-@click.option('--datashare-url', help='Datashare URL', default='http://localhost:8080')
 @click.option('--datashare-project', help='Datashare project', default='local-datashare')
 @click.option('--elasticsearch-url', help='', default='http://localhost:9200')
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...')
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None, callback=validate_progressbar)
+@click.option('--wait-for-completion/--no-wait-for-completion', help='Create a Elasticsearch task to perform the update asynchronously', default=True)
 @click.argument('json-path', type=click.Path(exists=True))
 def tagging_by_query(**options):
     # Instanciate a TaggerByQuery class with all the options

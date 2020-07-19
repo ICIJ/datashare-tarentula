@@ -62,10 +62,8 @@ class TaggerByQuery:
         return url_template.format(elasticsearch_url = self.elasticsearch_url, task = task)
 
     def tag_documents(self, tag, query):
-        description = "update-by-query [%s] documents to add tag [%s]" % (self.datashare_project, tag,)
         query = {
             "script": {
-                "description": description,
                 "source": """
                     if( !ctx._source.containsKey("tags") ) {
                         ctx._source.tags = [];

@@ -75,6 +75,35 @@ Porrhothelidae,http://localhost:8080/#/d/local-datashare/fgCt6JLfHSl160fnsjRp/fg
 Theraphosidae,http://localhost:8080/#/d/local-datashare/WvwVvNjEDQJXkwHISQIu/WvwVvNjEDQJXkwHISQIu
 ```
 
+## Tagging by Query
+
+A command that uses Elasticsearch `update-by-query` feature to batch tag documents directly in the index.
+
+To see an example of input file, refer to [this JSON](tests/fixtures/tags-by-content-type.json).
+
+```
+Usage: tarentula tagging-by-query [OPTIONS] JSON_PATH
+
+Options:
+  --datashare-project TEXT        Datashare project
+  --elasticsearch-url TEXT        Elasticsearch URL which is used to perform
+                                  update by query
+
+  --throttle INTEGER              Request throttling (in ms)
+  --cookies TEXT                  Key/value pair to add a cookie to each
+                                  request to the API. You can separate
+                                  semicolons: key1=val1;key2=val2;...
+
+  --traceback / --no-traceback    Display a traceback in case of error
+  --progressbar / --no-progressbar
+                                  Display a progressbar
+  --wait-for-completion / --no-wait-for-completion
+                                  Create a Elasticsearch task to perform the
+                                  update asynchronously
+
+  --help                          Show this message and exit.
+```
+
 ## Download
 
 A command to download all files matching a query.

@@ -48,7 +48,7 @@ def tagging(**options):
 
 @click.command()
 @click.option('--datashare-project', help='Datashare project', default='local-datashare')
-@click.option('--elasticsearch-url', help='', default='http://localhost:9200')
+@click.option('--elasticsearch-url', help='Elasticsearch URL which is used to perform update by query', default='http://localhost:9200')
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...')
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)

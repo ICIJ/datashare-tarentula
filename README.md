@@ -151,7 +151,7 @@ After you [installed Datashare](https://datashare.icij.org/), just run it with t
 datashare
 ```
 
-In a separate terminale, install the development dependencies:
+In a separate terminal, install the development dependencies:
 
 ```
 sudo apt install pipenv

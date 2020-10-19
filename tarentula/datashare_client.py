@@ -4,13 +4,16 @@ from uuid import uuid4
 from contextlib import contextmanager
 from http.cookies import SimpleCookie
 
+
 def urljoin(*args):
     return '/'.join(s.strip('/') for s in args if s is not None)
 
+
 DATASHARE_DEFAULT_PROJECT = 'local-datashare'
 
+
 class DatashareClient:
-    def __init__(self, datashare_url = 'http://localhost:8080', elasticsearch_url = None, cookies = ''):
+    def __init__(self, datashare_url='http://localhost:8080', elasticsearch_url=None, cookies=''):
         self.datashare_url = datashare_url
         self.cookies_string = cookies
         self.elasticsearch_url = elasticsearch_url
@@ -31,15 +34,15 @@ class DatashareClient:
         if self.elasticsearch_url is not None:
             return self.elasticsearch_url
         else:
-            # @see https://github.com/ICIJ/datashare/wiki/Datashare-API
+            #  @see https://github.com/ICIJ/datashare/wiki/Datashare-API
             return urljoin(self.datashare_url, '/api/index/search/')
 
-    def create(self, index = DATASHARE_DEFAULT_PROJECT):
+    def create(self, index=DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.datashare_url, '/api/index/', index)
         return requests.put(url)
 
-    def index(self, index = DATASHARE_DEFAULT_PROJECT, document = {}, id = None, routing = None):
-        params = { "routing": routing }
+    def index(self, index=DATASHARE_DEFAULT_PROJECT, document={}, id=None, routing=None):
+        params = {"routing": routing}
         # Clone the document to perform changes
         document = dict(document)
         # Elastichsearch doesn't allow passing the _id as a property in the document
@@ -47,19 +50,19 @@ class DatashareClient:
         # When no id is provided, we use POST method (to create the resource)
         if id is None:
             url = urljoin(self.elasticsearch_url, index, '/doc?refresh')
-            result = requests.post(url, json = document, params = params)
+            result = requests.post(url, json=document, params=params)
         # When an id is provided, we use PUT method (to update the resource)
         else:
             url = urljoin(self.elasticsearch_url, index, '/doc/', id, '?refresh')
-            result = requests.put(url, json = document, params = params)
+            result = requests.put(url, json=document, params=params)
         result.raise_for_status()
         return result.json().get('_id')
 
-    def delete(self, index = DATASHARE_DEFAULT_PROJECT, id = None):
+    def delete(self, index=DATASHARE_DEFAULT_PROJECT, id=None):
         url = urljoin(self.elasticsearch_url, index, '/doc/', id, '?refresh')
         return requests.delete(url)
 
-    def refresh(self, index = DATASHARE_DEFAULT_PROJECT):
+    def refresh(self, index=DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.elasticsearch_url, index, '/_refresh')
         return requests.post(url)
 
@@ -69,20 +72,20 @@ class DatashareClient:
 
     def delete_all(self, index):
         url = urljoin(self.elasticsearch_url, index, '_delete_by_query')
-        body = { "query": { "match_all": { } } }
-        params = { "conflicts": "proceed", "refresh": True }
-        return requests.post(url, json = body, params = params)
+        body = {"query": {"match_all": {}}}
+        params = {"conflicts": "proceed", "refresh": True}
+        return requests.post(url, json=body, params=params)
 
-    def reindex(self, source = DATASHARE_DEFAULT_PROJECT, dest = None, size = 1):
+    def reindex(self, source=DATASHARE_DEFAULT_PROJECT, dest=None, size=1):
         # Create a default destination index name
         if dest is None: dest = '%s-copy-%s' % (source, uuid4().hex[:6])
         # Source index must at least have one document
-        document_id = self.index(source, document = { "content": "This is a temporary document", "tags": ["tmp"] })
+        document_id = self.index(source, document={"content": "This is a temporary document", "tags": ["tmp"]})
         # Copy everything
-        json = { "source": { "index": source }, "dest": { "index": dest }, "size": size }
+        json = {"source": {"index": source}, "dest": {"index": dest}, "size": size}
         # Send the request to elasticsearch
         url = urljoin(self.elasticsearch_url, '_reindex')
-        result = requests.post(url + '?refresh', json = json)
+        result = requests.post(url + '?refresh', json=json)
         # Delete the dummy docs
         self.delete(source, document_id)
         self.delete(dest, document_id)
@@ -90,24 +93,24 @@ class DatashareClient:
         # Return the dest name
         return dest if result.status_code == requests.codes.ok else None
 
-    def query(self, index = DATASHARE_DEFAULT_PROJECT, query = {}, q = None, source = None, scroll = None, **kwargs):
-        local_query = { "sort": { "_id": "asc" }, **query, **kwargs }
+    def query(self, index=DATASHARE_DEFAULT_PROJECT, query={}, q=None, source=None, scroll=None, **kwargs):
+        local_query = {"sort": {"_id": "asc"}, **query, **kwargs}
         if source is not None:
-            local_query.update({ '_source': source })
+            local_query.update({'_source': source})
         url = urljoin(self.elasticsearch_host, index, '/doc/_search')
-        response = requests.post(url, params = { "q": q, "scroll": scroll }, json = local_query, cookies = self.cookies)
+        response = requests.post(url, params={"q": q, "scroll": scroll}, json=local_query, cookies=self.cookies)
         response.raise_for_status()
         return response.json()
 
-    def scroll(self, scroll_id, scroll = None):
+    def scroll(self, scroll_id, scroll=None):
         url = urljoin(self.elasticsearch_host, '/_search/scroll')
-        body = { "scroll_id": scroll_id, "scroll": scroll }
-        response = requests.post(url, json = body, cookies = self.cookies)
+        body = {"scroll_id": scroll_id, "scroll": scroll}
+        response = requests.post(url, json=body, cookies=self.cookies)
         response.raise_for_status()
         return response.json()
 
-    def scan_all(self, scroll = '10m', **kwargs):
-        response = self.query(scroll = scroll, **kwargs)
+    def scan_all(self, scroll='10m', **kwargs):
+        response = self.query(scroll=scroll, **kwargs)
         while len(response['hits']['hits']) > 0:
             for item in response['hits']['hits']:
                 yield item
@@ -121,24 +124,24 @@ class DatashareClient:
             for item in response['hits']['hits']:
                 yield item
             search_after = response['hits']['hits'][-1]['sort']
-            response = self.query(search_after = search_after, **kwargs)
+            response = self.query(search_after=search_after, **kwargs)
 
-    def count(self, index = DATASHARE_DEFAULT_PROJECT, query = {}):
+    def count(self, index=DATASHARE_DEFAULT_PROJECT, query={}):
         url = urljoin(self.elasticsearch_host, index, '_count')
-        return requests.post(url, json = query, cookies = self.cookies).json()
+        return requests.post(url, json=query, cookies=self.cookies).json()
 
-    def document(self, index = DATASHARE_DEFAULT_PROJECT, id = None, routing = None, source = None):
+    def document(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None, source=None):
         url = urljoin(self.elasticsearch_host, index, '/doc/', id)
-        params = { "routing": routing, "_source": source }
-        return requests.get(url, params = params, cookies = self.cookies).json()
+        params = {"routing": routing, "_source": source}
+        return requests.get(url, params=params, cookies=self.cookies).json()
 
-    def download(self, index = DATASHARE_DEFAULT_PROJECT, id = None, routing = None):
+    def download(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None):
         routing = routing or id
         url = urljoin(self.datashare_url, 'api', index, '/documents/src', id)
-        return requests.get(url, params = { "routing": routing }, cookies = self.cookies, stream = True)
+        return requests.get(url, params={"routing": routing}, cookies=self.cookies, stream=True)
 
     @contextmanager
-    def temporary_project(self, source = DATASHARE_DEFAULT_PROJECT, delete = True):
+    def temporary_project(self, source=DATASHARE_DEFAULT_PROJECT, delete=True):
         project = None
         try:
             project = self.reindex(source)

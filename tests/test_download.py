@@ -3,16 +3,19 @@ import shutil
 
 from click.testing import CliRunner
 
-from .test_abstract import TestAbstract, root
+from .test_abstract import TestAbstract, absolute_path
 from tarentula.cli import cli
 
-loadJsonFile = lambda x: json.loads(open(root(x), 'r').read())
+
+def load_json_file(relative_path):
+    return json.loads(open(absolute_path(relative_path), 'r').read())
+
 
 class TestDownload(TestAbstract):
 
     def tearDown(self):
         super().tearDown()
-        shutil.rmtree(root('tmp'))
+        shutil.rmtree(absolute_path('tmp'))
 
     def test_summary(self):
         with self.existing_species_documents() as species:
@@ -42,21 +45,21 @@ class TestDownload(TestAbstract):
         with self.existing_species_documents() as species:
             runner = CliRunner()
             runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, '--no-raw-file', '--query', 'name:Actinopodidae'])
-            json = loadJsonFile('tmp/l7/Vn/l7VnZZEzg2fr960NWWEG.json')
+            json = load_json_file('tmp/l7/Vn/l7VnZZEzg2fr960NWWEG.json')
             self.assertEqual(json['_id'], 'l7VnZZEzg2fr960NWWEG')
 
     def test_meta_is_downloaded_for_ctenizidae(self):
         with self.existing_species_documents() as species:
             runner = CliRunner()
             runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, '--no-raw-file', '--query', 'name:Ctenizidae'])
-            json = loadJsonFile('tmp/Bm/ov/BmovvXBisWtyyx6o9cuG.json')
+            json = load_json_file('tmp/Bm/ov/BmovvXBisWtyyx6o9cuG.json')
             self.assertEqual(json['_id'], 'BmovvXBisWtyyx6o9cuG')
 
     def test_meta_is_downloaded_for_idiopidae_with_default_properties(self):
         with self.existing_species_documents() as species:
             runner = CliRunner()
             runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, '--no-raw-file', '--query', 'name:Idiopidae'])
-            json = loadJsonFile('tmp/Dz/LO/DzLOskax28jPQ2CjFrCo.json')
+            json = load_json_file('tmp/Dz/LO/DzLOskax28jPQ2CjFrCo.json')
             self.assertIn('_id', json)
             self.assertIn('_source', json)
             self.assertNotIn('name', json['_source'])
@@ -65,7 +68,7 @@ class TestDownload(TestAbstract):
         with self.existing_species_documents() as species:
             runner = CliRunner()
             runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, '--no-raw-file', '--query', 'name:Idiopidae', '--source', 'name'])
-            json = loadJsonFile('tmp/Dz/LO/DzLOskax28jPQ2CjFrCo.json')
+            json = load_json_file('tmp/Dz/LO/DzLOskax28jPQ2CjFrCo.json')
             self.assertIn('_id', json)
             self.assertIn('_source', json)
             self.assertIn('name', json['_source'])

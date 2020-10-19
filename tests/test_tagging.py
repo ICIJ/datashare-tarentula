@@ -5,16 +5,17 @@ import responses
 from click.testing import CliRunner
 from contextlib import contextmanager
 
-from .test_abstract import TestAbstract, root
+from .test_abstract import TestAbstract, absolute_path
 from tarentula.cli import cli
 from tarentula.tagging import Tagger
 
+
 class TestTagging(TestAbstract):
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
         super().setUpClass()
-        self.csv_with_ids_path = root('tests/fixtures/tags-with-document-id.csv')
-        self.csv_with_urls_path = root('tests/fixtures/tags-with-document-url.csv')
+        cls.csv_with_ids_path = absolute_path('tests/fixtures/tags-with-document-id.csv')
+        cls.csv_with_urls_path = absolute_path('tests/fixtures/tags-with-document-url.csv')
 
     @contextmanager
     def mock_tagging_endpoint(self):

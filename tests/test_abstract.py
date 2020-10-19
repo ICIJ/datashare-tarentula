@@ -7,26 +7,31 @@ from unittest import TestCase
 
 from tarentula.datashare_client import DatashareClient
 
-root = lambda x: os.path.join(os.path.abspath(dirname(dirname(__file__))), x)
+
+def absolute_path(relative_path):
+    return os.path.join(os.path.abspath(dirname(dirname(__file__))), relative_path)
+
 
 class TestAbstract(TestCase):
     @classmethod
-    def setUpClass(self):
-        self.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://localhost:9200')
-        self.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8080')
-        self.datashare_project = 'local-datashare'
-        self.datashare_client = DatashareClient(self.datashare_url, self.elasticsearch_url)
-        self.species_path = root('tests/fixtures/species.json')
+    def setUpClass(cls):
+        cls.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://localhost:9200')
+        cls.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8080')
+        cls.datashare_project = 'local-datashare'
+        cls.datashare_client = DatashareClient(cls.datashare_url, cls.elasticsearch_url)
+        cls.species_path = absolute_path('tests/fixtures/species.json')
 
-    def index_documents(self, documents = []):
+    def index_documents(self, documents=None):
+        if documents is None: documents = []
         for document in documents:
-            self.datashare_client.index(index = self.datashare_project, document = document, id = document['_id'])
-        self.datashare_client.refresh(index = self.datashare_project)
+            self.datashare_client.index(index=self.datashare_project, document=document, id=document['_id'])
+        self.datashare_client.refresh(index=self.datashare_project)
 
-    def delete_documents(self, documents = []):
+    def delete_documents(self, documents=None):
+        if documents is None: documents = []
         for document in documents:
-            self.datashare_client.delete(index = self.datashare_project, id = document['_id'])
-        self.datashare_client.refresh(index = self.datashare_project)
+            self.datashare_client.delete(index=self.datashare_project, id=document['_id'])
+        self.datashare_client.refresh(index=self.datashare_project)
 
     @contextmanager
     def existing_species_documents(self):

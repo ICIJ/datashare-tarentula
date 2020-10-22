@@ -1,17 +1,17 @@
 import json
-import requests
 import shutil
 import sys
-from tqdm import tqdm
-
 from os import makedirs
 from os.path import join, dirname, basename, exists
 from time import sleep
 
+from requests.exceptions import HTTPError, ConnectionError
+from tqdm import tqdm
+from urllib3.exceptions import ProtocolError
+
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
-from requests.exceptions import HTTPError, ConnectionError
-from urllib3.exceptions import ProtocolError
+
 
 class Download:
     def __init__(self,

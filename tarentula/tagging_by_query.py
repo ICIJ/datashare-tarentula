@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from tarentula.logger import logger
 
+
 class TaggerByQuery:
     def __init__(self,
                 datashare_project,

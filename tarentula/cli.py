@@ -5,6 +5,7 @@ from tarentula.tagging import Tagger
 from tarentula.tagging_by_query import TaggerByQuery
 from tarentula.download import Download
 
+
 def validate_loglevel(ctx, param, value):
     try:
         if isinstance(value, str):
@@ -13,10 +14,12 @@ def validate_loglevel(ctx, param, value):
     except (AttributeError, ValueError):
         raise click.BadParameter('must be a valid log level (CRITICAL, ERROR, WARNING, INFO, DEBUG or NOTSET)')
 
+
 def validate_progressbar(ctx, param, value):
     # If no value given, we activate the progress bar only when the
     # stdout_loglevel value is higher than INFO (20)
     return value if value is not None else ctx.obj['stdout_loglevel'] > 20
+
 
 @click.group()
 @click.pass_context
@@ -32,6 +35,7 @@ def cli(ctx, **options):
     ctx.ensure_object(dict)
     ctx.obj.update(options)
 
+
 @click.command()
 @click.option('--datashare-url', help='Datashare URL', default='http://localhost:8080')
 @click.option('--datashare-project', help='Datashare project', default='local-datashare')
@@ -45,6 +49,7 @@ def tagging(**options):
     tagger = Tagger(**options)
     # Proceed to tagging
     tagger.start()
+
 
 @click.command()
 @click.option('--datashare-project', help='Datashare project', default='local-datashare')
@@ -60,6 +65,7 @@ def tagging_by_query(**options):
     tagger = TaggerByQuery(**options)
     # Proceed to tagging
     tagger.start()
+
 
 @click.command()
 @click.option('--datashare-url', help='Datashare URL', default='http://localhost:8080')
@@ -82,6 +88,7 @@ def download(**options):
     download = Download(**options)
     # Proceed to tagging
     download.start()
+
 
 cli.add_command(tagging)
 cli.add_command(download)

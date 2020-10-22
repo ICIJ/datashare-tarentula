@@ -11,6 +11,7 @@ from tarentula.logger import logger
 
 DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/d/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
 
+
 class Tagger:
     def __init__(self, datashare_url, datashare_project, throttle, csv_path, cookies = '', traceback = False, progressbar = True):
         self.datashare_url = datashare_url

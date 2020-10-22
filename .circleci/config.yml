@@ -19,7 +19,7 @@ jobs:
           command: (sudo apt update || /bin/true) && sudo apt install ./$DATASHARE_PACKAGE
       - run:
           name: Run Datashare in background
-          command: datashare
+          command: datashare -p test-datashare -u test
           background: true
       - run:
           name: Install dependencies

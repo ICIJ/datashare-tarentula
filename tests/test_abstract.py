@@ -13,13 +13,19 @@ def absolute_path(relative_path):
 
 
 class TestAbstract(TestCase):
+    datashare_client = None
     @classmethod
     def setUpClass(cls):
         cls.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://localhost:9200')
         cls.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8080')
-        cls.datashare_project = 'local-datashare'
+        cls.datashare_project = 'test-datashare'
         cls.datashare_client = DatashareClient(cls.datashare_url, cls.elasticsearch_url)
         cls.species_path = absolute_path('tests/fixtures/species.json')
+        cls.datashare_client.create('test-datashare')
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.datashare_client.delete_index('test-datashare')
 
     def index_documents(self, documents=None):
         if documents is None: documents = []

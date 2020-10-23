@@ -78,4 +78,4 @@ class TestTaggingByQuery(TestAbstract):
         runner = CliRunner()
         result = runner.invoke(cli, ['--stdout-loglevel', 'INFO', 'tagging-by-query', '--elasticsearch-url', self.elasticsearch_url, '--datashare-project', self.datashare_project, self.json_tags_path])
         self.assertNotIn('This action will add 8 tag(s)', result.output)
-        self.assertEqual(result.output.count('Documents tagged with'), 8)
+        self.assertEqual(result.output.count('Documents tagged with'), 16) # logs + stdout

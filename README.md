@@ -145,10 +145,19 @@ Options:
 
 To test this tool, you must have Datashare and Elasticsearch running on your development machine.
 
-After you [installed Datashare](https://datashare.icij.org/), just run it with the default options:
+You can adapt the tests to your dev environment. For example in a dockerized env, with the following variables : 
 
 ```
-datashare
+export TEST_ELASTICSEARCH_URL=http://elasticsearch:9200
+export TEST_DATASHARE_URL=http://datashare:8080
+```
+
+the tests will use `http://elasticsearch:9200` and `http://datashare:8080`
+
+After you [installed Datashare](https://datashare.icij.org/), just run it with a test project/user:
+
+```
+datashare -p test-datashare -u test
 ```
 
 In a separate terminal, install the development dependencies:

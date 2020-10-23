@@ -12,14 +12,14 @@ from tarentula.logger import logger
 
 class TaggerByQuery:
     def __init__(self,
-                datashare_project,
-                elasticsearch_url,
-                json_path,
-                throttle = 0,
-                cookies = '',
-                progressbar = True,
-                traceback = False,
-                wait_for_completion = True):
+                 datashare_project,
+                 elasticsearch_url,
+                 json_path,
+                 throttle=0,
+                 cookies='',
+                 progressbar=True,
+                 traceback=False,
+                 wait_for_completion=True):
         self.datashare_project = datashare_project
         self.elasticsearch_url = elasticsearch_url
         self.cookies_string = cookies
@@ -52,15 +52,14 @@ class TaggerByQuery:
     @property
     def tagging_by_query_endpoint(self):
         url_template = '{elasticsearch_url}/{datashare_project}/_update_by_query?conflicts=proceed'
-        return url_template.format(elasticsearch_url = self.elasticsearch_url,
-                                    datashare_project = self.datashare_project)
+        return url_template.format(elasticsearch_url=self.elasticsearch_url, datashare_project=self.datashare_project)
 
     def sleep(self):
         sleep(self.throttle / 1000)
 
     def task_url(self, task):
         url_template = '{elasticsearch_url}/_tasks/{task}'
-        return url_template.format(elasticsearch_url = self.elasticsearch_url, task = task)
+        return url_template.format(elasticsearch_url=self.elasticsearch_url, task=task)
 
     def tag_documents(self, tag, query):
         query = {
@@ -74,14 +73,14 @@ class TaggerByQuery:
                     }
                 """,
                 "lang": "painless",
-                "params" : {
-                    "tag" : tag
+                "params": {
+                    "tag": tag
                 },
             },
             **query
         }
-        params = { "wait_for_completion": str(self.wait_for_completion).lower() }
-        result = requests.post(self.tagging_by_query_endpoint, params = params, json = query, cookies = self.cookies)
+        params = {"wait_for_completion": str(self.wait_for_completion).lower()}
+        result = requests.post(self.tagging_by_query_endpoint, params=params, json=query, cookies=self.cookies)
         result.raise_for_status()
         return result
 
@@ -91,7 +90,8 @@ class TaggerByQuery:
 
     def start(self):
         count = self.tags_count
-        pbar = tqdm(self.tags.items(), total=count, desc="This action will add %s tag(s)" % count, file=sys.stderr, disable=self.no_progressbar)
+        pbar = tqdm(self.tags.items(), total=count, desc="This action will add %s tag(s)" % count, file=sys.stderr,
+                    disable=self.no_progressbar)
         for (tag, query) in pbar:
             try:
                 tqdm.write('Adding "%s" tag' % tag)

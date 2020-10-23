@@ -1,4 +1,6 @@
 import logging
+import sys
+
 import coloredlogs
 from logging.handlers import SysLogHandler
 
@@ -20,4 +22,6 @@ def add_syslog_handler(address = 'localhost', port = 514, facility = 'local7'):
 
 def add_stdout_handler(level = logging.ERROR):
     fmt = '%(levelname)s %(message)s'
+    handler = logging.StreamHandler(sys.stdout)
+    logger.addHandler(handler)
     coloredlogs.install(level=level, logger=logger, fmt=fmt)

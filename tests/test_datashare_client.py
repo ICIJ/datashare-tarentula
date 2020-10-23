@@ -3,6 +3,7 @@ import uuid
 
 from .test_abstract import TestAbstract
 
+
 class TestDatashareClient(TestAbstract):
 
     def test_default_index_creation(self):

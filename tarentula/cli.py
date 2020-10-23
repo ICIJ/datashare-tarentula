@@ -1,6 +1,7 @@
 import click
 import logging
 from tarentula.logger import add_syslog_handler, add_stdout_handler
+from tarentula.tag_cleaning_by_query import TagsCleanerByQuery
 from tarentula.tagging import Tagger
 from tarentula.tagging_by_query import TaggerByQuery
 from tarentula.download import Download
@@ -68,6 +69,17 @@ def tagging_by_query(**options):
 
 
 @click.command()
+@click.option('--datashare-project', help='Datashare project', default='local-datashare')
+@click.option('--elasticsearch-url', help='Elasticsearch URL which is used to perform update by query', default='http://localhost:9200')
+@click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...')
+@click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
+@click.option('--wait-for-completion/--no-wait-for-completion', help='Create a Elasticsearch task to perform the update asynchronously', default=True)
+def clean_tags_by_query(**options):
+    tagger = TagsCleanerByQuery(**options)
+    tagger.start()
+
+
+@click.command()
 @click.option('--datashare-url', help='Datashare URL', default='http://localhost:8080')
 @click.option('--datashare-project', help='Datashare project', default='local-datashare')
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling capabilities of Elasticsearch (useful when dealing with a lot of results)', default=None)
@@ -93,6 +105,7 @@ def download(**options):
 cli.add_command(tagging)
 cli.add_command(download)
 cli.add_command(tagging_by_query)
+cli.add_command(clean_tags_by_query)
 
 if __name__ == '__main__':
     cli()

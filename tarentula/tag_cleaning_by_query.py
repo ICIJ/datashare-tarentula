@@ -14,7 +14,13 @@ class TagsCleanerByQuery:
                  traceback: bool = False,
                  wait_for_completion: bool = True,
                  query: str = None):
-        self.query = {"query": {"match_all": {}}} if query is None else json.loads(query)
+        if query is None:
+            self.query = {"query": {"match_all": {}}}
+        elif query.startswith('@'):
+            with open(query[1:]) as f:
+                self.query = json.loads(f.read())
+        else:
+            self.query = json.loads(query)
         self.datashare_project = datashare_project
         self.elasticsearch_url = elasticsearch_url
         self.cookies_string = cookies

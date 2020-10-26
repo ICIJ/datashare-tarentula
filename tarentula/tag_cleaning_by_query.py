@@ -1,3 +1,4 @@
+import json
 from http.cookies import SimpleCookie
 
 import requests
@@ -7,13 +8,13 @@ from tarentula.logger import logger
 
 class TagsCleanerByQuery:
     def __init__(self,
-                 datashare_project,
-                 elasticsearch_url,
-                 cookies='',
-                 traceback=False,
-                 wait_for_completion=True,
-                 query=None):
-        self.query = {"query": {"match_all": {}}} if query is None else query
+                 datashare_project: str,
+                 elasticsearch_url: str,
+                 cookies: str = '',
+                 traceback: bool = False,
+                 wait_for_completion: bool = True,
+                 query: str = None):
+        self.query = {"query": {"match_all": {}}} if query is None else json.loads(query)
         self.datashare_project = datashare_project
         self.elasticsearch_url = elasticsearch_url
         self.cookies_string = cookies
@@ -40,5 +41,6 @@ class TagsCleanerByQuery:
         params = {"wait_for_completion": str(self.wait_for_completion).lower()}
         result = requests.post(self.tagging_by_query_endpoint, params=params, json={**script, **self.query}, cookies=self.cookies)
         result.raise_for_status()
+        logger.info('updated %s documents' % result.json()['updated'])
         return result
 

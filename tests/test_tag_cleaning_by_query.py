@@ -18,27 +18,27 @@ class TestTagsCleanerByQuery(TestAbstract):
         self.datashare_client.index(index=self.datashare_project, document={'content': "content", "tags": ["tag"]}, id="id")
         add_stdout_handler(level=logging.INFO)
         runner = CliRunner()
-        result = runner.invoke(cli, ['clean-tags-by-query', "--datashare-project", self.datashare_project, "--elasticsearch-url", "http://elasticsearch:9200"])
+        result = runner.invoke(cli, ['clean-tags-by-query', "--datashare-project", self.datashare_project, "--elasticsearch-url", self.elasticsearch_url])
         self.assertIn('updated 1 documents', result.output)
 
     def test_cli_is_wired_on_tags_cleaner_with_query_option(self):
         self.datashare_client.index(index=self.datashare_project, document={'content': "content", "tags": ["tag"]}, id="id")
         add_stdout_handler(level=logging.INFO)
         runner = CliRunner()
-        result = runner.invoke(cli, ['clean-tags-by-query', "--datashare-project", self.datashare_project, "--elasticsearch-url", "http://elasticsearch:9200", "--query", '{"query": {"ids": {"values": ["id"]}}}'])
+        result = runner.invoke(cli, ['clean-tags-by-query', "--datashare-project", self.datashare_project, "--elasticsearch-url", self.elasticsearch_url, "--query", '{"query": {"ids": {"values": ["id"]}}}'])
         self.assertIn('updated 1 documents', result.output)
 
     def test_cli_is_wired_on_tags_cleaner_with_background_task(self):
         add_stdout_handler(level=logging.INFO)
         runner = CliRunner()
-        result = runner.invoke(cli, ['clean-tags-by-query', "--datashare-project", self.datashare_project, "--elasticsearch-url", "http://elasticsearch:9200", '--no-wait-for-completion'])
+        result = runner.invoke(cli, ['clean-tags-by-query', "--datashare-project", self.datashare_project, "--elasticsearch-url", self.elasticsearch_url, '--no-wait-for-completion'])
         self.assertIn('task created:', result.output)
 
     def test_cli_is_wired_on_tags_cleaner_with_query_option_in_a_file(self):
         self.datashare_client.index(index=self.datashare_project, document={'content': "content", "tags": ["tag"]}, id="id")
         add_stdout_handler(level=logging.INFO)
         runner = CliRunner()
-        result = runner.invoke(cli, ['clean-tags-by-query', "--datashare-project", self.datashare_project, "--elasticsearch-url", "http://elasticsearch:9200", "--query", '@' + absolute_path('tests/fixtures/match_all_query.json')])
+        result = runner.invoke(cli, ['clean-tags-by-query', "--datashare-project", self.datashare_project, "--elasticsearch-url", self.elasticsearch_url, "--query", '@' + absolute_path('tests/fixtures/match_all_query.json')])
         self.assertIn('updated 1 documents', result.output)
 
     def test_clean_tags(self):

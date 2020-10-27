@@ -47,6 +47,9 @@ class TagsCleanerByQuery:
         params = {"wait_for_completion": str(self.wait_for_completion).lower()}
         result = requests.post(self.tagging_by_query_endpoint, params=params, json={**script, **self.query}, cookies=self.cookies)
         result.raise_for_status()
-        logger.info('updated %s documents' % result.json()['updated'])
+        if self.wait_for_completion:
+            logger.info('updated %s documents' % result.json()['updated'])
+        else:
+            logger.info('task created: [%s]' % result.json()['task'])
         return result
 

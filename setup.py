@@ -42,4 +42,5 @@ setup(name='tarentula',
       entry_points='''
         [console_scripts]
         tarentula=tarentula.cli:cli
+        graph_es=tarentula.graph_realtime:graph
     ''')

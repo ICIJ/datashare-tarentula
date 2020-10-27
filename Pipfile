@@ -8,6 +8,7 @@ click = "*"
 requests = "==2.22.0"
 tqdm = "*"
 coloredlogs = "*"
+matplotlib = "*"
 
 [dev-packages]
 bumpversion = "==0.5.3"

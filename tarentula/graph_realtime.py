@@ -28,6 +28,7 @@ def graph(query: str, elasticsearch_url: str, index: str, field: str, refresh_in
 
     elasticsearch_endpoint = '%s/%s/_search?size=0' % (elasticsearch_url, index)
     ani = animation.FuncAnimation(fig, add_point, fargs=(xs, ys, elasticsearch_endpoint, query_dict, field, ax), interval=refresh_interval*1000)
+    plt.gcf().autofmt_xdate()
     plt.show()
 
 
@@ -36,7 +37,7 @@ def add_point(i, xs, ys, elasticsearch_endpoint, query_dict, field, ax):
     x = datetime.now()
     y = result['hits'][field]
 
-    xs.append(x.strftime('%H:%M:%S.%f'))
+    xs.append(x)
     ys.append(y)
     ax.clear()
     ax.plot(xs, ys)

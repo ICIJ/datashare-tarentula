@@ -172,3 +172,35 @@ Finally, run the test
 ```
 make test
 ```
+
+# following your changes
+
+When running Elasticsearch changes on big datasets, it could take a very long time. As we were curling ES to see if the task was still running well, we added a small utility to follow the changes. It makes a live graph of a provided ES indicator with a specified filter.
+
+It uses [mathplotlib](https://matplotlib.org/) and python3-tk.
+
+If you see the following message : 
+
+```
+$ graph_es
+graph_realtime.py:32: UserWarning: Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure
+```
+
+Then you have to install [tkinter](https://docs.python.org/3/library/tkinter.html), i.e. python3-tk for Debian/Ubuntu.
+
+The command has the options below: 
+
+```
+$ graph_es --help
+Usage: graph_es [OPTIONS]
+
+Options:
+  --query TEXT                Give a JSON query to filter documents. It can be
+                              a file with @path/to/file. Default to all.
+
+  --index TEXT                Elasticsearch index (default local-datashare)
+  --refresh-interval INTEGER  Graph refresh interval in seconds (default 5s)
+  --field TEXT                Field indicator to display over time (default "total")
+  --elasticsearch-url TEXT    Elasticsearch URL which is used to perform
+                              update by query (default http://elasticsearch:9200)
+```

@@ -34,7 +34,7 @@ class GraphRealTime:
         result = requests.post(self.elasticsearch_endpoint, json=self.query).json()
         x = datetime.now()
         # call get on result while there are dots in self.field
-        y = functools.reduce(lambda dictionary, field: getattr(dictionary, 'get')(field), [result] + self.field.split('.'))
+        y = functools.reduce(dict.get, [result] + self.field.split('.'))
 
         self.xs.append(x)
         self.ys.append(y)

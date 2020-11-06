@@ -200,7 +200,7 @@ Options:
 
   --index TEXT                Elasticsearch index (default local-datashare)
   --refresh-interval INTEGER  Graph refresh interval in seconds (default 5s)
-  --field TEXT                Field indicator to display over time (default "total")
+  --field TEXT                Field value to display over time (default "hits.total")
   --elasticsearch-url TEXT    Elasticsearch URL which is used to perform
                               update by query (default http://elasticsearch:9200)
 ```

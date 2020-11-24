@@ -170,3 +170,18 @@ class TestTagging(TestAbstract):
             result = runner.invoke(cli, ['tagging', '--datashare-url', self.datashare_url, '--datashare-project', self.datashare_project, '--cookies', cookies, self.csv_with_ids_path])
             self.assertEqual(resp.calls[1].request.headers['Cookie'], '_ds_session_id={"login":"","roles":[],"sessionId":"dq18s0kj08dq10skLYGSu8SFVsg","redirectAfterLogin":"/"}')
             self.assertEqual(resp.calls[3].request.headers['Cookie'], '_ds_session_id={"login":"","roles":[],"sessionId":"dq18s0kj08dq10skLYGSu8SFVsg","redirectAfterLogin":"/"}')
+
+    def test_apikey_header_is_not_sent_with_none(self):
+        with self.mock_tagging_endpoint() as resp:
+            runner = CliRunner()
+            runner.invoke(cli, ['tagging', '--datashare-url', self.datashare_url, '--datashare-project',
+                                self.datashare_project, self.csv_with_ids_path])
+            self.assertIsNone(resp.calls[1].request.headers.get('Authorization'))
+
+    def test_apikey_is_sent_while_tagging_with_cli(self):
+        with self.mock_tagging_endpoint() as resp:
+            runner = CliRunner()
+            runner.invoke(cli, ['tagging', '--datashare-url', self.datashare_url, '--datashare-project',
+                                self.datashare_project, '--apikey',
+                                "my_api_key", self.csv_with_ids_path])
+            self.assertEqual(resp.calls[1].request.headers['Authorization'], 'bearer my_api_key')

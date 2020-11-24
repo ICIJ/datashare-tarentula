@@ -13,10 +13,11 @@ DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/d/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
 
 
 class Tagger:
-    def __init__(self, datashare_url, datashare_project, throttle, csv_path, cookies = '', traceback = False, progressbar = True):
+    def __init__(self, datashare_url, datashare_project, throttle, csv_path, cookies = '', apikey = None, traceback = False, progressbar = True):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.cookies_string = cookies
+        self.apikey = apikey
         self.throttle = throttle
         self.csv_path = csv_path
         self.traceback = traceback
@@ -91,7 +92,8 @@ class Tagger:
             endpoint_url = self.leaf_tagging_endpoint(leaf)
             for tag in leaf['tags']:
                 try:
-                    result = requests.put(endpoint_url, json = [tag], cookies = self.cookies)
+                    result = requests.put(endpoint_url, json = [tag], cookies = self.cookies,
+                                          headers = None if self.apikey is None else {'Authorization': 'bearer %s' % self.apikey})
                     result.raise_for_status()
                     self.sleep()
                     if result.status_code == requests.codes.ok:

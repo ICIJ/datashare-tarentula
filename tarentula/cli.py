@@ -42,6 +42,7 @@ def cli(ctx, **options):
 @click.option('--datashare-project', help='Datashare project', default='local-datashare')
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...')
+@click.option('--apikey', help='Datashare authentication apikey', default=None)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None, callback=validate_progressbar)
 @click.argument('csv-path', type=click.Path(exists=True))

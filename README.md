@@ -15,17 +15,18 @@ Cli toolbelt for [Datashare](https://datashare.icij.org).
 Usage: tarentula [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  --syslog-address TEXT   Syslog address
-  --syslog-port INTEGER   Syslog port
-  --syslog-facility TEXT  Syslog facility
-  --stdout-loglevel TEXT  Change the default log level for stdout error
-                          handler
+  --syslog-address      TEXT        localhost       Syslog address
+  --syslog-port         INTEGER     514             Syslog port
+  --syslog-facility     TEXT        local7          Syslog facility
+  --stdout-loglevel     TEXT        ERROR           Change the default log level for stdout error handler
 
-  --help                  Show this message and exit.
+  --help                                            Show this message and exit.
 
 Commands:
-  download
   tagging
+  tagging by query
+  clean_tags_by_query
+  download
 ```
 
 ## Tagging
@@ -103,6 +104,9 @@ Options:
 
   --help                          Show this message and exit.
 ```
+
+## Clean Tags by Query
+
 
 ## Download
 

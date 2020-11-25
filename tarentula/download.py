@@ -22,7 +22,7 @@ class Download:
                  throttle: int = 0,
                  cookies: str = '',
                  apikey: str = None,
-                 elasticsearch_url: str = None,
+                 elasticsearch_url: str = 'http://localhost:9200',
                  path_format: str = '{id_2b}/{id_4b}/{id}',
                  scroll: str = None,
                  once: bool = False,

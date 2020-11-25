@@ -62,7 +62,7 @@ def tagging(**options):
               default='http://localhost:9200')
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
-                                'semicolons: key1=val1;key2=val2;...')
+                                'semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--apikey', help='Datashare authentication apikey', default=None)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
@@ -98,7 +98,7 @@ def clean_tags_by_query(**options):
 @click.option('--datashare-project', help='Datashare project', default='local-datashare')
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
                                           'capabilities of Elasticsearch (useful when dealing with a lot of results)',
-              default=None)
+              default='http://localhost:9200')
 @click.option('--query', help='The query string to filter documents', default='*')
 @click.option('--destination-directory', help='Directory documents will be downloaded', default='./tmp')
 @click.option('--throttle', help='Request throttling (in ms)', default=0)

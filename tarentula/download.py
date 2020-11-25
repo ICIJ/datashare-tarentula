@@ -15,22 +15,22 @@ from tarentula.logger import logger
 
 class Download:
     def __init__(self,
-                datashare_url,
-                datashare_project,
-                destination_directory,
-                query = '*',
-                throttle = 0,
-                cookies = '',
-                apikey = None,
-                elasticsearch_url =  None,
-                path_format = '{id_2b}/{id_4b}/{id}',
-                scroll = None,
-                once = False,
-                traceback = False,
-                progressbar = True,
-                raw_file = True,
-                source = None,
-                type = 'Document'):
+                 datashare_url: str = '',
+                 datashare_project: str = '',
+                 destination_directory: str = '',
+                 query: str = '*',
+                 throttle: int = 0,
+                 cookies: str = '',
+                 apikey: str = None,
+                 elasticsearch_url: str = None,
+                 path_format: str = '{id_2b}/{id_4b}/{id}',
+                 scroll: str = None,
+                 once: bool = False,
+                 traceback: bool = False,
+                 progressbar: bool = True,
+                 raw_file: bool = True,
+                 source: str = None,
+                 type: str = 'Document'):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.query = query
@@ -103,7 +103,7 @@ class Download:
             "parentDocument": document.get('_source', {}).get('parentDocument', None)
         }
 
-    def raw_file_path(self, document, parents = True):
+    def raw_file_path(self, document, parents=True):
         formatted_path = self.path_format.format(**self.document_file_options(document))
         file_path = join(self.destination_directory, formatted_path)
         if parents:
@@ -111,7 +111,7 @@ class Download:
             makedirs(parents_path, exist_ok=True)
         return file_path
 
-    def indexed_document_path(self, document, parents = True):
+    def indexed_document_path(self, document, parents=True):
         formatted_path = self.path_format.format(**self.document_file_options(document))
         formatted_path = '.'.join((formatted_path, 'json'))
         file_path = join(self.destination_directory, formatted_path)
@@ -122,7 +122,7 @@ class Download:
 
     def count_matches(self):
         index = self.datashare_project
-        return self.datashare_client.count(index = index, query = self.query_body).get('count')
+        return self.datashare_client.count(index=index, query=self.query_body).get('count')
 
     def log_matches(self):
         index = self.datashare_project
@@ -135,10 +135,10 @@ class Download:
         source = ["path", "parentDocument", "type"] + str(self.source).split(',')
         if self.scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
-            return self.datashare_client.query_all(index = index, query = self.query_body, source = source)
+            return self.datashare_client.query_all(index=index, query=self.query_body, source=source)
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
-            return self.datashare_client.scan_all(index = index, query = self.query_body, source = source, scroll = self.scroll)
+            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll)
 
     def download_raw_file(self, document):
         id = document.get('_id')
@@ -176,7 +176,8 @@ class Download:
         count = self.log_matches()
         try:
             documents = self.scan_or_query_all()
-            pbar = tqdm(documents, total=count, desc="Downloading %s document(s)" % count, file=sys.stdout, disable=self.no_progressbar)
+            pbar = tqdm(documents, total=count, desc="Downloading %s document(s)" % count, file=sys.stdout,
+                        disable=self.no_progressbar)
             for document in pbar:
                 try:
                     self.download_raw_file(document)

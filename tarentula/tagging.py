@@ -13,7 +13,15 @@ DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/d/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
 
 
 class Tagger:
-    def __init__(self, datashare_url, datashare_project, throttle, csv_path, cookies = '', apikey = None, traceback = False, progressbar = True):
+    def __init__(self,
+                 datashare_url: str = '',
+                 datashare_project: str = '',
+                 throttle: int = 0,
+                 csv_path: str = '',
+                 cookies: str = '',
+                 apikey: str = None,
+                 traceback: bool = False,
+                 progressbar: bool = True):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.cookies_string = cookies
@@ -34,20 +42,22 @@ class Tagger:
 
     @property
     def tags(self):
-        return list(dict.fromkeys([ row['tag'] for row in self.csv_rows ]))
+        return list(dict.fromkeys([row['tag'] for row in self.csv_rows]))
 
     @property
     def documentIds(self):
-        return list(dict.fromkeys([ row['documentId'] for row in self.csv_rows ]))
+        return list(dict.fromkeys([row['documentId'] for row in self.csv_rows]))
 
     @property
     def tree(self):
         tree = dict()
         for row in self.csv_rows:
             # Extract row values
-            tag, document_id, routing = (row['tag'], row['documentId'], row.get('routing', row['documentId']) or row['documentId'],)
+            tag, document_id, routing = (row['tag'], row['documentId'],
+                                         row.get('routing', row['documentId']) or row['documentId'],)
             # Append to an existing dictionary or create one
-            tree[document_id] = tree[document_id] if document_id in tree else dict(tags = set(), routing = routing, document_id = document_id)
+            tree[document_id] = tree[document_id] if document_id in tree else dict(tags=set(), routing=routing,
+                                                                                   document_id=document_id)
             # Tags are added to a set so they are unique
             tree[document_id]['tags'].add(tag)
         return tree
@@ -76,10 +86,10 @@ class Tagger:
         # @see https://github.com/ICIJ/datashare/wiki/Datashare-API
         url_template = '{datashare_url}/api/{datashare_project}/documents/tags/{document_id}?routing={routing}'
         return url_template.format(
-            datashare_url = self.datashare_url,
-            datashare_project = self.datashare_project,
-            document_id = document_id,
-            routing = routing
+            datashare_url=self.datashare_url,
+            datashare_project=self.datashare_project,
+            document_id=document_id,
+            routing=routing
         )
 
     def summarize(self):
@@ -88,12 +98,14 @@ class Tagger:
         return summary
 
     def start(self):
-        for document_id, leaf in tqdm(self.tree.items(), desc=self.summarize(), file=sys.stdout, disable=self.no_progressbar):
+        for document_id, leaf in tqdm(self.tree.items(), desc=self.summarize(), file=sys.stdout,
+                                      disable=self.no_progressbar):
             endpoint_url = self.leaf_tagging_endpoint(leaf)
             for tag in leaf['tags']:
                 try:
-                    result = requests.put(endpoint_url, json = [tag], cookies = self.cookies,
-                                          headers = None if self.apikey is None else {'Authorization': 'bearer %s' % self.apikey})
+                    result = requests.put(endpoint_url, json=[tag], cookies=self.cookies,
+                                          headers=None if self.apikey is None else
+                                          {'Authorization': 'bearer %s' % self.apikey})
                     result.raise_for_status()
                     self.sleep()
                     if result.status_code == requests.codes.ok:

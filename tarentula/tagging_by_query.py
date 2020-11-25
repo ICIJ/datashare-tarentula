@@ -12,15 +12,15 @@ from tarentula.logger import logger
 
 class TaggerByQuery:
     def __init__(self,
-                 datashare_project,
-                 elasticsearch_url,
-                 json_path,
-                 throttle=0,
-                 cookies='',
-                 apikey=None,
-                 progressbar=True,
-                 traceback=False,
-                 wait_for_completion=True):
+                 datashare_project: str = '',
+                 elasticsearch_url: str = '',
+                 json_path: str = '',
+                 throttle: int = 0,
+                 cookies: str = '',
+                 apikey: str = None,
+                 progressbar: bool = True,
+                 traceback: bool = False,
+                 wait_for_completion: bool = True):
         self.datashare_project = datashare_project
         self.elasticsearch_url = elasticsearch_url
         self.cookies_string = cookies

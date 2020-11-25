@@ -26,6 +26,13 @@ class TestApikey(TestAbstract):
             resp.add(responses.POST, re.compile(tagging_endpoint_re), body='', status=201)
             yield resp
 
+    @contextmanager
+    def mock_download_endpoint(self):
+        with responses.RequestsMock() as resp:
+            tagging_endpoint_re = r"^%s\/api/%s/documents/src" % (self.datashare_url, self.datashare_project)
+            resp.add(responses.GET, re.compile(tagging_endpoint_re), body='', status=201)
+            yield resp
+
     def test_apikey_header_is_NOT_sent_while_tagging_with_cli(self):
         with NamedTemporaryFile() as file:
             file.write(b'tag,documentId,routing\ndocumentTag,documentId,documentRouting')
@@ -92,4 +99,13 @@ class TestApikey(TestAbstract):
             runner.invoke(cli, ['clean-tags-by-query', '--elasticsearch-url', self.elasticsearch_url,
                                 '--datashare-project', self.datashare_project, '--apikey', 'my_api_key', '--query',
                                 '{"query": {"ids": {"values": ["id"]}}}'])
+            self.assertEqual(resp.calls[0].request.headers['Authorization'], 'bearer my_api_key')
+
+    def test_apikey_header_is_sent_while_downloading_with_cli(self):
+        self.datashare_client.index(index=self.datashare_project, document={'content': 'content', 'tags': ['tag']},
+                                    id='id')
+        with self.mock_download_endpoint() as resp:
+            runner = CliRunner()
+            runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--datashare-project',
+                                self.datashare_project, '--no-raw-file', '--apikey', 'my_api_key', '--query', '*'])
             self.assertEqual(resp.calls[0].request.headers['Authorization'], 'bearer my_api_key')

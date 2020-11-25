@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from tarentula.cli import cli
 from .test_abstract import TestAbstract, absolute_path
 
+
 class TestApikey(TestAbstract):
 
     @classmethod
@@ -31,6 +32,8 @@ class TestApikey(TestAbstract):
             yield resp
 
     def test_apikey_header_is_NOT_sent_while_tagging_with_cli(self):
+        self.datashare_client.index(index=self.datashare_project, document={'content': 'content', 'tags': ['tag']},
+                                    id='id')
         with self.mock_tagging_endpoint() as resp:
             runner = CliRunner()
             runner.invoke(cli, ['tagging', '--datashare-url', self.datashare_url, '--datashare-project',
@@ -49,26 +52,31 @@ class TestApikey(TestAbstract):
         with self.mock_tagging_by_query_endpoint() as resp:
             runner = CliRunner()
             runner.invoke(cli, ['tagging-by-query', '--elasticsearch-url', self.elasticsearch_url,
-                                     '--datashare-project', self.datashare_project, self.json_tags_path])
+                                '--datashare-project', self.datashare_project, self.json_tags_path])
             self.assertIsNone(resp.calls[0].request.headers.get('Authorization'))
 
     def test_apikey_header_is_sent_while_tagging_by_query_with_cli(self):
         with self.mock_tagging_by_query_endpoint() as resp:
             runner = CliRunner()
             runner.invoke(cli, ['tagging-by-query', '--elasticsearch-url', self.elasticsearch_url,
-                                     '--datashare-project', self.datashare_project, '--apikey', 'my_api_key', self.json_tags_path])
+                                '--datashare-project', self.datashare_project, '--apikey', 'my_api_key',
+                                self.json_tags_path])
             self.assertEqual(resp.calls[0].request.headers['Authorization'], 'bearer my_api_key')
 
     def test_apikey_header_is_NOT_sent_while_tag_cleaning_by_query_with_cli(self):
         with self.mock_tagging_by_query_endpoint() as resp:
             runner = CliRunner()
             runner.invoke(cli, ['clean-tags-by-query', '--elasticsearch-url', self.elasticsearch_url,
-                                     '--datashare-project', self.datashare_project, '--query', '@' + absolute_path('tests/fixtures/match_all_query.json')])
+                                '--datashare-project', self.datashare_project, '--query',
+                                '@' + absolute_path('tests/fixtures/match_all_query.json')])
             self.assertIsNone(resp.calls[0].request.headers.get('Authorization'))
 
     def test_apikey_header_is_sent_while_tag_cleaning_by_query_with_cli(self):
+        self.datashare_client.index(index=self.datashare_project, document={'content': 'content', 'tags': ['tag']},
+                                    id='id')
         with self.mock_tagging_by_query_endpoint() as resp:
             runner = CliRunner()
             runner.invoke(cli, ['clean-tags-by-query', '--elasticsearch-url', self.elasticsearch_url,
-                                     '--datashare-project', self.datashare_project, '--apikey', 'my_api_key', '--query', '@' + absolute_path('tests/fixtures/match_all_query.json')])
+                                '--datashare-project', self.datashare_project, '--apikey', 'my_api_key', '--query',
+                                '{"query": {"ids": {"values": ["id"]}}}'])
             self.assertEqual(resp.calls[0].request.headers['Authorization'], 'bearer my_api_key')

@@ -15,9 +15,9 @@ from tarentula.logger import logger
 
 class Download:
     def __init__(self,
-                 datashare_url: str = '',
-                 datashare_project: str = '',
-                 destination_directory: str = '',
+                 datashare_url: str = 'http://localhost:8080',
+                 datashare_project: str = 'local-datashare',
+                 destination_directory: str = './tmp',
                  query: str = '*',
                  throttle: int = 0,
                  cookies: str = '',

@@ -14,8 +14,8 @@ DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/d/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
 
 class Tagger:
     def __init__(self,
-                 datashare_url: str = '',
-                 datashare_project: str = '',
+                 datashare_url: str = 'http://localhost:8080',
+                 datashare_project: str = 'local-datashare',
                  throttle: int = 0,
                  csv_path: str = '',
                  cookies: str = '',

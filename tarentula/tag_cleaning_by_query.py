@@ -8,8 +8,8 @@ from tarentula.logger import logger
 
 class TagsCleanerByQuery:
     def __init__(self,
-                 datashare_project: str = '',
-                 elasticsearch_url: str = '',
+                 datashare_project: str = 'local-datashare',
+                 elasticsearch_url: str = 'http://localhost:9200',
                  cookies: str = '',
                  apikey: str = None,
                  traceback: bool = False,

@@ -73,7 +73,7 @@ class Tagger:
 
     def leaf_tagging_endpoint(self, leaf):
         document_id, tags, routing = (leaf['document_id'], leaf['tags'], leaf['routing'])
-        # @see https://github.com/ICIJ/datashare/wiki/Datashare-API
+        # @see https://github.com/ICIJ/datashare/wiki/Datashare-API
         url_template = '{datashare_url}/api/{datashare_project}/documents/tags/{document_id}?routing={routing}'
         return url_template.format(
             datashare_url = self.datashare_url,

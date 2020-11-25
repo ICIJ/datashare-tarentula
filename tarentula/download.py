@@ -21,6 +21,7 @@ class Download:
                 query = '*',
                 throttle = 0,
                 cookies = '',
+                apikey = None,
                 elasticsearch_url =  None,
                 path_format = '{id_2b}/{id_4b}/{id}',
                 scroll = None,
@@ -36,6 +37,7 @@ class Download:
         self.destination_directory = destination_directory
         self.throttle = throttle
         self.cookies_string = cookies
+        self.apikey = apikey
         self.path_format = path_format
         self.once = once
         self.traceback = traceback
@@ -49,7 +51,6 @@ class Download:
         except (ConnectionRefusedError, ConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
             exit()
-
 
     @property
     def query_body(self):
@@ -143,7 +144,8 @@ class Download:
         id = document.get('_id')
         routing = document.get('_routing', id)
         # Skip raw file
-        if not self.raw_file: return
+        if not self.raw_file:
+            return
         # Skip existing
         if self.once and self.raw_file_exists(document):
             return logger.info('Skipping existing document %s' % document.get('_id'))

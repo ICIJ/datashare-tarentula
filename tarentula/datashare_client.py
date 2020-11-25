@@ -17,7 +17,7 @@ class DatashareClient:
         self.datashare_url = datashare_url
         self.cookies_string = cookies
         self.elasticsearch_url = elasticsearch_url
-        # Create the datrashare default index
+        # Create the datashare default index
         self.create()
 
     @property
@@ -34,7 +34,7 @@ class DatashareClient:
         if self.elasticsearch_url is not None:
             return self.elasticsearch_url
         else:
-            #  @see https://github.com/ICIJ/datashare/wiki/Datashare-API
+            # @see https://github.com/ICIJ/datashare/wiki/Datashare-API
             return urljoin(self.datashare_url, '/api/index/search/')
 
     def create(self, index=DATASHARE_DEFAULT_PROJECT):
@@ -45,8 +45,9 @@ class DatashareClient:
         params = {"routing": routing}
         # Clone the document to perform changes
         document = dict(document)
-        # Elastichsearch doesn't allow passing the _id as a property in the document
-        if '_id' in document: document.pop('_id', None)
+        # Elasticsearch doesn't allow passing the _id as a property in the document
+        if '_id' in document:
+            document.pop('_id', None)
         # When no id is provided, we use POST method (to create the resource)
         if id is None:
             url = urljoin(self.elasticsearch_url, index, '/doc?refresh')
@@ -138,7 +139,8 @@ class DatashareClient:
     def download(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None):
         routing = routing or id
         url = urljoin(self.datashare_url, 'api', index, '/documents/src', id)
-        return requests.get(url, params={"routing": routing}, cookies=self.cookies, stream=True)
+        return requests.get(url, params={"routing": routing}, cookies=self.cookies, stream=True,
+                            headers=None if self.apikey is None else {'Authorization': 'bearer %s' % self.apikey})
 
     @contextmanager
     def temporary_project(self, source=DATASHARE_DEFAULT_PROJECT, delete=True):

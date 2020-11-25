@@ -17,12 +17,14 @@ class TaggerByQuery:
                  json_path,
                  throttle=0,
                  cookies='',
+                 apikey=None,
                  progressbar=True,
                  traceback=False,
                  wait_for_completion=True):
         self.datashare_project = datashare_project
         self.elasticsearch_url = elasticsearch_url
         self.cookies_string = cookies
+        self.apikey = apikey
         self.throttle = throttle
         self.json_path = json_path
         self.traceback = traceback
@@ -80,7 +82,8 @@ class TaggerByQuery:
             **query
         }
         params = {"wait_for_completion": str(self.wait_for_completion).lower()}
-        result = requests.post(self.tagging_by_query_endpoint, params=params, json=query, cookies=self.cookies)
+        result = requests.post(self.tagging_by_query_endpoint, params=params, json=query, cookies=self.cookies,
+                               headers=None if self.apikey is None else {'Authorization': 'bearer %s' % self.apikey})
         result.raise_for_status()
         return result
 

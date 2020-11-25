@@ -47,7 +47,7 @@ def cli(ctx, **options):
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None, callback=validate_progressbar)
 @click.argument('csv-path', type=click.Path(exists=True))
 def tagging(**options):
-    # Instanciate a Tagger class with all the options
+    # Instantiate a Tagger class with all the options
     tagger = Tagger(**options)
     # Proceed to tagging
     tagger.start()
@@ -58,14 +58,14 @@ def tagging(**options):
 @click.option('--elasticsearch-url', help='Elasticsearch URL which is used to perform update by query', default='http://localhost:9200')
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...')
+@click.option('--apikey', help='Datashare authentication apikey', default=None)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None, callback=validate_progressbar)
 @click.option('--wait-for-completion/--no-wait-for-completion', help='Create a Elasticsearch task to perform the update asynchronously', default=True)
 @click.argument('json-path', type=click.Path(exists=True))
 def tagging_by_query(**options):
-    # Instanciate a TaggerByQuery class with all the options
+    # Instantiate a TaggerByQuery class with all the options
     tagger = TaggerByQuery(**options)
-    # Proceed to tagging
     tagger.start()
 
 
@@ -73,6 +73,7 @@ def tagging_by_query(**options):
 @click.option('--datashare-project', help='Datashare project', default='local-datashare')
 @click.option('--elasticsearch-url', help='Elasticsearch URL which is used to perform update by query', default='http://localhost:9200')
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...')
+@click.option('--apikey', help='Datashare authentication apikey', default=None)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--wait-for-completion/--no-wait-for-completion', help='Create a Elasticsearch task to perform the update asynchronously', default=True)
 @click.option('--query', help='Give a JSON query to filter documents that will have their tags cleaned. It can be a file with @path/to/file. Default to all.')
@@ -89,6 +90,7 @@ def clean_tags_by_query(**options):
 @click.option('--destination-directory', help='Directory documents will be downloaded', default='./tmp')
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...')
+@click.option('--apikey', help='Datashare authentication apikey', default=None)
 @click.option('--path-format', help='Downloaded document path template', default='{id_2b}/{id_4b}/{id}')
 @click.option('--scroll', help='Scroll duration', default=None)
 @click.option('--source', help='A commat-separated list of field to include in the downloaded document from the index', default=None)
@@ -98,9 +100,8 @@ def clean_tags_by_query(**options):
 @click.option('--raw-file/--no-raw-file', help='Download raw file from Datashare', default=True)
 @click.option('--type', help='Type of indexed documents to download', default='Document', type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 def download(**options):
-    # Instanciate a Download class with all the options
+    # Instantiate a Download class with all the options
     download = Download(**options)
-    # Proceed to tagging
     download.start()
 
 

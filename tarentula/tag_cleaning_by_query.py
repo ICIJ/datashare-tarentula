@@ -11,6 +11,7 @@ class TagsCleanerByQuery:
                  datashare_project: str,
                  elasticsearch_url: str,
                  cookies: str = '',
+                 apikey: str = None,
                  traceback: bool = False,
                  wait_for_completion: bool = True,
                  query: str = None):
@@ -24,6 +25,7 @@ class TagsCleanerByQuery:
         self.datashare_project = datashare_project
         self.elasticsearch_url = elasticsearch_url
         self.cookies_string = cookies
+        self.apikey = apikey
         self.traceback = traceback
         self.wait_for_completion = wait_for_completion
 
@@ -45,7 +47,8 @@ class TagsCleanerByQuery:
         logger.info("This action will remove all tags for documents matching query")
         script = {"script": {"source": "ctx._source['tags'] = []"}}
         params = {"wait_for_completion": str(self.wait_for_completion).lower()}
-        result = requests.post(self.tagging_by_query_endpoint, params=params, json={**script, **self.query}, cookies=self.cookies)
+        result = requests.post(self.tagging_by_query_endpoint, params=params, json={**script, **self.query}, cookies=self.cookies,
+                               headers=None if self.apikey is None else {'Authorization': 'bearer %s' % self.apikey})
         result.raise_for_status()
         if self.wait_for_completion:
             logger.info('updated %s documents' % result.json()['updated'])

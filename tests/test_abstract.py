@@ -29,13 +29,15 @@ class TestAbstract(TestCase):
         cls.datashare_client.delete_index(cls.datashare_project)
 
     def index_documents(self, documents=None):
-        if documents is None: documents = []
+        if documents is None:
+            documents = []
         for document in documents:
             self.datashare_client.index(index=self.datashare_project, document=document, id=document['_id'])
         self.datashare_client.refresh(index=self.datashare_project)
 
     def delete_documents(self, documents=None):
-        if documents is None: documents = []
+        if documents is None:
+            documents = []
         for document in documents:
             self.datashare_client.delete(index=self.datashare_project, id=document['_id'])
         self.datashare_client.refresh(index=self.datashare_project)

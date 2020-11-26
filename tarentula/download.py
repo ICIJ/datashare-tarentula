@@ -47,7 +47,8 @@ class Download:
         self.scroll = scroll
         self.type = type
         try:
-            self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, cookies)
+            self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, datashare_project, cookies,
+                                                    apikey)
         except (ConnectionRefusedError, ConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
             exit()

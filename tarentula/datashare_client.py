@@ -13,12 +13,14 @@ DATASHARE_DEFAULT_PROJECT = 'local-datashare'
 
 
 class DatashareClient:
-    def __init__(self, datashare_url='http://localhost:8080', elasticsearch_url=None, cookies=''):
+    def __init__(self, datashare_url='http://localhost:8080', elasticsearch_url=None,
+                 datashare_project=DATASHARE_DEFAULT_PROJECT, cookies='', apikey=None):
         self.datashare_url = datashare_url
         self.cookies_string = cookies
+        self.apikey = apikey
         self.elasticsearch_url = elasticsearch_url
         # Create the datashare default index
-        self.create()
+        self.create(datashare_project)
 
     @property
     def cookies(self):
@@ -41,8 +43,10 @@ class DatashareClient:
         url = urljoin(self.datashare_url, '/api/index/', index)
         return requests.put(url)
 
-    def index(self, index=DATASHARE_DEFAULT_PROJECT, document={}, id=None, routing=None):
-        params = {"routing": routing}
+    def index(self, index=DATASHARE_DEFAULT_PROJECT, document=None, id=None, routing=None):
+        if document is None:
+            document = {}
+        params = {'routing': routing}
         # Clone the document to perform changes
         document = dict(document)
         # Elasticsearch doesn't allow passing the _id as a property in the document
@@ -79,7 +83,8 @@ class DatashareClient:
 
     def reindex(self, source=DATASHARE_DEFAULT_PROJECT, dest=None, size=1):
         # Create a default destination index name
-        if dest is None: dest = '%s-copy-%s' % (source, uuid4().hex[:6])
+        if dest is None:
+            dest = '%s-copy-%s' % (source, uuid4().hex[:6])
         # Source index must at least have one document
         document_id = self.index(source, document={"content": "This is a temporary document", "tags": ["tmp"]})
         # Copy everything
@@ -133,13 +138,15 @@ class DatashareClient:
 
     def document(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None, source=None):
         url = urljoin(self.elasticsearch_host, index, '/doc/', id)
-        params = {"routing": routing, "_source": source}
+        params = {'routing': routing, '_source': source}
         return requests.get(url, params=params, cookies=self.cookies).json()
 
     def download(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None):
         routing = routing or id
         url = urljoin(self.datashare_url, 'api', index, '/documents/src', id)
-        return requests.get(url, params={'routing': routing}, cookies=self.cookies, stream=True)
+        return requests.get(url, params={'routing': routing}, cookies=self.cookies,
+                            headers=None if self.apikey is None else {'Authorization': 'bearer %s' % self.apikey},
+                            stream=True)
 
     @contextmanager
     def temporary_project(self, source=DATASHARE_DEFAULT_PROJECT, delete=True):

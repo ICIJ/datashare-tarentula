@@ -103,6 +103,16 @@ class TestApikey(TestAbstract):
                                 '{"query": {"ids": {"values": ["id"]}}}'])
             self.assertEqual(resp.calls[0].request.headers['Authorization'], 'bearer my_api_key')
 
+    def test_apikey_header_is_NOT_sent_while_downloading_with_cli(self):
+        self.datashare_client.index(index=self.datashare_project, document={'type': 'Document', 'content': 'content',
+                                                                            'tags': ['tag']}, id='id')
+        with self.mock_download_endpoint() as resp:
+            runner = CliRunner()
+            runner.invoke(cli, ['download', '--elasticsearch-url', self.elasticsearch_url, '--datashare-url',
+                                self.datashare_url, '--datashare-project',
+                                self.datashare_project, '--query', '*'])
+            self.assertIsNone(resp.calls[0].request.headers.get('Authorization'))
+
     def test_apikey_header_is_sent_while_downloading_with_cli(self):
         self.datashare_client.index(index=self.datashare_project, document={'type': 'Document', 'content': 'content',
                                                                             'tags': ['tag']}, id='id')

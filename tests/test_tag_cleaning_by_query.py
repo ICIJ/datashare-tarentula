@@ -13,7 +13,8 @@ class TestTagsCleanerByQuery(TestAbstract):
     def test_cli_is_wired_on_tags_cleaner(self):
         add_stdout_handler(level=logging.INFO)
         runner = CliRunner()
-        result = runner.invoke(cli, 'clean-tags-by-query')
+        result = runner.invoke(cli, ['clean-tags-by-query', '--datashare-project', self.datashare_project,
+                                     '--elasticsearch-url', self.elasticsearch_url])
         self.assertIn('This action will remove all tags for documents matching query', result.output)
 
     def test_cli_is_wired_on_tags_cleaner_with_no_query_option_selects_all(self):

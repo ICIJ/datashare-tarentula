@@ -98,7 +98,7 @@ def clean_tags_by_query(**options):
 @click.option('--datashare-project', help='Datashare project', default='local-datashare')
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
                                           'capabilities of Elasticsearch (useful when dealing with a lot of results)',
-              default='http://localhost:9200')
+                default=None)
 @click.option('--query', help='The query string to filter documents', default='*')
 @click.option('--destination-directory', help='Directory documents will be downloaded', default='./tmp')
 @click.option('--throttle', help='Request throttling (in ms)', default=0)

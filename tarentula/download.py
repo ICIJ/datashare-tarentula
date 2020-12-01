@@ -22,7 +22,7 @@ class Download:
                  throttle: int = 0,
                  cookies: str = '',
                  apikey: str = None,
-                 elasticsearch_url: str = 'http://localhost:9200',
+                 elasticsearch_url: str = None,
                  path_format: str = '{id_2b}/{id_4b}/{id}',
                  scroll: str = None,
                  once: bool = False,
@@ -47,7 +47,10 @@ class Download:
         self.scroll = scroll
         self.type = type
         try:
-            self.datashare_client = DatashareClient(datashare_url, elasticsearch_url, datashare_project, cookies,
+            self.datashare_client = DatashareClient(datashare_url,
+                                                    elasticsearch_url,
+                                                    datashare_project,
+                                                    cookies,
                                                     apikey)
         except (ConnectionRefusedError, ConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)

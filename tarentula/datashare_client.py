@@ -32,6 +32,13 @@ class DatashareClient:
             return {}
 
     @property
+    def headers(self):
+        if self.apikey is None:
+            return None
+        else:
+            return {'Authorization': 'bearer %s' % self.apikey}
+
+    @property
     def elasticsearch_host(self):
         if self.elasticsearch_url is not None:
             return self.elasticsearch_url
@@ -104,14 +111,19 @@ class DatashareClient:
         if source is not None:
             local_query.update({'_source': source})
         url = urljoin(self.elasticsearch_host, index, '/doc/_search')
-        response = requests.post(url, params={"q": q, "scroll": scroll}, json=local_query, cookies=self.cookies)
+        response = requests.post(url, params={"q": q, "scroll": scroll},
+                                json=local_query,
+                                headers=self.headers,
+                                cookies=self.cookies)
         response.raise_for_status()
         return response.json()
 
     def scroll(self, scroll_id, scroll=None):
         url = urljoin(self.elasticsearch_host, '/_search/scroll')
         body = {"scroll_id": scroll_id, "scroll": scroll}
-        response = requests.post(url, json=body, cookies=self.cookies)
+        response = requests.post(url, json=body,
+                                cookies=self.cookies,
+                                headers=self.headers)
         response.raise_for_status()
         return response.json()
 
@@ -134,18 +146,23 @@ class DatashareClient:
 
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query={}):
         url = urljoin(self.elasticsearch_host, index, '_count')
-        return requests.post(url, json=query, cookies=self.cookies).json()
+        return requests.post(url, json=query,
+                            cookies=self.cookies,
+                            headers=self.headers).json()
 
     def document(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None, source=None):
         url = urljoin(self.elasticsearch_host, index, '/doc/', id)
         params = {'routing': routing, '_source': source}
-        return requests.get(url, params=params, cookies=self.cookies).json()
+        return requests.get(url, params=params,
+                            cookies=self.cookies,
+                            headers=self.headers).json()
 
     def download(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None):
         routing = routing or id
         url = urljoin(self.datashare_url, 'api', index, '/documents/src', id)
-        return requests.get(url, params={'routing': routing}, cookies=self.cookies,
-                            headers=None if self.apikey is None else {'Authorization': 'bearer %s' % self.apikey},
+        return requests.get(url, params={'routing': routing},
+                            cookies=self.cookies,
+                            headers=self.headers,
                             stream=True)
 
     @contextmanager

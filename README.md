@@ -82,15 +82,24 @@ To see an example of input file, refer to [this JSON](tests/fixtures/tags-by-con
 Usage: tarentula tagging-by-query [OPTIONS] JSON_PATH
 
 Options:
-  --datashare-project   TEXT        local-datashare         Datashare project
-  --elasticsearch-url   TEXT        http://localhost:9200   Elasticsearch URL which is used to perform update by query
-  --throttle            INTEGER     0                       Request throttling (in ms)
-  --cookies             TEXT        _Empty string_          Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...
-  --apikey              TEXT        None                    Datashare authentication apikey
-  --traceback / --no-traceback                              Display a traceback in case of error
-  --progressbar / --no-progressbar                          Display a progressbar
-  --wait-for-completion / --no-wait-for-completion          Create a Elasticsearch task to perform the update asynchronously
-  --help                                                    Show this message and exit
+  --datashare-project TEXT        Datashare project
+  --elasticsearch-url TEXT        Elasticsearch URL which is used to perform
+                                  update by query
+
+  --throttle INTEGER              Request throttling (in ms)
+  --cookies TEXT                  Key/value pair to add a cookie to each
+                                  request to the API. You can
+                                  separatesemicolons: key1=val1;key2=val2;...
+
+  --apikey TEXT                   Datashare authentication apikey
+  --traceback / --no-traceback    Display a traceback in case of error
+  --progressbar / --no-progressbar
+                                  Display a progressbar
+  --wait-for-completion / --no-wait-for-completion
+                                  Create a Elasticsearch task to perform the
+                                  updateasynchronously
+
+  --help                          Show this message and exit.
 ```
 
 ## Clean Tags by Query
@@ -101,14 +110,25 @@ A command that uses Elasticsearch `update-by-query` feature to batch untag docum
 Usage: tarentula clean-tags-by-query [OPTIONS]
 
 Options:
-  --datashare-project   TEXT        local-datashare         Datashare project
-  --elasticsearch-url   TEXT        http://localhost:9200   Elasticsearch URL which is used to perform update by query
-  --cookies             TEXT        _Empty string_          Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...
-  --apikey              TEXT        None                    Datashare authentication apikey
-  --traceback / --no-traceback                              Display a traceback in case of error
-  --wait-for-completion / --no-wait-for-completion          Create a Elasticsearch task to perform the update asynchronously
-  --query               TEXT        None                    Give a JSON query to filter documents that will have their tags cleaned. It can be a file with @path/to/file. Default to all
-  --help                                                    Show this message and exit
+  --datashare-project TEXT        Datashare project
+  --elasticsearch-url TEXT        Elasticsearch URL which is used to perform
+                                  update by query
+
+  --cookies TEXT                  Key/value pair to add a cookie to each
+                                  request to the API. You can
+                                  separatesemicolons: key1=val1;key2=val2;...
+
+  --apikey TEXT                   Datashare authentication apikey
+  --traceback / --no-traceback    Display a traceback in case of error
+  --wait-for-completion / --no-wait-for-completion
+                                  Create a Elasticsearch task to perform the
+                                  updateasynchronously
+
+  --query TEXT                    Give a JSON query to filter documents that
+                                  will have their tags cleaned. It can be
+                                  afile with @path/to/file. Default to all.
+
+  --help                          Show this message and exit.
 ```
 
 ## Download
@@ -119,30 +139,40 @@ A command to download all files matching a query.
 Usage: tarentula download [OPTIONS]
 
 Options:
-  --datashare-url           TEXT        http://localhost:8080   Datashare URL
-  --datashare-project       TEXT        local-datashare         Datashare project
-  --elasticsearch-url       TEXT        http://localhost:9200   You can additionally pass the Elasticsearch URL in order to use scrolling capabilities of Elasticsearch (useful when dealing with a lot of results)
-  --query                   TEXT        *                       Give a JSON query to filter documents that will be downloaded. It can be a file with @path/to/file. Default to all
-  --destination-directory   TEXT        ./tmp                   Directory documents will be downloaded
-  --throttle                INTEGER     0                       Request throttling (in ms)
-  --cookies                 TEXT        _Empty string_          Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...
-  --apikey                  TEXT        None                    Datashare authentication apikey
-  --path-format             TEXT        {id_2b}/{id_4b}/{id}    Downloaded document path template
-  --scroll                  TEXT        None                    Scroll duration
-  --source                  TEXT        None                    A comma-separated list of field to include in the downloaded document from the index
-  --once / --not-once                                           Download file only once
-  --traceback / --no-traceback                                  Display a traceback in case of error
-  --progressbar / --no-progressbar                              Display a progressbar
-  --raw-file / --no-raw-file                                    Download raw file from Datashare
-  --type [Document|NamedEntity]         Document                Type of indexed documents to download
-  --help                                                        Show this message and exit
+  --datashare-url TEXT            Datashare URL
+  --datashare-project TEXT        Datashare project
+  --elasticsearch-url TEXT        You can additionally pass the Elasticsearch
+                                  URL in order to use scrollingcapabilities of
+                                  Elasticsearch (useful when dealing with a
+                                  lot of results)
+
+  --query TEXT                    The query string to filter documents
+  --destination-directory TEXT    Directory documents will be downloaded
+  --throttle INTEGER              Request throttling (in ms)
+  --cookies TEXT                  Key/value pair to add a cookie to each
+                                  request to the API. You can
+                                  separatesemicolons: key1=val1;key2=val2;...
+
+  --apikey TEXT                   Datashare authentication apikey
+  --path-format TEXT              Downloaded document path template
+  --scroll TEXT                   Scroll duration
+  --source TEXT                   A comma-separated list of field to include
+                                  in the downloaded document from the index
+
+  --once / --not-once             Download file only once
+  --traceback / --no-traceback    Display a traceback in case of error
+  --progressbar / --no-progressbar
+                                  Display a progressbar
+  --raw-file / --no-raw-file      Download raw file from Datashare
+  --type [Document|NamedEntity]   Type of indexed documents to download
+  --help                          Show this message and exit.
 ```
 
 ## Testing
 
 To test this tool, you must have Datashare and Elasticsearch running on your development machine.
 
-You can adapt the tests to your dev environment. For example in a dockerized env, with the following variables : 
+You can adapt the tests to your dev environment. For example in a dockerized env, with the following variables :
 
 ```
 export TEST_ELASTICSEARCH_URL=http://elasticsearch:9200
@@ -176,7 +206,7 @@ When running Elasticsearch changes on big datasets, it could take a very long ti
 
 It uses [mathplotlib](https://matplotlib.org/) and python3-tk.
 
-If you see the following message : 
+If you see the following message :
 
 ```
 $ graph_es
@@ -185,7 +215,7 @@ graph_realtime.py:32: UserWarning: Matplotlib is currently using agg, which is a
 
 Then you have to install [tkinter](https://docs.python.org/3/library/tkinter.html), i.e. python3-tk for Debian/Ubuntu.
 
-The command has the options below: 
+The command has the options below:
 
 ```
 $ graph_es --help

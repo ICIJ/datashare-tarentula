@@ -69,6 +69,7 @@ def tagging(**options):
               callback=validate_progressbar)
 @click.option('--wait-for-completion/--no-wait-for-completion', help='Create a Elasticsearch task to perform the update'
                                                                      'asynchronously', default=True)
+@click.option('--scroll-size', help='Size of the scroll request that powers the operation.', default=1000)
 @click.argument('json-path', type=click.Path(exists=True))
 def tagging_by_query(**options):
     # Instantiate a TaggerByQuery class with all the options

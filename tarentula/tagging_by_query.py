@@ -20,7 +20,8 @@ class TaggerByQuery:
                  apikey: str = None,
                  progressbar: bool = True,
                  traceback: bool = False,
-                 wait_for_completion: bool = True):
+                 wait_for_completion: bool = True,
+                 scroll_size: int = 1000):
         self.datashare_project = datashare_project
         self.elasticsearch_url = elasticsearch_url
         self.cookies_string = cookies
@@ -30,6 +31,7 @@ class TaggerByQuery:
         self.traceback = traceback
         self.progressbar = progressbar
         self.wait_for_completion = wait_for_completion
+        self.scroll_size = scroll_size
 
     @property
     def no_progressbar(self):
@@ -81,7 +83,10 @@ class TaggerByQuery:
             },
             **query
         }
-        params = {"wait_for_completion": str(self.wait_for_completion).lower()}
+        params = {
+            "wait_for_completion": str(self.wait_for_completion).lower(),
+            "scroll_size": self.scroll_size,
+        }
         result = requests.post(self.tagging_by_query_endpoint, params=params, json=query, cookies=self.cookies,
                                headers=None if self.apikey is None else {'Authorization': 'bearer %s' % self.apikey})
         result.raise_for_status()

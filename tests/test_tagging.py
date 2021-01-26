@@ -145,22 +145,22 @@ class TestTagging(TestAbstract):
             with self.datashare_client.temporary_project(self.datashare_project) as project:
                 tagger = Tagger(self.datashare_url, project, 0, file.name, progressbar=False)
                 # Ensure there is no documents yet
-                self.assertEqual(self.datashare_client.query(index=project, size=0).get('hits', {}).get('total'), 0)
+                self.assertEqual(self.datashare_client.query(index=project, size=0).get('hits', {}).get('total', {}).get('value', None), 0)
                 # Create all the docs
                 for document_id, leaf in tagger.tree.items():
                     self.datashare_client.index(project, {'tags': []}, document_id, leaf['routing'])
                 # Ensure the docs exists
-                self.assertEqual(self.datashare_client.query(index=project, size=0).get('hits', {}).get('total'), 2)
+                self.assertEqual(self.datashare_client.query(index=project, size=0).get('hits', {}).get('total', {}).get('value', None), 2)
                 # Ensure the docs are not tagged yet
                 self.assertEqual(self.datashare_client.query(index=project, size=0, q='tags:*')
-                                 .get('hits', {}).get('total'), 0)
+                                 .get('hits', {}).get('total', {}).get('value', None), 0)
                 # Tag them all!
                 tagger.start()
                 # Refresh the index
                 self.datashare_client.refresh(project)
                 # Ensure the docs have been tagged
                 self.assertEqual(self.datashare_client.query(index=project, size=0, q='tags:*')
-                                 .get('hits', {}).get('total'), 2)
+                                 .get('hits', {}).get('total', {}).get('value', None), 2)
 
     def test_tag_is_correct(self):
         with self.datashare_client.temporary_project(self.datashare_project) as project:

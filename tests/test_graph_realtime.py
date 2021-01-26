@@ -22,6 +22,6 @@ class TestGraphRealTime(TestCase):
         xs = []
         ys = []
         GraphRealTime(query='{"query":{"match_all":{}}}', elasticsearch_url=self.es_url,
-                      index='test-datashare', field='hits.total', refresh_interval=5, xs_param=xs, ys_param=ys).add_point(0)
+                      index='test-datashare', field='hits.total.value', refresh_interval=5, xs_param=xs, ys_param=ys).add_point(0)
 
         self.assertEqual(ys, [0])

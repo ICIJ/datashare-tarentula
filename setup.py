@@ -1,6 +1,7 @@
 import sys
 
 from setuptools import setup, find_packages
+from tarentula import __version__
 
 py_version = sys.version_info[:2]
 if py_version < (3, 6):
@@ -10,7 +11,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='tarentula',
-      version='2.4.0',
+      version=__version__,
       packages=find_packages(),
       description="Cli toolbelt for Datashare.",
       long_description=long_description,

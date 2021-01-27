@@ -15,13 +15,13 @@ test:
 		pipenv run python setup.py test
 
 minor:
-		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} minor setup.py
+		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} minor tarentula/__init__.py
 
 major:
-		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} major setup.py
+		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} major tarentula/__init__.py
 
 patch:
-		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} patch setup.py
+		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} patch tarentula/__init__.py
 
 distribute:
 		pipenv run python setup.py sdist bdist_wheel

@@ -24,6 +24,7 @@ def validate_progressbar(ctx, param, value):
 
 @click.group()
 @click.pass_context
+@click.version_option(message='v%(version)s')
 @click.option('--syslog-address', help='Syslog address', default='localhost')
 @click.option('--syslog-port', help='Syslog port', default=514)
 @click.option('--syslog-facility', help='Syslog facility', default='local7')

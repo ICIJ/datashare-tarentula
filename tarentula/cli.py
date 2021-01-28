@@ -5,7 +5,7 @@ from tarentula.tag_cleaning_by_query import TagsCleanerByQuery
 from tarentula.tagging import Tagger
 from tarentula.tagging_by_query import TaggerByQuery
 from tarentula.download import Download
-
+from tarentula import __version__
 
 def validate_loglevel(ctx, param, value):
     try:
@@ -24,7 +24,7 @@ def validate_progressbar(ctx, param, value):
 
 @click.group()
 @click.pass_context
-@click.version_option(message='v%(version)s')
+@click.version_option(message='v%(version)s', version=__version__)
 @click.option('--syslog-address', help='Syslog address', default='localhost')
 @click.option('--syslog-port', help='Syslog port', default=514)
 @click.option('--syslog-facility', help='Syslog facility', default='local7')

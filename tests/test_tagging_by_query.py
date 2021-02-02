@@ -45,7 +45,7 @@ class TestTaggingByQuery(TestAbstract):
             result = runner.invoke(cli, ['tagging-by-query', '--elasticsearch-url', self.elasticsearch_url, '--datashare-project', self.datashare_project, self.json_tags_path])
             self.datashare_client.refresh(self.datashare_project)
             emails = self.datashare_client.query(self.datashare_project, q='tags:email-type AND name:*')
-            self.assertEqual(emails['hits']['total'], 3)
+            self.assertEqual(emails['hits']['total']['value'], 3)
 
     def test_actinopodidae_is_tagged_as_audio_once(self):
         with self.existing_species_documents():

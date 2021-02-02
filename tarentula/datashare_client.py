@@ -61,17 +61,17 @@ class DatashareClient:
             document.pop('_id', None)
         # When no id is provided, we use POST method (to create the resource)
         if id is None:
-            url = urljoin(self.elasticsearch_url, index, '/doc?refresh')
+            url = urljoin(self.elasticsearch_url, index, '/_doc?refresh')
             result = requests.post(url, json=document, params=params)
         # When an id is provided, we use PUT method (to update the resource)
         else:
-            url = urljoin(self.elasticsearch_url, index, '/doc/', id, '?refresh')
+            url = urljoin(self.elasticsearch_url, index, '/_doc/', id, '?refresh')
             result = requests.put(url, json=document, params=params)
         result.raise_for_status()
         return result.json().get('_id')
 
     def delete(self, index=DATASHARE_DEFAULT_PROJECT, id=None):
-        url = urljoin(self.elasticsearch_url, index, '/doc/', id, '?refresh')
+        url = urljoin(self.elasticsearch_url, index, '/_doc/', id, '?refresh')
         return requests.delete(url)
 
     def refresh(self, index=DATASHARE_DEFAULT_PROJECT):
@@ -110,7 +110,7 @@ class DatashareClient:
         local_query = {"sort": {"_id": "asc"}, **query, **kwargs}
         if source is not None:
             local_query.update({'_source': source})
-        url = urljoin(self.elasticsearch_host, index, '/doc/_search')
+        url = urljoin(self.elasticsearch_host, index, '/_doc/_search')
         response = requests.post(url, params={"q": q, "scroll": scroll},
                                 json=local_query,
                                 headers=self.headers,
@@ -151,7 +151,7 @@ class DatashareClient:
                             headers=self.headers).json()
 
     def document(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None, source=None):
-        url = urljoin(self.elasticsearch_host, index, '/doc/', id)
+        url = urljoin(self.elasticsearch_host, index, '/_doc/', id)
         params = {'routing': routing, '_source': source}
         return requests.get(url, params=params,
                             cookies=self.cookies,

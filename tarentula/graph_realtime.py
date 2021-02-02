@@ -51,7 +51,7 @@ class GraphRealTime:
 @click.option('--query', help='Give a JSON query to filter documents. It can be a file with @path/to/file. Default to all.', default='{"query":{"match_all":{}}}')
 @click.option('--index', help='Elasticsearch index (default local-datashare)', default='local-datashare')
 @click.option('--refresh-interval', help='Graph refresh interval in seconds (default 5)', default=5)
-@click.option('--field', help='Field indicator to display over time (default hits.total)', default='hits.total')
+@click.option('--field', help='Field indicator to display over time (default hits.total.value)', default='hits.total.value')
 @click.option('--elasticsearch-url', help='Elasticsearch URL which is used to perform update by query', default='http://elasticsearch:9200')
 def graph(**options) -> None:
     GraphRealTime(**options).show_graph()

@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "d5d7a74b805293144465eaa462ad1b8116bc32ea56651ff768e963de08fb59f6"
+            "sha256": "8de984119926e0d2194e3bd1f85640cd91569dab904c473d720ed1f5c5be0ccb"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -524,6 +524,14 @@
             "markers": "sys_platform == 'linux'",
             "version": "==3.3.0"
         },
+        "setuptools-pipfile": {
+            "hashes": [
+                "sha256:00bc020b93e52419ef102ea442462e9f4583fd72876a30939471fdb8e040a989",
+                "sha256:3c0d88f8538a58fde180912fcfadbb2e9da24997d1e240ed2d50d9eeb70621ec"
+            ],
+            "index": "pypi",
+            "version": "==0.4.1"
+        },
         "six": {
             "hashes": [
                 "sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259",
@@ -531,6 +539,14 @@
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
             "version": "==1.15.0"
+        },
+        "toml": {
+            "hashes": [
+                "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b",
+                "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"
+            ],
+            "markers": "python_version >= '2.6' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "version": "==0.10.2"
         },
         "tqdm": {
             "hashes": [

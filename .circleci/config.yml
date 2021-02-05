@@ -5,7 +5,7 @@ jobs:
     docker:
       - image: circleci/python:3.8-buster
         environment:
-          - "DATASHARE_VERSION=9.0.3"
+          - "DATASHARE_VERSION=9.0.2"
     steps:
       - checkout
       - run:

@@ -27,6 +27,18 @@ Commands:
   clean-tags-by-query
   download
 ```
+## Table of contents
+[Tagging](#tagging)
+
+[Tagging by Query](#tagging-by-query)
+
+[Clean Tags by Query](#clean-tags-by-query)
+
+[Download](#download)
+
+[Testing](#testing)
+
+[Following your changes](#following-your-changes)
 
 ## Tagging
 
@@ -82,24 +94,20 @@ To see an example of input file, refer to [this JSON](tests/fixtures/tags-by-con
 Usage: tarentula tagging-by-query [OPTIONS] JSON_PATH
 
 Options:
-  --datashare-project TEXT        Datashare project
-  --elasticsearch-url TEXT        Elasticsearch URL which is used to perform
-                                  update by query
-
-  --throttle INTEGER              Request throttling (in ms)
-  --cookies TEXT                  Key/value pair to add a cookie to each
-                                  request to the API. You can
-                                  separatesemicolons: key1=val1;key2=val2;...
-
-  --apikey TEXT                   Datashare authentication apikey
-  --traceback / --no-traceback    Display a traceback in case of error
-  --progressbar / --no-progressbar
-                                  Display a progressbar
+  --datashare-project       TEXT        Datashare project
+  --elasticsearch-url       TEXT        Elasticsearch URL which is used to perform
+                                          update by query
+  --throttle                INTEGER     Request throttling (in ms)
+  --cookies                 TEXT        Key/value pair to add a cookie to each
+                                          request to the API. You can
+                                          separatesemicolons: key1=val1;key2=val2;...
+  --apikey                  TEXT        Datashare authentication apikey
+  --traceback / --no-traceback          Display a traceback in case of error
+  --progressbar / --no-progressbar      Display a progressbar
   --wait-for-completion / --no-wait-for-completion
-                                  Create a Elasticsearch task to perform the
-                                  updateasynchronously
-
-  --help                          Show this message and exit.
+                                        Create a Elasticsearch task to perform the
+                                          updateasynchronously
+  --help                                Show this message and exit.
 ```
 
 ## Clean Tags by Query
@@ -110,25 +118,21 @@ A command that uses Elasticsearch `update-by-query` feature to batch untag docum
 Usage: tarentula clean-tags-by-query [OPTIONS]
 
 Options:
-  --datashare-project TEXT        Datashare project
-  --elasticsearch-url TEXT        Elasticsearch URL which is used to perform
-                                  update by query
-
-  --cookies TEXT                  Key/value pair to add a cookie to each
-                                  request to the API. You can
-                                  separatesemicolons: key1=val1;key2=val2;...
-
-  --apikey TEXT                   Datashare authentication apikey
-  --traceback / --no-traceback    Display a traceback in case of error
+  --datashare-project       TEXT        Datashare project
+  --elasticsearch-url       TEXT        Elasticsearch URL which is used to perform
+                                          update by query
+  --cookies                 TEXT        Key/value pair to add a cookie to each
+                                          request to the API. You can
+                                          separatesemicolons: key1=val1;key2=val2;...
+  --apikey                  TEXT        Datashare authentication apikey
+  --traceback / --no-traceback          Display a traceback in case of error
   --wait-for-completion / --no-wait-for-completion
-                                  Create a Elasticsearch task to perform the
-                                  updateasynchronously
-
-  --query TEXT                    Give a JSON query to filter documents that
-                                  will have their tags cleaned. It can be
-                                  afile with @path/to/file. Default to all.
-
-  --help                          Show this message and exit.
+                                        Create a Elasticsearch task to perform the
+                                          updateasynchronously
+  --query                   TEXT        Give a JSON query to filter documents that
+                                          will have their tags cleaned. It can be
+                                          afile with @path/to/file. Default to all.
+  --help                                Show this message and exit.
 ```
 
 ## Download
@@ -139,33 +143,29 @@ A command to download all files matching a query.
 Usage: tarentula download [OPTIONS]
 
 Options:
-  --datashare-url TEXT            Datashare URL
-  --datashare-project TEXT        Datashare project
-  --elasticsearch-url TEXT        You can additionally pass the Elasticsearch
-                                  URL in order to use scrollingcapabilities of
-                                  Elasticsearch (useful when dealing with a
-                                  lot of results)
-
-  --query TEXT                    The query string to filter documents
-  --destination-directory TEXT    Directory documents will be downloaded
-  --throttle INTEGER              Request throttling (in ms)
-  --cookies TEXT                  Key/value pair to add a cookie to each
-                                  request to the API. You can
-                                  separatesemicolons: key1=val1;key2=val2;...
-
-  --apikey TEXT                   Datashare authentication apikey
-  --path-format TEXT              Downloaded document path template
-  --scroll TEXT                   Scroll duration
-  --source TEXT                   A comma-separated list of field to include
-                                  in the downloaded document from the index
-
-  --once / --not-once             Download file only once
-  --traceback / --no-traceback    Display a traceback in case of error
-  --progressbar / --no-progressbar
-                                  Display a progressbar
-  --raw-file / --no-raw-file      Download raw file from Datashare
-  --type [Document|NamedEntity]   Type of indexed documents to download
-  --help                          Show this message and exit.
+  --datashare-url           TEXT        Datashare URL
+  --datashare-project       TEXT        Datashare project
+  --elasticsearch-url       TEXT        You can additionally pass the Elasticsearch
+                                          URL in order to use scrollingcapabilities of
+                                          Elasticsearch (useful when dealing with a
+                                          lot of results)
+  --query                   TEXT        The query string to filter documents
+  --destination-directory   TEXT        Directory documents will be downloaded
+  --throttle                INTEGER     Request throttling (in ms)
+  --cookies                 TEXT        Key/value pair to add a cookie to each
+                                          request to the API. You can
+                                          separatesemicolons: key1=val1;key2=val2;...
+  --apikey                  TEXT        Datashare authentication apikey
+  --path-format             TEXT        Downloaded document path template
+  --scroll                  TEXT        Scroll duration
+  --source                  TEXT        A comma-separated list of field to include
+                                          in the downloaded document from the index
+  --once / --not-once                   Download file only once
+  --traceback / --no-traceback          Display a traceback in case of error
+  --progressbar / --no-progressbar      Display a progressbar
+  --raw-file / --no-raw-file            Download raw file from Datashare
+  --type [Document|NamedEntity]         Type of indexed documents to download
+  --help                                Show this message and exit.
 ```
 
 ## Testing
@@ -191,7 +191,7 @@ Finally, run the test
 make test
 ```
 
-# Following your changes
+## Following your changes
 
 When running Elasticsearch changes on big datasets, it could take a very long time. As we were curling ES to see if the task was still running well, we added a small utility to follow the changes. It makes a live graph of a provided ES indicator with a specified filter.
 
@@ -213,12 +213,11 @@ $ graph_es --help
 Usage: graph_es [OPTIONS]
 
 Options:
-  --query TEXT                Give a JSON query to filter documents. It can be
-                              a file with @path/to/file. Default to all.
-
-  --index TEXT                Elasticsearch index (default local-datashare)
-  --refresh-interval INTEGER  Graph refresh interval in seconds (default 5s)
-  --field TEXT                Field value to display over time (default "hits.total")
-  --elasticsearch-url TEXT    Elasticsearch URL which is used to perform
-                              update by query (default http://elasticsearch:9200)
+  --query               TEXT        Give a JSON query to filter documents. It can be
+                                      a file with @path/to/file. Default to all.
+  --index               TEXT        Elasticsearch index (default local-datashare)
+  --refresh-interval    INTEGER     Graph refresh interval in seconds (default 5s)
+  --field               TEXT        Field value to display over time (default "hits.total")
+  --elasticsearch-url   TEXT        Elasticsearch URL which is used to perform
+                                      update by query (default http://elasticsearch:9200)
 ```

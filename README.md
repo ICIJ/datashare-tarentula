@@ -20,6 +20,7 @@ Options:
   --syslog-facility     TEXT    local7      Syslog facility
   --stdout-loglevel     TEXT    ERROR       Change the default log level for stdout error handler
   --help                                    Show this message and exit
+  --version                                 Show the installed version of Tarentula
 
 Commands:
   tagging
@@ -107,7 +108,7 @@ Options:
   --wait-for-completion / --no-wait-for-completion
                                         Create a Elasticsearch task to perform the
                                           updateasynchronously
-  --help                                Show this message and exit.
+  --help                                Show this message and exit
 ```
 
 ## Clean Tags by Query
@@ -132,7 +133,7 @@ Options:
   --query                   TEXT        Give a JSON query to filter documents that
                                           will have their tags cleaned. It can be
                                           afile with @path/to/file. Default to all.
-  --help                                Show this message and exit.
+  --help                                Show this message and exit
 ```
 
 ## Download
@@ -165,7 +166,7 @@ Options:
   --progressbar / --no-progressbar      Display a progressbar
   --raw-file / --no-raw-file            Download raw file from Datashare
   --type [Document|NamedEntity]         Type of indexed documents to download
-  --help                                Show this message and exit.
+  --help                                Show this message and exit
 ```
 
 ## Testing

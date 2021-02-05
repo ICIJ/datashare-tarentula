@@ -172,15 +172,6 @@ Options:
 
 To test this tool, you must have Datashare and Elasticsearch running on your development machine.
 
-You can adapt the tests to your dev environment. For example in a dockerized env, with the following variables :
-
-```
-export TEST_ELASTICSEARCH_URL=http://elasticsearch:9200
-export TEST_DATASHARE_URL=http://datashare:8080
-```
-
-the tests will use `http://elasticsearch:9200` and `http://datashare:8080`
-
 After you [installed Datashare](https://datashare.icij.org/), just run it with a test project/user:
 
 ```
@@ -200,7 +191,7 @@ Finally, run the test
 make test
 ```
 
-# following your changes
+# Following your changes
 
 When running Elasticsearch changes on big datasets, it could take a very long time. As we were curling ES to see if the task was still running well, we added a small utility to follow the changes. It makes a live graph of a provided ES indicator with a specified filter.
 

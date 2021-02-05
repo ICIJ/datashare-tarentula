@@ -2,11 +2,11 @@ import os
 from unittest import TestCase
 
 from tarentula.datashare_client import DatashareClient
-from tarentula.graph_realtime import graph, GraphRealTime
+from tarentula.graph_realtime import GraphRealTime
 
 
 class TestGraphRealTime(TestCase):
-    es_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://localhost:9200')
+    es_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://elasticsearch:9200')
     ds_client = None
 
     @classmethod

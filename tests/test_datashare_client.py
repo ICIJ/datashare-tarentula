@@ -7,9 +7,9 @@ from .test_abstract import TestAbstract
 class TestDatashareClient(TestAbstract):
 
     def test_default_index_creation(self):
-        self.assertEqual(requests.get('%s/%s' % (self.elasticsearch_url, 'local-datashare')).status_code,
+        self.assertEqual(requests.get('%s/%s' % (self.elasticsearch_url, self.datashare_project)).status_code,
                          requests.codes.ok)
-        self.assertNotEqual(requests.get('%s/%s' % (self.elasticsearch_url, 'unkonwn-index')).status_code,
+        self.assertNotEqual(requests.get('%s/%s' % (self.elasticsearch_url, 'unknown-index')).status_code,
                             requests.codes.ok)
 
     def test_temporary_project_creation(self):

@@ -191,4 +191,4 @@ class Download:
                 except HTTPError:
                     logger.error('Unable to download document %s' % document.get('_id'), exc_info=self.traceback)
         except ProtocolError:
-            logger.error('Exception while searching documents', exc_info=self.traceback)
+            logger.error('Exception while downloading documents', exc_info=self.traceback)

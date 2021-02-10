@@ -257,7 +257,7 @@ _To be able to do this, you will need to be part of the ICIJ organization on doc
 make docker-publish
 ```
 
-Git push release and tag
+Git push release and tag :
 
 ```
 git push origin master --tags

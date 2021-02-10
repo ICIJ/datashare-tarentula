@@ -27,6 +27,7 @@ Commands:
   tagging-by-query
   clean-tags-by-query
   download
+  export-by-query
 ```
 ## Table of contents
 [Tagging](#tagging)
@@ -36,6 +37,8 @@ Commands:
 [Clean Tags by Query](#clean-tags-by-query)
 
 [Download](#download)
+
+[Export by Query](#export-by-query)
 
 [Testing](#testing)
 
@@ -152,6 +155,39 @@ Options:
                                           lot of results)
   --query                   TEXT        The query string to filter documents
   --destination-directory   TEXT        Directory documents will be downloaded
+  --throttle                INTEGER     Request throttling (in ms)
+  --cookies                 TEXT        Key/value pair to add a cookie to each
+                                          request to the API. You can
+                                          separatesemicolons: key1=val1;key2=val2;...
+  --apikey                  TEXT        Datashare authentication apikey
+  --path-format             TEXT        Downloaded document path template
+  --scroll                  TEXT        Scroll duration
+  --source                  TEXT        A comma-separated list of field to include
+                                          in the downloaded document from the index
+  --once / --not-once                   Download file only once
+  --traceback / --no-traceback          Display a traceback in case of error
+  --progressbar / --no-progressbar      Display a progressbar
+  --raw-file / --no-raw-file            Download raw file from Datashare
+  --type [Document|NamedEntity]         Type of indexed documents to download
+  --help                                Show this message and exit
+```
+
+## Export by Query
+
+A command to export all files matching a query.
+
+```
+Usage: tarentula export-by-query [OPTIONS]
+
+Options:
+  --datashare-url           TEXT        Datashare URL
+  --datashare-project       TEXT        Datashare project
+  --elasticsearch-url       TEXT        You can additionally pass the Elasticsearch
+                                          URL in order to use scrollingcapabilities of
+                                          Elasticsearch (useful when dealing with a
+                                          lot of results)
+  --query                   TEXT        The query string to filter documents
+  --output-file             TEXT        Path to the CSV file
   --throttle                INTEGER     Request throttling (in ms)
   --cookies                 TEXT        Key/value pair to add a cookie to each
                                           request to the API. You can

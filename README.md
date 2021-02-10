@@ -40,6 +40,8 @@ Commands:
 
 [Export by Query](#export-by-query)
 
+[Releasing](#releasing)
+
 [Testing](#testing)
 
 [Following your changes](#following-your-changes)
@@ -227,6 +229,40 @@ Finally, run the test
 ```
 make test
 ```
+
+
+## Releasing
+
+It uses [bumpversion](https://pypi.org/project/bumpversion/).
+
+To create a new release:
+
+```
+make [patch|minor|major]
+```
+
+To upload the release on [pypi](https://pypi.org/project/tarentula/) :
+
+_To be able to do this, you will need to be a maintainer of the pypi project_
+
+```
+make distribute
+```
+
+To build and upload a new image on the [docker repository](https://hub.docker.com/repository/docker/icij/datashare-tarentula) :
+
+_To be able to do this, you will need to be part of the ICIJ organization on docker_
+
+```
+make docker-publish
+```
+
+Git push release and tag
+
+```
+git push origin master --tags
+```
+
 
 ## Following your changes
 

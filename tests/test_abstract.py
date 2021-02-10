@@ -32,7 +32,9 @@ class TestAbstract(TestCase):
         if documents is None:
             documents = []
         for document in documents:
-            self.datashare_client.index(index=self.datashare_project, document=document, id=document['_id'])
+            id = document.get('_id', None)
+            routing = document.get('_routing', None)
+            self.datashare_client.index(index=self.datashare_project, document=document, id=id, routing=routing)
         self.datashare_client.refresh(index=self.datashare_project)
 
     def delete_documents(self, documents=None):

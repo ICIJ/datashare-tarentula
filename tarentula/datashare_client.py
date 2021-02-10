@@ -59,13 +59,19 @@ class DatashareClient:
         # Elasticsearch doesn't allow passing the _id as a property in the document
         if '_id' in document:
             document.pop('_id', None)
+        if '_routing' in document:
+            document.pop('_routing', None)
         # When no id is provided, we use POST method (to create the resource)
         if id is None:
             url = urljoin(self.elasticsearch_url, index, '/_doc?refresh')
             result = requests.post(url, json=document, params=params)
         # When an id is provided, we use PUT method (to update the resource)
         else:
-            url = urljoin(self.elasticsearch_url, index, '/_doc/', id, '?refresh')
+            if routing is None:
+                query_params = '?refresh'
+            else:
+                query_params = '?refresh&routing=' + routing
+            url = urljoin(self.elasticsearch_url, index, '/_doc/', id, query_params)
             result = requests.put(url, json=document, params=params)
         result.raise_for_status()
         return result.json().get('_id')

@@ -3,7 +3,9 @@
     "name": "Actinopodidae",
     "type": "Document",
     "contentType": "audio/mpeg",
-    "_id": "l7VnZZEzg2fr960NWWEG"
+    "_id": "l7VnZZEzg2fr960NWWEG",
+    "content": "This is the first content",
+    "path": "/path/to/file.txt"
   },
   {
     "name": "Antrodiaetidae",

@@ -1,8 +1,9 @@
 import requests
 
-from uuid import uuid4
 from contextlib import contextmanager
+from datetime import datetime
 from http.cookies import SimpleCookie
+from uuid import uuid4
 
 
 def urljoin(*args):
@@ -62,6 +63,12 @@ class DatashareClient:
         if '_routing' in document:
             document.pop('_routing', None)
         # When no id is provided, we use POST method (to create the resource)
+        if 'content' in document:
+            content_length = len(document.get('content', ''))
+            document.update({'contentLength': content_length})
+        now = datetime.now()
+        extraction_date = now.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+        document.update({'extractionDate': extraction_date})
         if id is None:
             url = urljoin(self.elasticsearch_url, index, '/_doc?refresh')
             result = requests.post(url, json=document, params=params)
@@ -118,9 +125,9 @@ class DatashareClient:
             local_query.update({'_source': source})
         url = urljoin(self.elasticsearch_host, index, '/_doc/_search')
         response = requests.post(url, params={"q": q, "scroll": scroll},
-                                json=local_query,
-                                headers=self.headers,
-                                cookies=self.cookies)
+                                 json=local_query,
+                                 headers=self.headers,
+                                 cookies=self.cookies)
         response.raise_for_status()
         return response.json()
 
@@ -128,8 +135,8 @@ class DatashareClient:
         url = urljoin(self.elasticsearch_host, '/_search/scroll')
         body = {"scroll_id": scroll_id, "scroll": scroll}
         response = requests.post(url, json=body,
-                                cookies=self.cookies,
-                                headers=self.headers)
+                                 cookies=self.cookies,
+                                 headers=self.headers)
         response.raise_for_status()
         return response.json()
 
@@ -138,7 +145,8 @@ class DatashareClient:
         while len(response['hits']['hits']) > 0:
             for item in response['hits']['hits']:
                 yield item
-            if '_scroll_id' not in response: break
+            if '_scroll_id' not in response:
+                break
             scroll_id = response['_scroll_id']
             response = self.scroll(scroll_id, scroll)
 
@@ -153,8 +161,8 @@ class DatashareClient:
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query={}):
         url = urljoin(self.elasticsearch_host, index, '_count')
         return requests.post(url, json=query,
-                            cookies=self.cookies,
-                            headers=self.headers).json()
+                             cookies=self.cookies,
+                             headers=self.headers).json()
 
     def document(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None, source=None):
         url = urljoin(self.elasticsearch_host, index, '/_doc/', id)

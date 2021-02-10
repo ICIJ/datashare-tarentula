@@ -102,22 +102,23 @@ class ExportByQuery:
 
     def scan_or_query_all(self):
         index = self.datashare_project
-        source = ["path", "parentDocument", "type"] + str(self.source).split(',')
         if self.scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
-            return self.datashare_client.query_all(index=index, query=self.query_body, source=source)
+            return self.datashare_client.query_all(index=index, query=self.query_body)
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
-            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll)
+            return self.datashare_client.scan_all(index=index, query=self.query_body, scroll=self.scroll)
 
     def save_indexed_document(self, csvwriter, document, index):
         document_id = document.get('_id')
         document_routing = document.get('_routing', document_id)
-        document_url = self.datashare_url + '/#/d/' + self.datashare_project + '/' + document_id + '/' + document_routing
-        content_type = document.get('contentType', '')
-        content_length = document.get('contentLength', 0)
-        document_path = document.get('path', '')
-        creation_date = document.get('extractionDate', '')
+        document_url = self.datashare_url + '/#/d/' + self.datashare_project + '/' + document_id + '/' + \
+                       document_routing
+        source = document.get('_source', {})
+        content_type = source.get('contentType', '')
+        content_length = source.get('contentLength', 0)
+        document_path = source.get('path', '')
+        creation_date = source.get('extractionDate', '')
         document_number = index
         document_as_dict = {'query': self.query, 'documentUrl': document_url, 'documentId': document_id,
                             'rootId': document_routing, 'contentType': content_type, 'contentLength': content_length,
@@ -146,6 +147,7 @@ class ExportByQuery:
                         logger.info('Processed document %s' % document.get('_id', None))
                         self.sleep()
                     except HTTPError:
-                        logger.error('Unable to export document %s' % document.get('_id', None), exc_info=self.traceback)
+                        logger.error('Unable to export document %s' % document.get('_id', None),
+                                     exc_info=self.traceback)
         except ProtocolError:
             logger.error('Exception while exporting documents', exc_info=self.traceback)

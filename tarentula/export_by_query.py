@@ -1,9 +1,11 @@
 import csv
 import json
+import sys
 
 from contextlib import contextmanager
 from requests.exceptions import HTTPError
 from urllib3.exceptions import ProtocolError
+from tqdm import tqdm
 from time import sleep
 
 from tarentula.datashare_client import DatashareClient
@@ -87,6 +89,10 @@ class ExportByQuery:
             query_body = json.load(json_file)
         return query_body
 
+    @property
+    def no_progressbar(self):
+        return not self.progressbar
+
     def sleep(self):
         sleep(self.throttle / 1000)
 
@@ -140,8 +146,11 @@ class ExportByQuery:
         count = self.log_matches()
         try:
             documents = self.scan_or_query_all()
+            pbar = tqdm(documents, total=count, desc='Downloading %s document(s)' % count, file=sys.stdout,
+                        disable=self.no_progressbar)
+            print(pbar)
             with self.create_csv_file() as csvwriter:
-                for index, document in enumerate(documents):
+                for index, document in enumerate(pbar):
                     try:
                         self.save_indexed_document(csvwriter, document, index)
                         logger.info('Processed document %s' % document.get('_id', None))

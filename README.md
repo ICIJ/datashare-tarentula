@@ -293,9 +293,9 @@ The releasing process uses [bumpversion](https://pypi.org/project/bumpversion/) 
 make [patch|minor|major]
 ```
 
-### 2. Upload distributions on [pypi](https://pypi.org/project/tarentula/)
+### 2. Upload distributions on pypi
 
-_To be able to do this, you will need to be a maintainer of the pypi project._
+_To be able to do this, you will need to be a maintainer of the [pypi](https://pypi.org/project/tarentula/) project._
 
 ```
 make distribute

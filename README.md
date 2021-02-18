@@ -46,7 +46,7 @@ Commands:
 - [Testing](#testing)
 - [Releasing](#releasing)
 	- [1. Create a new release](#1-create-a-new-release)
-	- [2. Upload distributions on [pypi](https://pypi.org/project/tarentula/)](#2-upload-distributions-on-pypihttpspypiorgprojecttarentula)
+	- [2. Upload distributions on pypi](#2-upload-distributions-on-pypi)
 	- [3. Build and publish the Docker image](#3-build-and-publish-the-docker-image)
 	- [4. Push your changes on Github](#4-push-your-changes-on-github)
 

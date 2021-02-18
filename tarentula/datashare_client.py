@@ -179,6 +179,10 @@ class DatashareClient:
                             headers=self.headers,
                             stream=True)
 
+    def document_url(self, index=DATASHARE_DEFAULT_PROJECT, id='', routing=None):
+        routing = id if routing is None else routing
+        return urljoin(self.datashare_url, f'#/d/{index}/{id}/{routing}')
+
     @contextmanager
     def temporary_project(self, source=DATASHARE_DEFAULT_PROJECT, delete=True):
         project = None

@@ -24,4 +24,4 @@ def add_syslog_handler(address: str = 'localhost', port: int = 514, facility: in
 def add_stdout_handler(level: int = logging.ERROR) -> None:
     fmt = '%(levelname)s %(message)s'
     logger.addHandler(logging.StreamHandler(sys.stdout))
-    coloredlogs.install(level=level, logger=logger, fmt=fmt)
+    coloredlogs.install(level=level, logger=logger, fmt=fmt, field_styles={ 'levelname': { 'faint': True } })

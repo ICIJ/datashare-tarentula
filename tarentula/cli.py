@@ -138,15 +138,13 @@ def download(**options):
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
                                 'semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--apikey', help='Datashare authentication apikey', default=None)
-@click.option('--path-format', help='Downloaded document path template', default='{id_2b}/{id_4b}/{id}')
 @click.option('--scroll', help='Scroll duration', default=None)
-@click.option('--source', help='A comma-separated list of field to include in the downloaded document from the index',
-              default=None)
+@click.option('--source', help='A comma-separated list of field to include in the export',
+              default='contentType,contentLength:0,extractionDate,path')
 @click.option('--once/--not-once', help='Download file only once', default=False)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
               callback=validate_progressbar)
-@click.option('--raw-file/--no-raw-file', help='Download raw file from Datashare', default=True)
 @click.option('--type', help='Type of indexed documents to download', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 def export_by_query(**options):

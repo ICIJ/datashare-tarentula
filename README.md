@@ -30,26 +30,39 @@ Commands:
   tagging-by-query
 ```
 
+---
 
-## Table of contents
-[Clean Tags by Query](#clean-tags-by-query)
+<!-- TOC depthFrom:2 depthTo:6 withLinks:1 updateOnSave:1 orderedList:0 -->
 
-[Download](#download)
+- [Usage](#usage)
+	- [Cookbook 👩‍🍳](#cookbook-)
+	- [Clean Tags by Query](#clean-tags-by-query)
+	- [Download](#download)
+	- [Export by Query](#export-by-query)
+	- [Tagging](#tagging)
+		- [CSV formats](#csv-formats)
+	- [Tagging by Query](#tagging-by-query)
+	- [Following your changes](#following-your-changes)
+- [Testing](#testing)
+- [Releasing](#releasing)
+	- [1. Create a new release](#1-create-a-new-release)
+	- [2. Upload distributions on [pypi](https://pypi.org/project/tarentula/)](#2-upload-distributions-on-pypihttpspypiorgprojecttarentula)
+	- [3. Build and publish the Docker image](#3-build-and-publish-the-docker-image)
+	- [4. Push your changes on Github](#4-push-your-changes-on-github)
 
-[Export by Query](#export-by-query)
+<!-- /TOC -->
 
-[Tagging](#tagging)
+---
 
-[Tagging by Query](#tagging-by-query)
+## Usage
 
-[Testing](#testing)
+Datashare Tarentula comes with basic commands to interact with a Datashare instance (running locally or on a remote server). Primarily focus on bulk actions, it provides you with both a cli interface and a python API.
 
-[Releasing](#releasing)
+### Cookbook 👩‍🍳
 
-[Following your changes](#following-your-changes)
+To learn more about how to use Datashare Tarentula with a list of examples, please refer to <a href="./COOKBOOK.md">the Cookbook</a>.
 
-
-## Clean Tags by Query
+### Clean Tags by Query
 
 A command that uses Elasticsearch `update-by-query` feature to batch untag documents directly in the index.
 
@@ -75,7 +88,7 @@ Options:
 ```
 
 
-## Download
+### Download
 
 A command to download all files matching a query.
 
@@ -109,7 +122,7 @@ Options:
 ```
 
 
-## Export by Query
+### Export by Query
 
 A command to export all files matching a query.
 
@@ -117,33 +130,35 @@ A command to export all files matching a query.
 Usage: tarentula export-by-query [OPTIONS]
 
 Options:
-  --datashare-url           TEXT        Datashare URL
-  --datashare-project       TEXT        Datashare project
-  --elasticsearch-url       TEXT        You can additionally pass the Elasticsearch
-                                          URL in order to use scrollingcapabilities of
-                                          Elasticsearch (useful when dealing with a
-                                          lot of results)
-  --query                   TEXT        The query string to filter documents
-  --output-file             TEXT        Path to the CSV file
-  --throttle                INTEGER     Request throttling (in ms)
-  --cookies                 TEXT        Key/value pair to add a cookie to each
-                                          request to the API. You can
-                                          separatesemicolons: key1=val1;key2=val2;...
-  --apikey                  TEXT        Datashare authentication apikey
-  --path-format             TEXT        Downloaded document path template
-  --scroll                  TEXT        Scroll duration
-  --source                  TEXT        A comma-separated list of field to include
-                                          in the downloaded document from the index
-  --once / --not-once                   Download file only once
-  --traceback / --no-traceback          Display a traceback in case of error
-  --progressbar / --no-progressbar      Display a progressbar
-  --raw-file / --no-raw-file            Download raw file from Datashare
-  --type [Document|NamedEntity]         Type of indexed documents to download
-  --help                                Show this message and exit
+  --datashare-url TEXT            Datashare URL
+  --datashare-project TEXT        Datashare project
+  --elasticsearch-url TEXT        You can additionally pass the Elasticsearch
+                                  URL in order to use scrollingcapabilities of
+                                  Elasticsearch (useful when dealing with a
+                                  lot of results)
+
+  --query TEXT                    The query string to filter documents
+  --output-file TEXT              Path to the CSV file
+  --throttle INTEGER              Request throttling (in ms)
+  --cookies TEXT                  Key/value pair to add a cookie to each
+                                  request to the API. You can
+                                  separatesemicolons: key1=val1;key2=val2;...
+
+  --apikey TEXT                   Datashare authentication apikey
+  --scroll TEXT                   Scroll duration
+  --source TEXT                   A comma-separated list of field to include
+                                  in the export
+
+  --once / --not-once             Download file only once
+  --traceback / --no-traceback    Display a traceback in case of error
+  --progressbar / --no-progressbar
+                                  Display a progressbar
+  --type [Document|NamedEntity]   Type of indexed documents to download
+  --help                          Show this message and exit.
 ```
 
 
-## Tagging
+### Tagging
 
 A command to batch tag documents with a CSV file.
 
@@ -161,7 +176,7 @@ Options:
   --help                                                    Show this message and exit
 ```
 
-### CSV formats
+#### CSV formats
 
 Tagging with a `documentId` and `routing`:
 
@@ -187,8 +202,7 @@ Porrhothelidae,http://localhost:8080/#/d/local-datashare/fgCt6JLfHSl160fnsjRp/fg
 Theraphosidae,http://localhost:8080/#/d/local-datashare/WvwVvNjEDQJXkwHISQIu/WvwVvNjEDQJXkwHISQIu
 ```
 
-
-## Tagging by Query
+### Tagging by Query
 
 A command that uses Elasticsearch `update-by-query` feature to batch tag documents directly in the index.
 
@@ -214,65 +228,7 @@ Options:
   --help                                Show this message and exit
 ```
 
-
-## Testing
-
-To test this tool, you must have Datashare and Elasticsearch running on your development machine.
-
-After you [installed Datashare](https://datashare.icij.org/), just run it with a test project/user:
-
-```
-datashare -p test-datashare -u test
-```
-
-In a separate terminal, install the development dependencies:
-
-```
-sudo apt install pipenv
-make install
-```
-
-Finally, run the test
-
-```
-make test
-```
-
-
-## Releasing
-
-It uses [bumpversion](https://pypi.org/project/bumpversion/).
-
-To create a new release:
-
-```
-make [patch|minor|major]
-```
-
-To upload the release on [pypi](https://pypi.org/project/tarentula/) :
-
-_To be able to do this, you will need to be a maintainer of the pypi project_
-
-```
-make distribute
-```
-
-To build and upload a new image on the [docker repository](https://hub.docker.com/repository/docker/icij/datashare-tarentula) :
-
-_To be able to do this, you will need to be part of the ICIJ organization on docker_
-
-```
-make docker-publish
-```
-
-Git push release and tag :
-
-```
-git push origin master --tags
-```
-
-
-## Following your changes
+### Following your changes
 
 When running Elasticsearch changes on big datasets, it could take a very long time. As we were curling ES to see if the task was still running well, we added a small utility to follow the changes. It makes a live graph of a provided ES indicator with a specified filter.
 
@@ -301,4 +257,64 @@ Options:
   --field               TEXT        Field value to display over time (default "hits.total")
   --elasticsearch-url   TEXT        Elasticsearch URL which is used to perform
                                       update by query (default http://elasticsearch:9200)
+```
+
+## Testing
+
+To test this tool, you must have Datashare and Elasticsearch running on your development machine.
+
+After you [installed Datashare](https://datashare.icij.org/), just run it with a test project/user:
+
+```
+datashare -p test-datashare -u test
+```
+
+In a separate terminal, install the development dependencies:
+
+```
+sudo apt install pipenv
+make install
+```
+
+Finally, run the test
+
+```
+make test
+```
+
+
+## Releasing
+
+The releasing process uses [bumpversion](https://pypi.org/project/bumpversion/) to manage versions of this package, [pypi](https://pypi.org/project/tarentula/) to publish the Python package and [Docker Hub](https://hub.docker.com/) for the Docker image.
+
+### 1. Create a new release
+
+```
+make [patch|minor|major]
+```
+
+### 2. Upload distributions on [pypi](https://pypi.org/project/tarentula/)
+
+_To be able to do this, you will need to be a maintainer of the pypi project._
+
+```
+make distribute
+```
+
+### 3. Build and publish the Docker image
+
+To build and upload a new image on the [docker repository](https://hub.docker.com/repository/docker/icij/datashare-tarentula) :
+
+_To be able to do this, you will need to be part of the ICIJ organization on docker_
+
+```
+make docker-publish
+```
+
+### 4. Push your changes on Github
+
+Git push release and tag :
+
+```
+git push origin master --tags
 ```

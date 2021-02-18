@@ -30,4 +30,6 @@ tarentula export-by-query --query 'contentType:"application/pdf"' --source 'meta
 
 Export documents metadata for "france" on a remove server:
 
-tarentula export-by-query --datashare-url "https://datashare-demo.icij.org" --datashare-project "luxleaks" --apikey "XXXXX" --query 'france' 
+```
+tarentula export-by-query --datashare-url "https://datashare-demo.icij.org" --datashare-project "luxleaks" --apikey "XXXXX" --query 'france'
+```

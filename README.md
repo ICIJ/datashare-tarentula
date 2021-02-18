@@ -31,7 +31,6 @@ Commands:
 ```
 
 ---
-
 <!-- TOC depthFrom:2 depthTo:6 withLinks:1 updateOnSave:1 orderedList:0 -->
 
 - [Usage](#usage)
@@ -43,6 +42,7 @@ Commands:
 		- [CSV formats](#csv-formats)
 	- [Tagging by Query](#tagging-by-query)
 	- [Following your changes](#following-your-changes)
+- [Configuration File](#configuration-file)
 - [Testing](#testing)
 - [Releasing](#releasing)
 	- [1. Create a new release](#1-create-a-new-release)
@@ -51,7 +51,6 @@ Commands:
 	- [4. Push your changes on Github](#4-push-your-changes-on-github)
 
 <!-- /TOC -->
-
 ---
 
 ## Usage
@@ -257,6 +256,32 @@ Options:
   --field               TEXT        Field value to display over time (default "hits.total")
   --elasticsearch-url   TEXT        Elasticsearch URL which is used to perform
                                       update by query (default http://elasticsearch:9200)
+```
+
+## Configuration File
+
+Tarentula supports several sources for configuring its behavior, including an ini files and command-line options.
+
+Configuration file will be searched for in the following order (use the first file found, all others are ignored):
+
+  * `TARENTULA_CONFIG` (environment variable if set)
+  * `tarentula.ini` (in the current directory)
+  * `~/.tarentula.ini` (in the home directory)
+  * `/etc/tarentula/tarentula.ini`
+
+It should follow the following format (all values bellow are optional):
+
+```
+[DEFAULT]
+apikey = SECRETHALONOPROCTIDAE
+datashare_url = http://here:8080
+datashare_project = local-datashare
+
+[logger]
+syslog_address = 127.0.0.0
+syslog_port = 514
+syslog_facility = local7
+stdout_loglevel = INFO
 ```
 
 ## Testing

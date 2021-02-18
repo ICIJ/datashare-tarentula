@@ -53,3 +53,14 @@ class TestAbstract(TestCase):
                 yield species
             finally:
                 self.delete_documents(species)
+
+    from contextlib import contextmanager
+
+    @contextmanager
+    def working_directory(self, path):
+        previous_cwd = os.getcwd()
+        os.chdir(path)
+        try:
+            yield
+        finally:
+            os.chdir(previous_cwd)

@@ -1,5 +1,7 @@
 import click
 import logging
+
+from tarentula.config_file_reader import ConfigFileReader
 from tarentula.logger import add_syslog_handler, add_stdout_handler
 from tarentula.tag_cleaning_by_query import TagsCleanerByQuery
 from tarentula.tagging import Tagger
@@ -27,10 +29,14 @@ def validate_progressbar(ctx, param, value):
 @click.group()
 @click.pass_context
 @click.version_option(message='v%(version)s', version=__version__)
-@click.option('--syslog-address', help='Syslog address', default='localhost')
-@click.option('--syslog-port', help='Syslog port', default=514)
-@click.option('--syslog-facility', help='Syslog facility', default='local7')
-@click.option('--stdout-loglevel', help='Change the default log level for stdout error handler', default='ERROR',
+@click.option('--syslog-address', help='Syslog address',
+              default=ConfigFileReader('syslog_address', 'localhost', 'logger'))
+@click.option('--syslog-port', help='Syslog port',
+              default=ConfigFileReader('syslog_port', 514, 'logger'))
+@click.option('--syslog-facility', help='Syslog facility',
+              default=ConfigFileReader('syslog_facility', 'local7', 'logger'))
+@click.option('--stdout-loglevel', help='Change the default log level for stdout error handler',
+              default=ConfigFileReader('stdout_loglevel', 'ERROR', 'logger'),
               callback=validate_loglevel)
 def cli(ctx, **options):
     # Configure Syslog handler
@@ -42,12 +48,12 @@ def cli(ctx, **options):
 
 
 @click.command()
-@click.option('--datashare-url', help='Datashare URL', default='http://localhost:8080')
-@click.option('--datashare-project', help='Datashare project', default='local-datashare')
+@click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
+@click.option('--datashare-url', help='Datashare URL', default=ConfigFileReader('datashare_url', 'http://localhost:8080'))
+@click.option('--datashare-project', help='Datashare project', default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
                                 'semicolons: key1=val1;key2=val2;...', default='')
-@click.option('--apikey', help='Datashare authentication apikey', default=None)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
               callback=validate_progressbar)
@@ -60,13 +66,13 @@ def tagging(**options):
 
 
 @click.command()
-@click.option('--datashare-project', help='Datashare project', default='local-datashare')
+@click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
+@click.option('--datashare-project', help='Datashare project', default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--elasticsearch-url', help='Elasticsearch URL which is used to perform update by query',
               default='http://localhost:9200')
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
                                 'semicolons: key1=val1;key2=val2;...', default='')
-@click.option('--apikey', help='Datashare authentication apikey', default=None)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
               callback=validate_progressbar)
@@ -81,12 +87,12 @@ def tagging_by_query(**options):
 
 
 @click.command()
-@click.option('--datashare-project', help='Datashare project', default='local-datashare')
+@click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
+@click.option('--datashare-project', help='Datashare project', default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--elasticsearch-url', help='Elasticsearch URL which is used to perform update by query',
               default='http://localhost:9200')
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
                                 'semicolons: key1=val1;key2=val2;...', default='')
-@click.option('--apikey', help='Datashare authentication apikey', default=None)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--wait-for-completion/--no-wait-for-completion', help='Create a Elasticsearch task to perform the update'
                                                                      'asynchronously', default=True)
@@ -98,8 +104,9 @@ def clean_tags_by_query(**options):
 
 
 @click.command()
-@click.option('--datashare-url', help='Datashare URL', default='http://localhost:8080')
-@click.option('--datashare-project', help='Datashare project', default='local-datashare')
+@click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
+@click.option('--datashare-url', help='Datashare URL', default=ConfigFileReader('datashare_url', 'http://localhost:8080'))
+@click.option('--datashare-project', help='Datashare project', default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
                                           'capabilities of Elasticsearch (useful when dealing with a lot of results)',
               default=None)
@@ -108,7 +115,6 @@ def clean_tags_by_query(**options):
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
                                 'semicolons: key1=val1;key2=val2;...', default='')
-@click.option('--apikey', help='Datashare authentication apikey', default=None)
 @click.option('--path-format', help='Downloaded document path template', default='{id_2b}/{id_4b}/{id}')
 @click.option('--scroll', help='Scroll duration', default=None)
 @click.option('--source', help='A comma-separated list of field to include in the downloaded document from the index',
@@ -127,8 +133,9 @@ def download(**options):
 
 
 @click.command()
-@click.option('--datashare-url', help='Datashare URL', default='http://localhost:8080')
-@click.option('--datashare-project', help='Datashare project', default='local-datashare')
+@click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
+@click.option('--datashare-url', help='Datashare URL', default=ConfigFileReader('datashare_url', 'http://localhost:8080'))
+@click.option('--datashare-project', help='Datashare project', default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
                                           'capabilities of Elasticsearch (useful when dealing with a lot of results)',
               default=None)
@@ -137,7 +144,6 @@ def download(**options):
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
                                 'semicolons: key1=val1;key2=val2;...', default='')
-@click.option('--apikey', help='Datashare authentication apikey', default=None)
 @click.option('--scroll', help='Scroll duration', default=None)
 @click.option('--source', help='A comma-separated list of field to include in the export',
               default='contentType,contentLength:0,extractionDate,path')

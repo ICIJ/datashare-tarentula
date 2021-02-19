@@ -43,8 +43,11 @@ class ConfigFileReader:
         ]
 
     @property
-    def env_path(self):
-        return os.path.abspath(os.getenv('TARENTULA_CONFIG', None))
+    def env_path(self) -> Optional[str]:
+        env_value = os.getenv('TARENTULA_CONFIG', None)
+        if env_value is not None:
+            return os.path.abspath(env_value)
+        return None
 
     @property
     def home_directory_path(self) -> str:

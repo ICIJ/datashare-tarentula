@@ -12,7 +12,7 @@ install_pip:
 		pipenv install -d
 
 test:
-		pipenv run python setup.py test
+		pipenv run nosetests
 
 minor:
 		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} minor tarentula/__init__.py

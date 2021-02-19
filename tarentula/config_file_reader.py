@@ -1,6 +1,6 @@
 from typing import Optional
 from pathlib import Path
-from os.path import join, exists
+from os.path import join, isfile
 
 import configparser
 import os
@@ -30,7 +30,7 @@ class ConfigFileReader:
     @property
     def config_path(self) -> Optional[str]:
         for path in self.config_paths:
-            if path is not None and exists(path):
+            if path is not None and isfile(path):
                 return path
 
     @property
@@ -47,7 +47,6 @@ class ConfigFileReader:
         env_value = os.getenv('TARENTULA_CONFIG', None)
         if env_value is not None:
             return os.path.abspath(env_value)
-        return None
 
     @property
     def home_directory_path(self) -> str:

@@ -123,7 +123,7 @@ class DatashareClient:
         local_query = {"sort": {"_id": "asc"}, **query, **kwargs}
         if source is not None:
             local_query.update({'_source': source})
-        url = urljoin(self.elasticsearch_host, index, '/_doc/_search')
+        url = urljoin(self.elasticsearch_host, index, '/_search')
         response = requests.post(url, params={"q": q, "scroll": scroll},
                                  json=local_query,
                                  headers=self.headers,
@@ -158,7 +158,8 @@ class DatashareClient:
             search_after = response['hits']['hits'][-1]['sort']
             response = self.query(search_after=search_after, **kwargs)
 
-    def count(self, index=DATASHARE_DEFAULT_PROJECT, query={}):
+    def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):
+        if query is None: query = {}
         url = urljoin(self.elasticsearch_host, index, '_count')
         return requests.post(url, json=query,
                              cookies=self.cookies,

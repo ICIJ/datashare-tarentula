@@ -10,6 +10,9 @@ if py_version < (3, 6):
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+extras = {
+    'monitoring': ['matplotlib']
+}
 setup(name='tarentula',
       version=__version__,
       packages=find_packages(),
@@ -20,7 +23,7 @@ setup(name='tarentula',
       url="https://github.com/icij/datashare-tarentula",
       test_suite='nose.collector',
       tests_require=['nose', 'responses'],
-      include_package_data=True,
+      setup_requires=['setuptools-pipfile'],
       keywords=['datashare', 'api', 'text-mining', 'elasticsearch'],
       classifiers=[
           "Programming Language :: Python :: 3",
@@ -32,6 +35,7 @@ setup(name='tarentula',
           "Operating System :: OS Independent",
           "Topic :: Scientific/Engineering :: Information Analysis",
       ],
+      extra_require=extras,
       python_requires='>=3.6',
       entry_points='''
         [console_scripts]

@@ -10,9 +10,6 @@ if py_version < (3, 6):
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-extras = {
-    'monitoring': ['matplotlib']
-}
 setup(name='tarentula',
       version=__version__,
       packages=find_packages(),
@@ -35,7 +32,11 @@ setup(name='tarentula',
           "Operating System :: OS Independent",
           "Topic :: Scientific/Engineering :: Information Analysis",
       ],
-      extra_require=extras,
+      extra_require={
+          'monitoring': [
+              'matplotlib',
+          ],
+      },
       python_requires='>=3.6',
       entry_points='''
         [console_scripts]

@@ -25,7 +25,7 @@ jobs:
           name: Install dependencies
           command: |
             (sudo apt update || /bin/true) && sudo apt install pipenv
-            make install && pipenv run pip install -e ".[monitoring]"
+            make install && pipenv run pip install matplotlib
       - run:
           name: Wait for Datashare to be up
           shell: /bin/sh

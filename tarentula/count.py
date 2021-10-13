@@ -17,7 +17,7 @@ class Count(ExportByQuery):
     def __init__(self,
                  datashare_url: str = 'http://localhost:8080',
                  datashare_project: str = 'local-datashare',
-                 output_file: str = 'tarentula_documents.csv',
+                 #output_file: str = 'tarentula_documents.csv',
                  query: str = '*',
                  throttle: int = 0,
                  cookies: str = '',
@@ -27,18 +27,18 @@ class Count(ExportByQuery):
                  #source: str = 'contentType,contentLength:0,extractionDate,path',
                  #once: bool = False,
                  #traceback: bool = False,
-                 progressbar: bool = True,
+                 #progressbar: bool = True,
                  type: str = 'Document'):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.query = query
-        self.output_file = output_file
+        # self.output_file = output_file
         self.throttle = throttle
         self.cookies_string = cookies
         self.apikey = apikey
         #self.once = once
         #self.traceback = traceback
-        self.progressbar = progressbar
+        # self.progressbar = progressbar
         self.scroll = scroll
         #self.source = source
         self.type = type
@@ -105,4 +105,5 @@ class Count(ExportByQuery):
 
     def start(self):
         count = self.log_matches()
-        print(count)
+        logger.info('Number of matched elements: %s' % count)
+        print('Number of matched elements: %s' % count)

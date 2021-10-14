@@ -11,12 +11,14 @@ class Count:
                  cookies: str = '',
                  apikey: str = None,
                  elasticsearch_url: str = None,
+                 traceback: bool = False,
                  type: str = 'Document'):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.query = query
         self.cookies_string = cookies
         self.apikey = apikey
+        self.traceback = traceback
         self.type = type
         try:
             self.datashare_client = DatashareClient(datashare_url,

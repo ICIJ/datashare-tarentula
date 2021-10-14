@@ -170,6 +170,7 @@ def export_by_query(**options):
 @click.option('--query', help='The query string to filter documents', default='*')
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
                                 'semicolons: key1=val1;key2=val2;...', default='')
+@click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--type', help='Type of indexed documents to download', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 def count(**options):

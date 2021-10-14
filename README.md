@@ -87,6 +87,32 @@ Options:
 ```
 
 
+### Count
+
+A command to count files matching a query.
+
+```
+Usage: tarentula count [OPTIONS]
+
+Options:
+  --datashare-url           TEXT        Datashare URL
+  --datashare-project       TEXT        Datashare project
+  --elasticsearch-url       TEXT        You can additionally pass the Elasticsearch
+                                          URL in order to use scrollingcapabilities of
+                                          Elasticsearch (useful when dealing with a
+                                          lot of results)
+  --query                   TEXT        The query string to filter documents
+  --cookies                 TEXT        Key/value pair to add a cookie to each
+                                          request to the API. You can
+                                          separatesemicolons: key1=val1;key2=val2;...
+  --apikey                  TEXT        Datashare authentication apikey
+                                          in the downloaded document from the index
+  --traceback / --no-traceback          Display a traceback in case of error
+  --type [Document|NamedEntity]         Type of indexed documents to download
+  --help                                Show this message and exit
+```
+
+
 ### Download
 
 A command to download all files matching a query.

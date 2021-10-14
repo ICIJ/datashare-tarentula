@@ -160,14 +160,6 @@ def export_by_query(**options):
     export.start()
 
 
-
-# @click.option('--source', help='A comma-separated list of field to include in the export',
-#               default='contentType,contentLength:0,extractionDate,path')
-#@click.option('--once/--not-once', help='Download file only once', default=False)
-#@click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
-#@click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
-#              callback=validate_progressbar)
-#@click.option('--output-file', help='Path to the CSV file', default='tarentula_documents.csv')
 @click.command()
 @click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
 @click.option('--datashare-url', help='Datashare URL', default=ConfigFileReader('datashare_url', 'http://localhost:8080'))
@@ -176,17 +168,14 @@ def export_by_query(**options):
                                           'capabilities of Elasticsearch (useful when dealing with a lot of results)',
               default=None)
 @click.option('--query', help='The query string to filter documents', default='*')
-@click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
                                 'semicolons: key1=val1;key2=val2;...', default='')
-@click.option('--scroll', help='Scroll duration', default=None)
 @click.option('--type', help='Type of indexed documents to download', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 def count(**options):
     # Instantiate an ExportByQuery class with all the options
     count = Count(**options)
     count.start()
-
 
 
 cli.add_command(tagging)

@@ -23,6 +23,7 @@ Options:
   --version                                 Show the installed version of Tarentula
 
 Commands:
+  count
   clean-tags-by-query
   download
   export-by-query
@@ -35,6 +36,7 @@ Commands:
 
 - [Usage](#usage)
 	- [Cookbook 👩‍🍳](#cookbook-)
+	- [Count](#count)
 	- [Clean Tags by Query](#clean-tags-by-query)
 	- [Download](#download)
 	- [Export by Query](#export-by-query)
@@ -61,6 +63,31 @@ Datashare Tarentula comes with basic commands to interact with a Datashare insta
 
 To learn more about how to use Datashare Tarentula with a list of examples, please refer to <a href="./COOKBOOK.md">the Cookbook</a>.
 
+### Count
+
+A command to just count the number of files matching a query.
+
+```
+Usage: tarentula count [OPTIONS]
+
+Options:
+  --datashare-url           TEXT        Datashare URL
+  --datashare-project       TEXT        Datashare project
+  --elasticsearch-url       TEXT        You can additionally pass the Elasticsearch
+                                          URL in order to use scrollingcapabilities of
+                                          Elasticsearch (useful when dealing with a
+                                          lot of results)
+  --query                   TEXT        The query string to filter documents
+  --cookies                 TEXT        Key/value pair to add a cookie to each
+                                          request to the API. You can
+                                          separatesemicolons: key1=val1;key2=val2;...
+  --apikey                  TEXT        Datashare authentication apikey
+                                          in the downloaded document from the index
+  --traceback / --no-traceback          Display a traceback in case of error
+  --type [Document|NamedEntity]         Type of indexed documents to download
+  --help                                Show this message and exit
+```
+
 ### Clean Tags by Query
 
 A command that uses Elasticsearch `update-by-query` feature to batch untag documents directly in the index.
@@ -85,7 +112,6 @@ Options:
                                           afile with @path/to/file. Default to all.
   --help                                Show this message and exit
 ```
-
 
 ### Download
 

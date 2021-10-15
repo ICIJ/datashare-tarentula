@@ -2,6 +2,24 @@
 
 A pragmatic approach to learn how to use Datashare Tarentula.
 
+## Count matches of query
+
+Count all files:
+
+```
+tarentula count
+```
+or
+```
+tarentula count --query '*'
+```
+
+Count files that match the query `spider`:
+
+```
+tarentula count --query 'spider'
+```
+
 ## Export search query to CSV
 
 Export documents metadata, including the author, for the query `spider`:

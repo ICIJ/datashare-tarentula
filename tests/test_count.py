@@ -1,7 +1,4 @@
 from click.testing import CliRunner
-from datetime import datetime
-from os.path import join
-from tempfile import TemporaryDirectory
 
 from tarentula.cli import cli
 from .test_abstract import TestAbstract

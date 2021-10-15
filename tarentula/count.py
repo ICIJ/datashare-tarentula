@@ -3,6 +3,7 @@ import json
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
 
+
 class Count:
     def __init__(self,
                  datashare_url: str = 'http://localhost:8080',
@@ -63,7 +64,6 @@ class Count:
         with open(self.query[1:]) as json_file:
             query_body = json.load(json_file)
         return query_body
-
 
     def count_matches(self):
         index = self.datashare_project

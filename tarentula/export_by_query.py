@@ -26,12 +26,14 @@ class ExportByQuery:
                  scroll: str = None,
                  source: str = 'contentType,contentLength:0,extractionDate,path',
                  once: bool = False,
+                 size: int = 1000,
                  traceback: bool = False,
                  progressbar: bool = True,
                  type: str = 'Document'):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.query = query
+        self.size = size
         self.output_file = output_file
         self.throttle = throttle
         self.cookies_string = cookies
@@ -122,10 +124,10 @@ class ExportByQuery:
         source = ["path"] + self.source_fields_names
         if self.scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
-            return self.datashare_client.query_all(index=index, query=self.query_body, source=source)
+            return self.datashare_client.query_all(index=index, query=self.query_body, source=source, size=self.size)
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
-            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll)
+            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, size=self.size)
 
     def document_default_values(self, document, number):
         index = self.datashare_project

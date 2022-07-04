@@ -154,6 +154,7 @@ def download(**options):
               callback=validate_progressbar)
 @click.option('--type', help='Type of indexed documents to download', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
+@click.option('--size', help='Size of the scroll request that powers the operation.', default=1000)
 def export_by_query(**options):
     # Instantiate an ExportByQuery class with all the options
     export = ExportByQuery(**options)

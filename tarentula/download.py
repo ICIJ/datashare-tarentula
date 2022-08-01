@@ -1,6 +1,4 @@
-import http
 import json
-import logging
 import shutil
 import sys
 from os import makedirs

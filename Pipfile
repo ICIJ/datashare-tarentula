@@ -6,8 +6,8 @@ name = "pypi"
 [packages]
 click = "==7.1.2"
 requests = "==2.25.1"
-tqdm = "==4.51.0"
 coloredlogs = "==14.0"
+rich = "==12"
 
 [dev-packages]
 bumpversion = "==0.6.0"

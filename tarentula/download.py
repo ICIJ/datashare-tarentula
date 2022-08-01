@@ -1,12 +1,10 @@
 import json
 import shutil
-import sys
 from os import makedirs
 from os.path import join, dirname, basename, exists
 from time import sleep
-
 from requests.exceptions import HTTPError, ConnectionError
-from tqdm import tqdm
+from rich.progress import Progress
 from urllib3.exceptions import ProtocolError
 
 from tarentula.datashare_client import DatashareClient
@@ -178,17 +176,18 @@ class Download:
 
     def start(self):
         count = self.log_matches()
+        desc = "Downloading %s document(s)" % count
         try:
-            documents = self.scan_or_query_all()
-            pbar = tqdm(documents, total=count, desc="Downloading %s document(s)" % count, file=sys.stdout,
-                        disable=self.no_progressbar)
-            for document in pbar:
-                try:
-                    self.download_raw_file(document)
-                    self.save_indexed_document(document)
-                    logger.info('Processed document %s' % document.get('_id'))
+            with Progress(disable=self.no_progressbar) as progress:  
+                task = progress.add_task(desc, total=count)
+                for document in self.scan_or_query_all():
+                    try:
+                        self.download_raw_file(document)
+                        self.save_indexed_document(document)
+                        logger.info('Processed document %s' % document.get('_id'))
+                    except HTTPError:
+                        logger.error('Unable to download document %s' % document.get('_id'), exc_info=self.traceback)
+                    progress.advance(task)
                     self.sleep()
-                except HTTPError:
-                    logger.error('Unable to download document %s' % document.get('_id'), exc_info=self.traceback)
         except ProtocolError:
             logger.error('Exception while downloading documents', exc_info=self.traceback)

@@ -1,9 +1,8 @@
 import csv
 import re
 import requests
-import sys
 from time import sleep
-from tqdm import tqdm
+from rich.progress import Progress
 from http.cookies import SimpleCookie
 from requests.exceptions import HTTPError, ConnectionError
 
@@ -71,6 +70,17 @@ class Tagger:
         except (TypeError, AttributeError):
             return {}
 
+    @property
+    def headers(self):
+        if self.apikey is not None:
+            return {
+                'Authorization': 'bearer %s' % self.apikey
+            }
+
+    @property
+    def total_steps(self):
+        return sum(len(leaf['tags']) for _, leaf in self.tree.items())
+
     def sleep(self):
         sleep(self.throttle / 1000)
 
@@ -97,20 +107,25 @@ class Tagger:
         logger.info(summary)
         return summary
 
+    
     def start(self):
-        for document_id, leaf in tqdm(self.tree.items(), desc=self.summarize(), file=sys.stdout,
-                                      disable=self.no_progressbar):
-            endpoint_url = self.leaf_tagging_endpoint(leaf)
-            for tag in leaf['tags']:
-                try:
-                    result = requests.put(endpoint_url, json=[tag], cookies=self.cookies,
-                                          headers=None if self.apikey is None else
-                                          {'Authorization': 'bearer %s' % self.apikey})
-                    result.raise_for_status()
-                    self.sleep()
-                    if result.status_code == requests.codes.ok:
-                        logger.info('Tag "%s" already exists on document "%s"' % (tag, document_id,))
-                    elif result.status_code == requests.codes.created:
-                        logger.info('Added "%s" to document "%s"' % (tag, document_id,))
-                except (HTTPError, ConnectionError):
-                    logger.warning('Unable to add "%s" to document "%s"' % (tag, document_id), exc_info=self.traceback)
+        with Progress(disable=self.no_progressbar) as progress:     
+            desc = self.summarize()
+            task = progress.add_task(desc, total=self.total_steps) 
+            for document_id, leaf in self.tree.items():
+                endpoint_url = self.leaf_tagging_endpoint(leaf)
+                for tag in leaf['tags']:
+                    try:
+                        result = requests.put(endpoint_url, 
+                                                json=[tag], 
+                                                cookies=self.cookies,
+                                                headers=self.headers)
+                        result.raise_for_status()
+                        if result.status_code == requests.codes.ok:
+                            logger.info('Tag "%s" already exists on document "%s"' % (tag, document_id,))
+                        elif result.status_code == requests.codes.created:
+                            logger.info('Added "%s" to document "%s"' % (tag, document_id,))
+                        self.sleep()
+                    except (HTTPError, ConnectionError):
+                        logger.warning('Unable to add "%s" to document "%s"' % (tag, document_id), exc_info=self.traceback)
+                    progress.advance(task)

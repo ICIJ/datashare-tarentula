@@ -1,6 +1,5 @@
 import csv
 import json
-import operator
 import sys
 
 from collections import OrderedDict

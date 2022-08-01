@@ -94,7 +94,6 @@ def tagging_by_query(**options):
               default='http://localhost:9200')
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
                                 'semicolons: key1=val1;key2=val2;...', default='')
-@click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--wait-for-completion/--no-wait-for-completion', help='Create a Elasticsearch task to perform the update'
                                                                      'asynchronously', default=True)
 @click.option('--query', help='Give a JSON query to filter documents that will have their tags cleaned. It can be a'

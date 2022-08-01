@@ -25,7 +25,6 @@ class ExportByQuery:
                  elasticsearch_url: str = None,
                  scroll: str = None,
                  source: str = 'contentType,contentLength:0,extractionDate,path',
-                 once: bool = False,
                  size: int = 1000,
                  traceback: bool = False,
                  progressbar: bool = True,
@@ -39,7 +38,6 @@ class ExportByQuery:
         self.throttle = throttle
         self.cookies_string = cookies
         self.apikey = apikey
-        self.once = once
         self.traceback = traceback
         self.progressbar = progressbar
         self.scroll = scroll

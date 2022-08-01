@@ -148,7 +148,6 @@ def download(**options):
 @click.option('--scroll', help='Scroll duration', default=None)
 @click.option('--source', help='A comma-separated list of field to include in the export',
               default='contentType,contentLength:0,extractionDate,path')
-@click.option('--once/--not-once', help='Download file only once', default=False)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
               callback=validate_progressbar)

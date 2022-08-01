@@ -3,6 +3,7 @@ import json
 import operator
 import sys
 
+from collections import OrderedDict
 from contextlib import contextmanager
 from requests.exceptions import HTTPError
 from urllib3.exceptions import ProtocolError
@@ -104,8 +105,8 @@ class ExportByQuery:
     def csv_fields_names(self):
         names = self.default_csv_fields_names
         names += self.source_fields_names
-        # Remove duplicated values
-        return list(set(names))
+        # Remove duplicated values while preserving order
+        return list(OrderedDict.fromkeys(names))
 
     @property
     def default_csv_fields_names(self):

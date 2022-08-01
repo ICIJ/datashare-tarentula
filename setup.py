@@ -32,6 +32,12 @@ setup(name='tarentula',
           "Operating System :: OS Independent",
           "Topic :: Scientific/Engineering :: Information Analysis",
       ],
+      install_requires=[
+        'click==7.1.2',
+        'requests==2.25.1',
+        'coloredlogs==14.0',
+        'rich==12',
+      ],
       extra_require={
           'monitoring': [
               'matplotlib',

@@ -29,7 +29,8 @@ class ExportByQuery:
                  size: int = 1000,
                  traceback: bool = False,
                  progressbar: bool = True,
-                 type: str = 'Document'):
+                 type: str = 'Document',
+                 query_field: bool = True):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.query = query
@@ -44,6 +45,7 @@ class ExportByQuery:
         self.scroll = scroll
         self.source = source
         self.type = type
+        self.query_field = query_field
         try:
             self.datashare_client = DatashareClient(datashare_url,
                                                     elasticsearch_url,
@@ -100,6 +102,21 @@ class ExportByQuery:
     def source_fields_names(self):
         return [ field.pop(0) for field in self.source_fields ]
 
+    @property
+    def csv_fields_names(self):
+        names = self.default_csv_fields_names
+        names += self.source_fields_names
+        # Remove duplicated values
+        return list(set(names))
+
+    @property
+    def default_csv_fields_names(self):
+        names = ['documentUrl', 'documentId', 'rootId', 'documentNumber']
+        if self.query_field:
+            names.insert(0, 'query')
+        return names
+
+
     def source_field_params(self, field):
         field_params = field.strip().split(':')
         field_name = field_params[0]
@@ -121,7 +138,7 @@ class ExportByQuery:
 
     def scan_or_query_all(self):
         index = self.datashare_project
-        source = ["path"] + self.source_fields_names
+        source = self.source_fields_names
         if self.scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
             return self.datashare_client.query_all(index=index, query=self.query_body, source=source, size=self.size)
@@ -158,9 +175,7 @@ class ExportByQuery:
     @contextmanager
     def create_csv_file(self):
         with open(self.output_file, 'w', newline='') as csv_file:
-            fieldnames = ['query', 'documentUrl', 'documentId', 'rootId', 'documentNumber']
-            fieldnames += self.source_fields_names
-            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+            writer = csv.DictWriter(csv_file, fieldnames=self.csv_fields_names)
             writer.writeheader()
             yield writer
 

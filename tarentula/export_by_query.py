@@ -25,6 +25,8 @@ class ExportByQuery:
                  scroll: str = None,
                  source: str = 'contentType,contentLength:0,extractionDate,path',
                  size: int = 1000,
+                 sort_by: str = '_id',
+                 order_by: str = 'asc',
                  traceback: bool = False,
                  progressbar: bool = True,
                  type: str = 'Document',
@@ -32,7 +34,6 @@ class ExportByQuery:
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.query = query
-        self.size = size
         self.output_file = output_file
         self.throttle = throttle
         self.cookies_string = cookies
@@ -41,6 +42,9 @@ class ExportByQuery:
         self.progressbar = progressbar
         self.scroll = scroll
         self.source = source
+        self.size = size
+        self.sort_by = sort_by
+        self.order_by = order_by
         self.type = type
         self.query_field = query_field
         try:
@@ -136,12 +140,13 @@ class ExportByQuery:
     def scan_or_query_all(self):
         index = self.datashare_project
         source = self.source_fields_names
+        sort = { self.sort_by: self.order_by }
         if self.scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
-            return self.datashare_client.query_all(index=index, query=self.query_body, source=source, size=self.size)
+            return self.datashare_client.query_all(index=index, query=self.query_body, source=source, size=self.size, sort=sort)
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
-            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, size=self.size)
+            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, size=self.size, sort=sort)
 
     def document_default_values(self, document, number):
         index = self.datashare_project

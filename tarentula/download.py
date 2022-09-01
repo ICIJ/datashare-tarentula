@@ -23,11 +23,13 @@ class Download:
                  elasticsearch_url: str = None,
                  path_format: str = '{id_2b}/{id_4b}/{id}',
                  scroll: str = None,
+                 source: str = None,
+                 sort_by: str = '_id',
+                 order_by: str = 'asc',
                  once: bool = False,
                  traceback: bool = False,
                  progressbar: bool = True,
                  raw_file: bool = True,
-                 source: str = None,
                  type: str = 'Document'):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
@@ -43,6 +45,8 @@ class Download:
         self.raw_file = raw_file
         self.source = source
         self.scroll = scroll
+        self.sort_by = sort_by
+        self.order_by = order_by
         self.type = type
         try:
             self.datashare_client = DatashareClient(datashare_url,
@@ -135,12 +139,13 @@ class Download:
     def scan_or_query_all(self):
         index = self.datashare_project
         source = ["path", "parentDocument", "type"] + str(self.source).split(',')
+        sort = { self.sort_by: self.order_by }
         if self.scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
-            return self.datashare_client.query_all(index=index, query=self.query_body, source=source)
+            return self.datashare_client.query_all(index=index, query=self.query_body, source=source, sort=sort)
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
-            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll)
+            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, sort=sort)
 
     def download_raw_file(self, document):
         id = document.get('_id')

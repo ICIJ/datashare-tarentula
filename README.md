@@ -121,29 +121,35 @@ A command to download all files matching a query.
 Usage: tarentula download [OPTIONS]
 
 Options:
-  --datashare-url           TEXT        Datashare URL
-  --datashare-project       TEXT        Datashare project
-  --elasticsearch-url       TEXT        You can additionally pass the Elasticsearch
-                                          URL in order to use scrollingcapabilities of
-                                          Elasticsearch (useful when dealing with a
-                                          lot of results)
-  --query                   TEXT        The query string to filter documents
-  --destination-directory   TEXT        Directory documents will be downloaded
-  --throttle                INTEGER     Request throttling (in ms)
-  --cookies                 TEXT        Key/value pair to add a cookie to each
-                                          request to the API. You can
-                                          separatesemicolons: key1=val1;key2=val2;...
-  --apikey                  TEXT        Datashare authentication apikey
-  --path-format             TEXT        Downloaded document path template
-  --scroll                  TEXT        Scroll duration
-  --source                  TEXT        A comma-separated list of field to include
-                                          in the downloaded document from the index
-  --once / --not-once                   Download file only once
-  --traceback / --no-traceback          Display a traceback in case of error
-  --progressbar / --no-progressbar      Display a progressbar
-  --raw-file / --no-raw-file            Download raw file from Datashare
-  --type [Document|NamedEntity]         Type of indexed documents to download
-  --help                                Show this message and exit
+  --apikey TEXT                   Datashare authentication apikey
+  --datashare-url TEXT            Datashare URL
+  --datashare-project TEXT        Datashare project
+  --elasticsearch-url TEXT        You can additionally pass the Elasticsearch
+                                  URL in order to use scrollingcapabilities of
+                                  Elasticsearch (useful when dealing with a
+                                  lot of results)
+
+  --query TEXT                    The query string to filter documents
+  --destination-directory TEXT    Directory documents will be downloaded
+  --throttle INTEGER              Request throttling (in ms)
+  --cookies TEXT                  Key/value pair to add a cookie to each
+                                  request to the API. You can
+                                  separatesemicolons: key1=val1;key2=val2;...
+
+  --path-format TEXT              Downloaded document path template
+  --scroll TEXT                   Scroll duration
+  --source TEXT                   A comma-separated list of field to include
+                                  in the downloaded document from the index
+
+  --sort-by TEXT                  Field to use to sort results
+  --order-by [asc|desc]           Order to use to sort results
+  --once / --not-once             Download file only once
+  --traceback / --no-traceback    Display a traceback in case of error
+  --progressbar / --no-progressbar
+                                  Display a progressbar
+  --raw-file / --no-raw-file      Download raw file from Datashare
+  --type [Document|NamedEntity]   Type of indexed documents to download
+  --help                          Show this message and exit.
 ```
 
 
@@ -155,6 +161,7 @@ A command to export all files matching a query.
 Usage: tarentula export-by-query [OPTIONS]
 
 Options:
+  --apikey TEXT                   Datashare authentication apikey
   --datashare-url TEXT            Datashare URL
   --datashare-project TEXT        Datashare project
   --elasticsearch-url TEXT        You can additionally pass the Elasticsearch
@@ -169,16 +176,21 @@ Options:
                                   request to the API. You can
                                   separatesemicolons: key1=val1;key2=val2;...
 
-  --apikey TEXT                   Datashare authentication apikey
   --scroll TEXT                   Scroll duration
   --source TEXT                   A comma-separated list of field to include
                                   in the export
 
-  --once / --not-once             Download file only once
+  --sort-by TEXT                  Field to use to sort results
+  --order-by [asc|desc]           Order to use to sort results
   --traceback / --no-traceback    Display a traceback in case of error
   --progressbar / --no-progressbar
                                   Display a progressbar
   --type [Document|NamedEntity]   Type of indexed documents to download
+  --size INTEGER                  Size of the scroll request that powers the
+                                  operation.
+
+  --query-field / --no-query-field
+                                  Add the query to the export CSV
   --help                          Show this message and exit.
 ```
 

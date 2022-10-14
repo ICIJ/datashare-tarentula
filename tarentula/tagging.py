@@ -36,7 +36,7 @@ class Tagger:
 
     @property
     def csv_rows(self):
-        with open(self.csv_path, newline='') as csv_file:
+        with open(self.csv_path, newline='', encoding='utf-8-sig') as csv_file:
             return list(self.sanitize_row(row) for row in csv.DictReader(csv_file))
 
     @property

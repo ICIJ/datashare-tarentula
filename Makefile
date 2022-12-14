@@ -19,6 +19,10 @@ tag_version:
 		git commit -m "build: bump to ${CURRENT_VERSION}" pyproject.toml
 		git tag ${CURRENT_VERSION}
 
+set_version:
+		poetry version ${CURRENT_VERSION}
+		$(MAKE) tag_version
+
 $(SEMVERS):
 		poetry version $@
 		$(MAKE) tag_version

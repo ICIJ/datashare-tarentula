@@ -22,10 +22,15 @@ jobs:
           command: datashare -p test-datashare -u test
           background: true
       - run:
-          name: Install dependencies
+          name: Install Poetry
           command: |
-            curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python3 -
-            poetry install
+            export TERM=xterm-256color
+            export COLUMNS=150
+            curl -sSL https://install.python-poetry.org | python3 -
+      - run:
+          name: Install Python dependencies
+          command: |
+            poetry install --with dev
             poetry run pip install matplotlib
       - run:
           name: Wait for Datashare to be up

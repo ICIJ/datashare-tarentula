@@ -1,6 +1,6 @@
 FROM python:3.8-buster
 
-RUN apt-get update -qq && apt-get install -qq -y pipenv
+RUN pip3 install poetry
 
 # Python 3 surrogate unicode handling
 # @see https://click.palletsprojects.com/en/7.x/python3/
@@ -10,7 +10,7 @@ ENV LANG=C.UTF-8
 WORKDIR /opt/app
 
 COPY . .
-RUN pipenv run python setup.py install
+RUN poetry install
 
-ENTRYPOINT ["pipenv", "run"]
+ENTRYPOINT ["poetry", "run"]
 CMD ["tarentula", "--help"]

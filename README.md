@@ -35,22 +35,22 @@ Commands:
 <!-- TOC depthFrom:2 depthTo:6 withLinks:1 updateOnSave:1 orderedList:0 -->
 
 - [Usage](#usage)
-	- [Cookbook 👩‍🍳](#cookbook-)
-	- [Count](#count)
-	- [Clean Tags by Query](#clean-tags-by-query)
-	- [Download](#download)
-	- [Export by Query](#export-by-query)
-	- [Tagging](#tagging)
-		- [CSV formats](#csv-formats)
-	- [Tagging by Query](#tagging-by-query)
-	- [Following your changes](#following-your-changes)
+  - [Cookbook 👩‍🍳](#cookbook-)
+  - [Count](#count)
+  - [Clean Tags by Query](#clean-tags-by-query)
+  - [Download](#download)
+  - [Export by Query](#export-by-query)
+  - [Tagging](#tagging)
+    - [CSV formats](#csv-formats)
+  - [Tagging by Query](#tagging-by-query)
+  - [Following your changes](#following-your-changes)
 - [Configuration File](#configuration-file)
 - [Testing](#testing)
 - [Releasing](#releasing)
-	- [1. Create a new release](#1-create-a-new-release)
-	- [2. Upload distributions on pypi](#2-upload-distributions-on-pypi)
-	- [3. Build and publish the Docker image](#3-build-and-publish-the-docker-image)
-	- [4. Push your changes on Github](#4-push-your-changes-on-github)
+  - [1. Create a new release](#1-create-a-new-release)
+  - [2. Upload distributions on pypi](#2-upload-distributions-on-pypi)
+  - [3. Build and publish the Docker image](#3-build-and-publish-the-docker-image)
+  - [4. Push your changes on Github](#4-push-your-changes-on-github)
 
 <!-- /TOC -->
 ---
@@ -335,7 +335,6 @@ datashare -p test-datashare -u test
 In a separate terminal, install the development dependencies:
 
 ```
-sudo apt install pipenv
 make install
 ```
 

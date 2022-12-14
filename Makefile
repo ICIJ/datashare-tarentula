@@ -1,31 +1,29 @@
 DOCKER_USER := icij
 DOCKER_NAME := datashare-tarentula
-CURRENT_VERSION ?= `pipenv run python setup.py --version`
 
 clean:
 		find . -name "*.pyc" -exec rm -rf {} \;
 		rm -rf dist *.egg-info __pycache__
 
-install: install_pip
+install: install_poetry
 
-install_pip:
-		pipenv install -d
+install_poetry:
+		poetry install --with dev
 
 test:
-		pipenv run nosetests
+		poetry run nosetests
 
 minor:
-		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} minor tarentula/__init__.py
+		poetry version minor
 
 major:
-		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} major tarentula/__init__.py
+		poetry version major
 
 patch:
-		pipenv run bumpversion --commit --tag --current-version ${CURRENT_VERSION} patch tarentula/__init__.py
+		poetry version patch
 
 distribute:
-		pipenv run python setup.py sdist bdist_wheel
-		pipenv run twine upload dist/*
+		poetry publish --build 
 
 docker-publish: docker-build docker-tag docker-push
 
@@ -36,7 +34,6 @@ docker-build:
 		docker build -t $(DOCKER_NAME) .
 
 docker-tag:
-		docker tag $(DOCKER_NAME) $(DOCKER_USER)/$(DOCKER_NAME):${CURRENT_VERSION}
 		docker tag $(DOCKER_NAME) $(DOCKER_USER)/$(DOCKER_NAME):latest
 
 docker-push:

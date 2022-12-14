@@ -1,6 +1,7 @@
 DOCKER_USER := icij
 DOCKER_NAME := datashare-tarentula
 CURRENT_VERSION ?= `poetry version -s`
+SEMVERS := major minor patch
 
 clean:
 		find . -name "*.pyc" -exec rm -rf {} \;
@@ -14,14 +15,13 @@ install_poetry:
 test:
 		poetry run nosetests
 
-minor:
-		poetry version minor
+tag_version: 
+		git commit -m "build: bump to ${CURRENT_VERSION}" pyproject.toml
+		git tag ${CURRENT_VERSION}
 
-major:
-		poetry version major
-
-patch:
-		poetry version patch
+$(SEMVERS):
+		poetry version $@
+		$(MAKE) tag_version
 
 distribute:
 		poetry publish --build 

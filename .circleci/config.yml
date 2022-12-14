@@ -20,18 +20,23 @@ jobs:
       - run:
           name: Run Datashare in background
           command: datashare -p test-datashare -u test
-          background: true
+          background: true  
+      - restore_cache:
+          name: Restore virtualenvs from previous builds
+          key: virtualenvs-dependencies-cache-{{ .Branch }}-{{ checksum "poetry.lock" }}
       - run:
-          name: Install Poetry
+          name: Install Poetry and project's pip packages
           command: |
             export TERM=xterm-256color
             export COLUMNS=150
             curl -sSL https://install.python-poetry.org | python3 -
-      - run:
-          name: Install Python dependencies
-          command: |
             poetry install --with dev
             poetry run pip install matplotlib
+      - save_cache:
+          name: Save virtualenvs cache for future builds
+          key: virtualenvs-dependencies-cache-{{ .Branch }}-{{ checksum "poetry.lock" }}
+          paths:
+            - ~/.cache/pypoetry/virtualenvs
       - run:
           name: Wait for Datashare to be up
           shell: /bin/sh

@@ -1,5 +1,6 @@
 DOCKER_USER := icij
 DOCKER_NAME := datashare-tarentula
+CURRENT_VERSION ?= `poetry version -s`
 
 clean:
 		find . -name "*.pyc" -exec rm -rf {} \;
@@ -34,6 +35,7 @@ docker-build:
 		docker build -t $(DOCKER_NAME) .
 
 docker-tag:
+		docker tag $(DOCKER_NAME) $(DOCKER_USER)/$(DOCKER_NAME):${CURRENT_VERSION}
 		docker tag $(DOCKER_NAME) $(DOCKER_USER)/$(DOCKER_NAME):latest
 
 docker-push:

@@ -12,3 +12,4 @@ dist
 tmp
 ./*.csv
 .vscode
+.pytest_cache

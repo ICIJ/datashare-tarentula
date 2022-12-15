@@ -11,3 +11,4 @@ dist
 .cache
 .git
 ./*.csv
+.pytest_cache

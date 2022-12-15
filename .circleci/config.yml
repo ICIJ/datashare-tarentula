@@ -5,12 +5,12 @@ jobs:
     docker:
       - image: circleci/python:3.8-buster
         environment:
-          - "DATASHARE_VERSION=9.0.2"
+          - "DATASHARE_VERSION=10.15.1"
     steps:
       - checkout
       - run:
           name: Build Datashare package name
-          command: echo 'export DATASHARE_PACKAGE="datashare-dist_${DATASHARE_VERSION}_all.deb"'  >> $BASH_ENV
+          command: echo 'export DATASHARE_PACKAGE="datashare-${DATASHARE_VERSION}.deb"' >> $BASH_ENV
       - run:
           name: Download Datashare for Debian
           command: wget "https://github.com/ICIJ/datashare-installer/releases/download/${DATASHARE_VERSION}/${DATASHARE_PACKAGE}"

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tarentula"
-version = "4.3.2"
+version = "4.3.3"
 description = ""
 authors = ["ICIJ <engineering@icij.org>"]
 readme = "README.md"

@@ -41,7 +41,7 @@ def validate_progressbar(ctx, param, value):
               callback=validate_loglevel)
 def cli(ctx, **options):
     # Configure Syslog handler
-    add_syslog_handler(options['syslog_address'], options['syslog_port'], options['syslog_facility'])
+    add_syslog_handler(options['syslog_address'], int(options['syslog_port']), options['syslog_facility'])
     add_stdout_handler(options['stdout_loglevel'])
     # Pass all option to context
     ctx.ensure_object(dict)

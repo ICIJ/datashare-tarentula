@@ -34,6 +34,7 @@ Commands:
 ---
 <!-- TOC depthFrom:2 depthTo:6 withLinks:1 updateOnSave:1 orderedList:0 -->
 
+- [Installation](#installation)
 - [Usage](#usage)
   - [Cookbook 👩‍🍳](#cookbook-)
   - [Count](#count)
@@ -54,6 +55,20 @@ Commands:
 
 <!-- /TOC -->
 ---
+
+## Installation
+
+You can insatll Datashare Tarentula with your favorite package manager:
+
+```
+pip3 install --user tarentula
+```
+
+Or alternativly with Docker:
+
+```
+docker run icij/datashare-tarentula
+```
 
 ## Usage
 
@@ -372,6 +387,10 @@ _To be able to do this, you will need to be part of the ICIJ organization on doc
 ```
 make docker-publish
 ```
+
+**Note**: Datashare Tarentula is a multi-platform build. You might need to setup your environment for 
+multi-platform using the `make docker-setup-multiarch` command. Read more 
+[on Docker documentation](https://docs.docker.com/build/building/multi-platform/). 
 
 ### 4. Push your changes on Github
 

@@ -39,7 +39,7 @@ docker-publish:
 			--platform linux/amd64,linux/arm64 \
 			-t $(DOCKER_USER)/$(DOCKER_NAME):${CURRENT_VERSION} \
 			-t $(DOCKER_USER)/$(DOCKER_NAME):latest \
-			.
+			--push .
 
 docker-run:
 		docker run -it $(DOCKER_NAME)

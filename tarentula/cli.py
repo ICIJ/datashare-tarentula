@@ -3,6 +3,7 @@ import logging
 
 from tarentula.config_file_reader import ConfigFileReader
 from tarentula.logger import add_syslog_handler, add_stdout_handler
+from tarentula.metadata_fields import MetadataFields
 from tarentula.tag_cleaning_by_query import TagsCleanerByQuery
 from tarentula.tagging import Tagger
 from tarentula.tagging_by_query import TaggerByQuery
@@ -185,12 +186,30 @@ def count(**options):
     count.start()
 
 
+@click.command()
+@click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
+@click.option('--datashare-url', help='Datashare URL', default=ConfigFileReader('datashare_url', 'http://localhost:8080'))
+@click.option('--datashare-project', help='Datashare project', default=ConfigFileReader('datashare_project', 'local-datashare'))
+@click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
+                                          'capabilities of Elasticsearch (useful when dealing with a lot of results)',
+              default=None)
+@click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
+                                'semicolons: key1=val1;key2=val2;...', default='')
+@click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
+@click.option('--type', help='Type of indexed documents to get metadata', default='Document',
+              type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
+def list_metadata(**options):
+    metadata = MetadataFields(**options)
+    metadata.start()
+
+
 cli.add_command(tagging)
 cli.add_command(download)
 cli.add_command(tagging_by_query)
 cli.add_command(clean_tags_by_query)
 cli.add_command(export_by_query)
 cli.add_command(count)
+cli.add_command(list_metadata)
 
 if __name__ == '__main__':
     cli()

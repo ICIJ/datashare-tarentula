@@ -193,4 +193,26 @@ class DatashareClient:
         finally:
             if delete and project is not None:
                 self.delete_index(project)
-        return project
+        return project      
+
+    def metadata_fields(self, index=DATASHARE_DEFAULT_PROJECT, documentType='Document'):
+        url = urljoin(self.elasticsearch_host, index)
+        mapping = requests.get(url, cookies=self.cookies, headers=self.headers).json()
+        results = []
+        for field, properties in mapping[index]['mappings']['properties'].items():
+            count = self.count(index, query={
+                "query": {"bool": {"must": {"match": {"type": documentType}}, "filter": {"exists": {"field": field}}}}
+            })
+            if 'type' in properties:
+                if count["count"] > 0:
+                    results.append({"field": field, "type": properties["type"], "count": count["count"]})
+            elif 'properties' in properties:
+                for f, p in mapping[index]['mappings']['properties'][field]['properties'].items():
+                    inner_field = f'{field}.{f}'
+                    inner_count = self.count(index, query={
+                        "query": {
+                            "bool": {"must": {"match": {"type": documentType}}, "filter": {"exists": {"field": inner_field}}}}
+                    })
+                    if inner_count["count"] > 0:
+                        results.append({"field": inner_field, "type": p["type"], "count": inner_count["count"]})
+        return results

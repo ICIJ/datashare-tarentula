@@ -32,5 +32,5 @@ class MetadataFields:
             exit()
 
     def start(self):
-        fields = self.datashare_client.metadata_fields(self.datashare_project, documentType=self.type)
+        fields = self.datashare_client.metadata_fields(self.datashare_project, document_type=self.type)
         print(dumps(fields))

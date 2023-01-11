@@ -193,26 +193,26 @@ class DatashareClient:
         finally:
             if delete and project is not None:
                 self.delete_index(project)
-        return project      
+        return project
 
-    def metadata_fields(self, index=DATASHARE_DEFAULT_PROJECT, documentType='Document'):
+    def metadata_fields(self, index=DATASHARE_DEFAULT_PROJECT, document_type='Document'):
         url = urljoin(self.elasticsearch_host, index)
         mapping = requests.get(url, cookies=self.cookies, headers=self.headers).json()
         results = []
+        self.get_fields(document_type, index, mapping, results, [])
+        return results
+
+    def get_fields(self, document_type, index, mapping, results, field_stack):
         for field, properties in mapping[index]['mappings']['properties'].items():
+            complete_field_name = '.'.join(field_stack + [field])
             count = self.count(index, query={
-                "query": {"bool": {"must": {"match": {"type": documentType}}, "filter": {"exists": {"field": field}}}}
+                "query": {"bool": {"must": {"match": {"type": document_type}},
+                                   "filter": {"exists": {"field": complete_field_name}}}}
             })
             if 'type' in properties:
                 if count["count"] > 0:
-                    results.append({"field": field, "type": properties["type"], "count": count["count"]})
+                    results.append({"field": complete_field_name, "type": properties["type"], "count": count["count"]})
             elif 'properties' in properties:
-                for f, p in mapping[index]['mappings']['properties'][field]['properties'].items():
-                    inner_field = f'{field}.{f}'
-                    inner_count = self.count(index, query={
-                        "query": {
-                            "bool": {"must": {"match": {"type": documentType}}, "filter": {"exists": {"field": inner_field}}}}
-                    })
-                    if inner_count["count"] > 0:
-                        results.append({"field": inner_field, "type": p["type"], "count": inner_count["count"]})
-        return results
+                self.get_fields(document_type, index,
+                                {index: {"mappings": mapping[index]['mappings']['properties'][field]}}, results,
+                                field_stack + [field])

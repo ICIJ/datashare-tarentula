@@ -33,7 +33,6 @@ class TestMetadataFields(TestAbstract):
         runner = CliRunner()
         result = runner.invoke(cli, ['list-metadata', '--datashare-url', self.datashare_url, '--elasticsearch-url',
                                      self.elasticsearch_url, '--datashare-project', self.datashare_project])
-        print(result)
         json_result = loads(result.output)
         self.assertEqual([{'count': 1, 'field': 'contentType', 'type': 'keyword'},
                           {'count': 1, 'field': 'extractionDate', 'type': 'date'},

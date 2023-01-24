@@ -8,7 +8,6 @@ from tarentula.datashare_client import urljoin
 
 class MetadataFields:
     def __init__(self,
-                 datashare_url: str = 'http://localhost:8080',
                  datashare_project: str = 'local-datashare',
                  elasticsearch_url: str = 'http://elasticsearch:9200',
                  cookies: str = '',

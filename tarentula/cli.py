@@ -187,15 +187,10 @@ def count(**options):
 
 
 @click.command()
-@click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
-@click.option('--datashare-url', help='Datashare URL', default=ConfigFileReader('datashare_url', 'http://localhost:8080'))
 @click.option('--datashare-project', help='Datashare project', default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
                                           'capabilities of Elasticsearch (useful when dealing with a lot of results)',
               default=None)
-@click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
-                                'semicolons: key1=val1;key2=val2;...', default='')
-@click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--type', help='Type of indexed documents to get metadata', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 def list_metadata(**options):

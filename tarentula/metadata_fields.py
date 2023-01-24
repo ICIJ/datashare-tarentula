@@ -1,6 +1,7 @@
+import requests
 from json import dumps
 
-from tarentula.datashare_client import DatashareClient
+from tarentula.datashare_client import urljoin
 from tarentula.logger import logger
 
 
@@ -13,24 +14,42 @@ class MetadataFields:
                  apikey: str = None,
                  traceback: bool = False,
                  type: str = 'Document'):
-        self.datashare_url = datashare_url
         self.elasticsearch_url = elasticsearch_url
         self.datashare_project = datashare_project
-        self.cookies = cookies
-        self.apikey = apikey
-        self.traceback = traceback
         self.type = type
 
-        try:
-            self.datashare_client = DatashareClient(datashare_url,
-                                                    elasticsearch_url,
-                                                    datashare_project,
-                                                    cookies,
-                                                    apikey)
-        except (ConnectionRefusedError, ConnectionError):
-            logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
-            exit()
+    def query_mapping(self):
+        url = urljoin(self.elasticsearch_url, self.datashare_project)
+        return requests.get(url).json()
+
+    def query_count(self, complete_field_name):
+        query={
+            "query": {"bool": {"must": {"match": {"type": self.type}},
+                                "filter": {"exists": {"field": complete_field_name}}}}
+        }
+        url = urljoin(self.elasticsearch_url, self.datashare_project, '_count')
+        return requests.post(url, json=query).json()
+
+    def get_fields(self, mapping, field_stack):
+        results = []
+
+        for field, properties in mapping[self.datashare_project]['mappings']['properties'].items():
+            complete_field_name = '.'.join(field_stack + [field])
+            count = self.query_count(complete_field_name)
+
+            if 'type' in properties:
+                if count["count"] > 0:
+                    results.append({"field": complete_field_name, "type": properties["type"], "count": count["count"]})
+            elif 'properties' in properties:
+                results += self.get_fields({self.datashare_project: {
+                                    "mappings": mapping[self.datashare_project]['mappings']['properties'][field]}
+                                }, 
+                                field_stack + [field])
+        
+        return results
 
     def start(self):
-        fields = self.datashare_client.metadata_fields(self.datashare_project, document_type=self.type)
+        mapping = self.query_mapping()        
+        
+        fields = self.get_fields(mapping, [])
         print(dumps(fields))

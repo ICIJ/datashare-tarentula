@@ -16,7 +16,7 @@ class TestMetadataFields(TestAbstract):
                                "_id": "id1"}
                               ])
         runner = CliRunner()
-        result = runner.invoke(cli, ['list-metadata', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+        result = runner.invoke(cli, ['list-metadata', '--elasticsearch-url',
                                      self.elasticsearch_url, '--datashare-project', self.datashare_project])
         json_result = loads(result.output)
         self.assertEqual([
@@ -31,7 +31,7 @@ class TestMetadataFields(TestAbstract):
                                "metadata": {"tika_metadata_dcterms_created": datetime.utcnow().isoformat()}}
                               ])
         runner = CliRunner()
-        result = runner.invoke(cli, ['list-metadata', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+        result = runner.invoke(cli, ['list-metadata', '--elasticsearch-url',
                                      self.elasticsearch_url, '--datashare-project', self.datashare_project])
         json_result = loads(result.output)
         self.assertEqual([{'count': 1, 'field': 'contentType', 'type': 'keyword'},

@@ -42,9 +42,20 @@ class MetadataFields:
         return requests.get(url).json()
 
     def query_count(self, complete_field_name):
+        query_filters = self.query_filters + [{"exists": {"field": complete_field_name}}]
         query={
-            "query": {"bool": {"must": {"match": {"type": self.type}},
-                                "filter": {"exists": {"field": complete_field_name}}}}
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "match": {
+                                "type": self.type
+                            }
+                        }
+                    ],
+                    "filter": query_filters
+                }
+            }
         }
         url = urljoin(self.elasticsearch_url, self.datashare_project, '_count')
         return requests.post(url, json=query).json()

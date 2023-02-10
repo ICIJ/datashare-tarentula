@@ -193,6 +193,7 @@ def count(**options):
               default='http://elasticsearch:9200')
 @click.option('--type', help='Type of indexed documents to get metadata', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
+@click.option('--query_filter', help='Filter documents with field name and value separated by =', default='')
 def list_metadata(**options):
     metadata = MetadataFields(**options)
     metadata.start()

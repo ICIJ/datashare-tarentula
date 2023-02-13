@@ -25,6 +25,7 @@ class ExportByQuery:
                  scroll: str = None,
                  source: str = 'contentType,contentLength:0,extractionDate,path',
                  size: int = 1000,
+                 skip: int = 0,
                  sort_by: str = '_id',
                  order_by: str = 'asc',
                  traceback: bool = False,
@@ -43,6 +44,7 @@ class ExportByQuery:
         self.scroll = scroll
         self.source = source
         self.size = size
+        self.skip = skip
         self.sort_by = sort_by
         self.order_by = order_by
         self.type = type
@@ -143,10 +145,10 @@ class ExportByQuery:
         sort = { self.sort_by: self.order_by }
         if self.scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
-            return self.datashare_client.query_all(index=index, query=self.query_body, source=source, size=self.size, sort=sort)
+            return self.datashare_client.query_all(index=index, query=self.query_body, source=source, size=self.size, skip=self.skip, sort=sort)
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
-            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, size=self.size, sort=sort)
+            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, size=self.size, skip=self.skip, sort=sort)
 
     def document_default_values(self, document, number):
         index = self.datashare_project

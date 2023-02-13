@@ -120,6 +120,8 @@ class DatashareClient:
         return dest if result.status_code == requests.codes.ok else None
 
     def query(self, index=DATASHARE_DEFAULT_PROJECT, query={}, q=None, source=None, scroll=None, **kwargs):
+        if "skip" in kwargs.keys():
+            kwargs["from"] = kwargs.pop("skip")
         local_query = {"sort": {"_id": "asc"}, **query, **kwargs}
         if source is not None:
             local_query.update({'_source': source})

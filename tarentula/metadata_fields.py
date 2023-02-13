@@ -12,6 +12,7 @@ class MetadataFields:
                  type: str = 'Document'):
         self.elasticsearch_url = elasticsearch_url
         self.datashare_project = datashare_project
+        
         if query_filter and "=" in query_filter:
             k, v = [part.strip() for part in query_filter.split("=")]
             self.query_filters = [

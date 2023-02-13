@@ -14,9 +14,10 @@ class MetadataFields:
         self.datashare_project = datashare_project
 
         if filter_by and "=" in filter_by:
-            k, v = [part.strip() for part in filter_by.split("=")]
+            filters = filter_by.split(",")
+            filter_pairs = [map(str.strip, part.split("=")) for part in filters if "=" in part]
             self.query_filters = [
-                {"term": {f"{k}": f"{v}"}} 
+                {"term": {f"{k}": f"{v}"}} for k, v in filter_pairs
             ]
         else:
             self.query_filters = []

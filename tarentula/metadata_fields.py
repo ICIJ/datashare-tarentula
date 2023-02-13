@@ -8,13 +8,13 @@ class MetadataFields:
     def __init__(self,
                  datashare_project: str = 'local-datashare',
                  elasticsearch_url: str = 'http://elasticsearch:9200',
-                 query_filter: str = '',
+                 filter_by: str = '',
                  type: str = 'Document'):
         self.elasticsearch_url = elasticsearch_url
         self.datashare_project = datashare_project
-        
-        if query_filter and "=" in query_filter:
-            k, v = [part.strip() for part in query_filter.split("=")]
+
+        if filter_by and "=" in filter_by:
+            k, v = [part.strip() for part in filter_by.split("=")]
             self.query_filters = [
                 {"term": {f"{k}": f"{v}"}} 
             ]

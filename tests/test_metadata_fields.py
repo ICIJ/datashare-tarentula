@@ -51,7 +51,7 @@ class TestMetadataFields(TestAbstract):
         result = runner.invoke(cli, ['list-metadata', 
                                     '--elasticsearch-url', self.elasticsearch_url, 
                                     '--datashare-project', self.datashare_project,
-                                    '--query_filter', 'contentType=audio/vnd.wave', 
+                                    '--filter_by', 'contentType=audio/vnd.wave', 
                                     ])
         json_result = loads(result.output)
         self.assertEqual([{'count': 1, 'field': 'contentType', 'type': 'keyword'},
@@ -69,7 +69,7 @@ class TestMetadataFields(TestAbstract):
         result = runner.invoke(cli, ['list-metadata', 
                                     '--elasticsearch-url', self.elasticsearch_url, 
                                     '--datashare-project', self.datashare_project,
-                                    '--query_filter', 'contentType=message/rfc822', 
+                                    '--filter_by', 'contentType=message/rfc822', 
                                     ])
         json_result = loads(result.output)
         self.assertEqual([{'count': 2, 'field': 'contentType', 'type': 'keyword'},

@@ -120,6 +120,7 @@ def clean_tags_by_query(**options):
 @click.option('--scroll', help='Scroll duration', default=None)
 @click.option('--source', help='A comma-separated list of field to include in the downloaded document from the index',
               default=None)
+@click.option('--skip', type=int, help='Number of first results to skip in return.', default=0)
 @click.option('--sort-by', help='Field to use to sort results', default='_id')
 @click.option('--order-by', help='Order to use to sort results', default='asc', 
                             type=click.Choice(['asc', 'desc']))

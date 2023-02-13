@@ -24,6 +24,7 @@ class Download:
                  path_format: str = '{id_2b}/{id_4b}/{id}',
                  scroll: str = None,
                  source: str = None,
+                 skip: int = 0,
                  sort_by: str = '_id',
                  order_by: str = 'asc',
                  once: bool = False,
@@ -45,6 +46,7 @@ class Download:
         self.raw_file = raw_file
         self.source = source
         self.scroll = scroll
+        self.skip = skip
         self.sort_by = sort_by
         self.order_by = order_by
         self.type = type
@@ -68,6 +70,7 @@ class Download:
     @property
     def query_body_from_string(self):
         return {
+            # "from": self.skip,
             "query": {
                 "bool": {
                     "must": [
@@ -90,6 +93,8 @@ class Download:
     def query_body_from_file(self):
         with open(self.query[1:]) as json_file:
             query_body = json.load(json_file)
+        # if self.skip and self.skip > 0:
+        #     query_body["from"] = self.skip
         return query_body
 
     @property
@@ -128,7 +133,8 @@ class Download:
 
     def count_matches(self):
         index = self.datashare_project
-        return self.datashare_client.count(index=index, query=self.query_body).get('count')
+        # return self.datashare_client.count(index=index, query=self.query_body).get('count')
+        return self.datashare_client.count(index=index, query=self.query_body).get('count') - self.skip
 
     def log_matches(self):
         index = self.datashare_project
@@ -142,10 +148,10 @@ class Download:
         sort = { self.sort_by: self.order_by }
         if self.scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
-            return self.datashare_client.query_all(index=index, query=self.query_body, source=source, sort=sort)
+            return self.datashare_client.query_all(index=index, query=self.query_body, source=source, skip=self.skip, sort=sort)
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
-            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, sort=sort)
+            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, skip=self.skip, sort=sort)
 
     def download_raw_file(self, document):
         id = document.get('_id')

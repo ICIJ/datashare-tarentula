@@ -160,8 +160,9 @@ class DatashareClient:
             search_after = response['hits']['hits'][-1]['sort']
             response = self.query(search_after=search_after, **kwargs)
 
-    def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):
+    def count(self, index=DATASHARE_DEFAULT_PROJECT, skip=0, query=None):
         if query is None: query = {}
+        if skip > 0: query["from"] = skip
         url = urljoin(self.elasticsearch_host, index, '_count')
         return requests.post(url, json=query,
                              cookies=self.cookies,

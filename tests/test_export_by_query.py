@@ -51,7 +51,7 @@ class TestExportByQuery(TestAbstract):
                 self.assertIsInstance(datetime_object, datetime)
                 self.assertEqual(row['documentNumber'], '1')
 
-    def test_csv_file_limit_1(self):
+    def test_csv_file_option_size_1(self):
         with self.existing_species_documents(), TemporaryDirectory() as tmp:
             output_file = join(tmp, 'output.csv')
             runner = CliRunner()
@@ -76,7 +76,7 @@ class TestExportByQuery(TestAbstract):
                 self.assertIsInstance(datetime_object, datetime)
                 self.assertEqual(row['documentNumber'], '0')
 
-    def test_csv_file_skip_1(self):
+    def test_csv_file_option_skip_1(self):
         with self.existing_species_documents(), TemporaryDirectory() as tmp:
             output_file = join(tmp, 'output.csv')
             runner = CliRunner()

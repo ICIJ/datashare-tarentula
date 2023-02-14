@@ -201,6 +201,7 @@ Options:
   --progressbar / --no-progressbar
                                   Display a progressbar
   --type [Document|NamedEntity]   Type of indexed documents to download
+  --skip INTEGER                  Number of first results to skip in the response.
   --size INTEGER                  Size of the scroll request that powers the
                                   operation.
 

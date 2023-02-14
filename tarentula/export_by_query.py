@@ -185,6 +185,9 @@ class ExportByQuery:
 
     def start(self):
         count = self.log_matches()
+        count -= self.skip
+        count = self.size if self.size and self.size < count else count
+        
         desc = 'Exporting %s document(s)' % count
         try:
             with Progress(disable=self.no_progressbar) as progress:  

@@ -70,7 +70,6 @@ class Download:
     @property
     def query_body_from_string(self):
         return {
-            # "from": self.skip,
             "query": {
                 "bool": {
                     "must": [
@@ -93,8 +92,6 @@ class Download:
     def query_body_from_file(self):
         with open(self.query[1:]) as json_file:
             query_body = json.load(json_file)
-        # if self.skip and self.skip > 0:
-        #     query_body["from"] = self.skip
         return query_body
 
     @property
@@ -133,8 +130,7 @@ class Download:
 
     def count_matches(self):
         index = self.datashare_project
-        # return self.datashare_client.count(index=index, query=self.query_body).get('count')
-        return self.datashare_client.count(index=index, query=self.query_body).get('count') - self.skip
+        return self.datashare_client.count(index=index, query=self.query_body).get('count')
 
     def log_matches(self):
         index = self.datashare_project
@@ -187,6 +183,9 @@ class Download:
 
     def start(self):
         count = self.log_matches()
+        count -= self.skip
+        count = self.size if self.size and self.size < count else count
+
         desc = "Downloading %s document(s)" % count
         try:
             with Progress(disable=self.no_progressbar) as progress:  

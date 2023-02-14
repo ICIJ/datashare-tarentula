@@ -76,7 +76,7 @@ class TestDownload(TestAbstract):
             self.assertIn('_source', json)
             self.assertIn('name', json['_source'])
 
-    def test_summary_with_skip(self):
+    def test_summary_with_skip_option(self):
         with self.existing_species_documents():
             runner = CliRunner()
             

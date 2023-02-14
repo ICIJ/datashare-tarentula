@@ -60,13 +60,13 @@ Commands:
 
 You can insatll Datashare Tarentula with your favorite package manager:
 
-```
+```bash
 pip3 install --user tarentula
 ```
 
 Or alternativly with Docker:
 
-```
+```bash
 docker run icij/datashare-tarentula
 ```
 
@@ -82,7 +82,7 @@ To learn more about how to use Datashare Tarentula with a list of examples, plea
 
 A command to just count the number of files matching a query.
 
-```
+```bash
 Usage: tarentula count [OPTIONS]
 
 Options:
@@ -107,7 +107,7 @@ Options:
 
 A command that uses Elasticsearch `update-by-query` feature to batch untag documents directly in the index.
 
-```
+```bash
 Usage: tarentula clean-tags-by-query [OPTIONS]
 
 Options:
@@ -132,7 +132,7 @@ Options:
 
 A command to download all files matching a query.
 
-```
+```bash
 Usage: tarentula download [OPTIONS]
 
 Options:
@@ -172,7 +172,7 @@ Options:
 
 A command to export all files matching a query.
 
-```
+```bash
 Usage: tarentula export-by-query [OPTIONS]
 
 Options:
@@ -214,7 +214,7 @@ Options:
 
 A command to batch tag documents with a CSV file.
 
-```
+```bash
 Usage: tarentula tagging [OPTIONS] CSV_PATH
 
 Options:
@@ -260,7 +260,7 @@ A command that uses Elasticsearch `update-by-query` feature to batch tag documen
 
 To see an example of input file, refer to [this JSON](tests/fixtures/tags-by-content-type.json).
 
-```
+```bash
 Usage: tarentula tagging-by-query [OPTIONS] JSON_PATH
 
 Options:
@@ -278,6 +278,26 @@ Options:
                                         Create a Elasticsearch task to perform the
                                           updateasynchronously
   --help                                Show this message and exit
+```
+
+
+### List Metadata
+
+You can list the metadata from the mapping, with the number of occurrences of each field in the index.
+
+```bash
+$ tarentula list-metadata --help
+Usage: tarentula list-metadata [OPTIONS]
+
+Options:
+  --datashare-project TEXT       Datashare project
+  --elasticsearch-url TEXT       You can additionally pass the Elasticsearch
+                                 URL in order to use scrollingcapabilities of
+                                 Elasticsearch (useful when dealing with a lot
+                                 of results)
+  --type [Document|NamedEntity]  Type of indexed documents to get metadata
+  --help                         Show this message and exit.
+
 ```
 
 ### Following your changes

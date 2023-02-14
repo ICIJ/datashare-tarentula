@@ -190,7 +190,7 @@ def count(**options):
 @click.option('--datashare-project', help='Datashare project', default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
                                           'capabilities of Elasticsearch (useful when dealing with a lot of results)',
-              default=None)
+              default='http://elasticsearch:9200')
 @click.option('--type', help='Type of indexed documents to get metadata', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 def list_metadata(**options):

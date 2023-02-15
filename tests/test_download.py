@@ -1,3 +1,4 @@
+import glob
 import json
 from os.path import join
 from tempfile import TemporaryDirectory
@@ -76,9 +77,14 @@ class TestDownload(TestAbstract):
             self.assertIn('_source', json)
             self.assertIn('name', json['_source'])
 
-    def test_summary_with_skip_option(self):
-        with self.existing_species_documents():
+    def test_summary_with_skip(self):
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
             runner = CliRunner()
             
-            result = runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--elasticsearch-url', self.elasticsearch_url, '--datashare-project', self.datashare_project, '--no-raw-file', '--skip', 5, '--query', 'name:*'])
+            result = runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--elasticsearch-url', self.elasticsearch_url, '--datashare-project', self.datashare_project, '--no-raw-file', '--destination-directory', tmp, '--skip', 5, '--query', 'name:*'])
             self.assertIn('Downloading 15 document(s)', result.output)
+            self.assertEqual(15, len(get_document_files(tmp)))
+
+
+def get_document_files(folder: str, pattern: str = '*/*/*.json'):
+    return glob.glob(join(folder, pattern))

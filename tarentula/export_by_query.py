@@ -142,12 +142,15 @@ class ExportByQuery:
     def scan_or_query_all(self):
         index = self.datashare_project
         source = self.source_fields_names
-        sort = { self.sort_by: self.order_by }
+        sort = {self.sort_by: self.order_by}
         if self.scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
-            return self.datashare_client.query_all(index=index, query=self.query_body, source=source, size=self.size, skip=self.skip, sort=sort)
+            return self.datashare_client.query_all(
+                **{'index': index, 'query': self.query_body, 'source': source, 'sort': sort, 'from': self.skip, 'size': self.size})
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
+            if self.skip > 0:
+                logger.warning('skip will not be used when scrolling documents')
             return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, size=self.size, skip=self.skip, sort=sort)
 
     def document_default_values(self, document, number):

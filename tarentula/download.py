@@ -130,7 +130,7 @@ class Download:
 
     def count_matches(self):
         index = self.datashare_project
-        return self.datashare_client.count(index=index, query=self.query_body).get('count')
+        return self.datashare_client.count(index=index, query=self.query_body).get('count') - self.skip
 
     def log_matches(self):
         index = self.datashare_project
@@ -141,13 +141,15 @@ class Download:
     def scan_or_query_all(self):
         index = self.datashare_project
         source = ["path", "parentDocument", "type"] + str(self.source).split(',')
-        sort = { self.sort_by: self.order_by }
+        sort = {self.sort_by: self.order_by}
         if self.scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
-            return self.datashare_client.query_all(index=index, query=self.query_body, source=source, skip=self.skip, sort=sort)
+            return self.datashare_client.query_all(**{'index': index, 'query': self.query_body, 'source': source, 'sort': sort, 'from': self.skip})
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
-            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, skip=self.skip, sort=sort)
+            if self.skip > 0:
+                logger.warning('skip will not be used when scrolling documents')
+            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, sort=sort)
 
     def download_raw_file(self, document):
         id = document.get('_id')

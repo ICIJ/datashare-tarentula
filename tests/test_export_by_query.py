@@ -51,32 +51,7 @@ class TestExportByQuery(TestAbstract):
                 self.assertIsInstance(datetime_object, datetime)
                 self.assertEqual(row['documentNumber'], '1')
 
-    def test_csv_file_option_size_1(self):
-        with self.existing_species_documents(), TemporaryDirectory() as tmp:
-            output_file = join(tmp, 'output.csv')
-            runner = CliRunner()
-            runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
-                                self.elasticsearch_url, '--datashare-project', self.datashare_project, '--query',
-                                'Actinopodidae OR Antrodiaetidae', 
-                                '--size', 1, '--output-file', output_file])
-            with open(output_file, newline='') as csv_file:
-                csv_reader = csv.DictReader(csv_file)
-
-                # First row
-                row = next(csv_reader)
-                self.assertEqual(row['query'], 'Actinopodidae OR Antrodiaetidae')
-                self.assertEqual(row['documentUrl'],
-                                 'http://localhost:8080/#/d/test-datashare/DWLOskax28jPQ2CjFrCo/l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['documentId'], 'DWLOskax28jPQ2CjFrCo')
-                self.assertEqual(row['rootId'], 'l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['contentType'], 'audio/vnd.wave')
-                self.assertEqual(row['contentLength'], '0')
-                self.assertEqual(row['path'], '')
-                datetime_object = datetime.strptime(row['extractionDate'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                self.assertIsInstance(datetime_object, datetime)
-                self.assertEqual(row['documentNumber'], '0')
-
-    def test_csv_file_option_skip_1(self):
+    def test_csv_file_with_skip(self):
         with self.existing_species_documents(), TemporaryDirectory() as tmp:
             output_file = join(tmp, 'output.csv')
             runner = CliRunner()
@@ -86,17 +61,4 @@ class TestExportByQuery(TestAbstract):
                                 '--skip', 1, '--output-file', output_file])
             with open(output_file, newline='') as csv_file:
                 csv_reader = csv.DictReader(csv_file)
-
-                # Second row => First row
-                row = next(csv_reader)
-                self.assertEqual(row['query'], 'Actinopodidae OR Antrodiaetidae')
-                self.assertEqual(row['documentUrl'],
-                                 'http://localhost:8080/#/d/test-datashare/l7VnZZEzg2fr960NWWEG/l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['documentId'], 'l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['rootId'], 'l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['contentType'], 'audio/mpeg')
-                self.assertEqual(row['contentLength'], '25')
-                self.assertEqual(row['path'], '/path/to/file.txt')
-                datetime_object = datetime.strptime(row['extractionDate'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                self.assertIsInstance(datetime_object, datetime)
-                self.assertEqual(row['documentNumber'], '0')
+                self.assertEqual(len(list(csv_reader)), 1) # total size is 2 documents

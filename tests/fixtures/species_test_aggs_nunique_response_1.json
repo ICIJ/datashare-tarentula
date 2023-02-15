@@ -5,7 +5,7 @@
         "buckets": [
             {
                 "key": "audio/vorbis",
-                "doc_count": 2
+                "doc_count": 1
             },
             {
                 "key": "application/msword",

@@ -99,5 +99,5 @@ class Aggregate:
 
     def start(self):
         agg = self.log_matches()
-        # logger.info('Number of matched elements: %s' % agg)
-        print('%s' % agg)
+        logger.info(json.dumps(agg, indent=4))
+        print(json.dumps(agg, indent=4))

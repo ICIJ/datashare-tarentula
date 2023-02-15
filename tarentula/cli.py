@@ -9,6 +9,7 @@ from tarentula.tagging_by_query import TaggerByQuery
 from tarentula.download import Download
 from tarentula.export_by_query import ExportByQuery
 from tarentula.count import Count
+from tarentula.aggreagate import Aggregate
 from tarentula import __version__
 
 
@@ -185,12 +186,33 @@ def count(**options):
     count.start()
 
 
+@click.command()
+@click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
+@click.option('--datashare-url', help='Datashare URL', default=ConfigFileReader('datashare_url', 'http://localhost:8080'))
+@click.option('--datashare-project', help='Datashare project', default=ConfigFileReader('datashare_project', 'local-datashare'))
+@click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
+                                          'capabilities of Elasticsearch (useful when dealing with a lot of results)',
+              default=None)
+@click.option('--query', help='The query string to filter documents', default='*')
+@click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
+                                'semicolons: key1=val1;key2=val2;...', default='')
+@click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
+@click.option('--type', help='Type of indexed documents to download', default='Document',
+              type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
+@click.option('--by', help='Field to use to aggregate results', default='contentType')
+def aggregate(**options):
+    # Instantiate a Count class with all the options
+    agg = Aggregate(**options)
+    agg.start()
+
+
 cli.add_command(tagging)
 cli.add_command(download)
 cli.add_command(tagging_by_query)
 cli.add_command(clean_tags_by_query)
 cli.add_command(export_by_query)
 cli.add_command(count)
+cli.add_command(aggregate)
 
 if __name__ == '__main__':
     cli()

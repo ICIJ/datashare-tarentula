@@ -77,11 +77,11 @@ class TestDownload(TestAbstract):
             self.assertIn('_source', json)
             self.assertIn('name', json['_source'])
 
-    def test_summary_with_skip(self):
+    def test_summary_with_from(self):
         with self.existing_species_documents(), TemporaryDirectory() as tmp:
             runner = CliRunner()
             
-            result = runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--elasticsearch-url', self.elasticsearch_url, '--datashare-project', self.datashare_project, '--no-raw-file', '--destination-directory', tmp, '--skip', 5, '--query', 'name:*'])
+            result = runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--elasticsearch-url', self.elasticsearch_url, '--datashare-project', self.datashare_project, '--no-raw-file', '--destination-directory', tmp, '--from', 5, '--query', 'name:*'])
             self.assertIn('Downloading 15 document(s)', result.output)
             self.assertEqual(15, len(get_document_files(tmp)))
 

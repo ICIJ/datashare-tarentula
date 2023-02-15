@@ -120,8 +120,6 @@ class DatashareClient:
         return dest if result.status_code == requests.codes.ok else None
 
     def query(self, index=DATASHARE_DEFAULT_PROJECT, query={}, q=None, source=None, scroll=None, **kwargs):
-        if "skip" in kwargs.keys():
-            kwargs["from"] = kwargs.pop("skip")
         local_query = {"sort": {"_id": "asc"}, **query, **kwargs}
         if source is not None:
             local_query.update({'_source': source})
@@ -158,7 +156,8 @@ class DatashareClient:
             for item in response['hits']['hits']:
                 yield item
             search_after = response['hits']['hits'][-1]['sort']
-            response = self.query(search_after=search_after, **kwargs)
+            search_after_args = {k: v for k, v in kwargs.items() if k is not 'from'}
+            response = self.query(search_after=search_after, **search_after_args)
 
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):
         if query is None: query = {}

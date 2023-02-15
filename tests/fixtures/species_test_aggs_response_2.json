@@ -1,0 +1,16 @@
+{
+    "contentType": {
+        "doc_count_error_upper_bound": 0,
+        "sum_other_doc_count": 0,
+        "buckets": [
+            {
+                "key": "audio/mpeg",
+                "doc_count": 1
+            },
+            {
+                "key": "audio/vnd.wave",
+                "doc_count": 1
+            }
+        ]
+    }
+}

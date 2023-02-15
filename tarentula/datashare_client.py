@@ -156,7 +156,7 @@ class DatashareClient:
             for item in response['hits']['hits']:
                 yield item
             search_after = response['hits']['hits'][-1]['sort']
-            search_after_args = {k: v for k, v in kwargs.items() if k is not 'from'}
+            search_after_args = {k: v for k, v in kwargs.items() if k != 'from'}
             response = self.query(search_after=search_after, **search_after_args)
 
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):

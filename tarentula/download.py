@@ -25,6 +25,7 @@ class Download:
                  scroll: str = None,
                  source: str = None,
                  from_: int = 0,
+                 size: int = 0,
                  sort_by: str = '_id',
                  order_by: str = 'asc',
                  once: bool = False,
@@ -47,6 +48,7 @@ class Download:
         self.source = source
         self.scroll = scroll
         self.from_ = from_
+        self.size = size
         self.sort_by = sort_by
         self.order_by = order_by
         self.type = type
@@ -138,19 +140,6 @@ class Download:
         logger.info('%s matching document(s) in %s' % (count, index))
         return count
 
-    def scan_or_query_all(self):
-        index = self.datashare_project
-        source = ["path", "parentDocument", "type"] + str(self.source).split(',')
-        sort = {self.sort_by: self.order_by}
-        if self.scroll is None:
-            logger.info('Searching document(s) metadata in %s' % index)
-            return self.datashare_client.query_all(**{'index': index, 'query': self.query_body, 'source': source, 'sort': sort, 'from': self.from_})
-        else:
-            logger.info('Scrolling over document(s) metadata in %s' % index)
-            if self.from_ > 0:
-                logger.warning('"from" will not be used when scrolling documents')
-            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, sort=sort)
-
     def download_raw_file(self, document):
         id = document.get('_id')
         routing = document.get('_routing', id)
@@ -186,10 +175,13 @@ class Download:
     def start(self):
         count = self.log_matches()
         desc = "Downloading %s document(s)" % count
+        source = ["path", "parentDocument", "type"] + str(self.source).split(',')
         try:
             with Progress(disable=self.no_progressbar) as progress:  
                 task = progress.add_task(desc, total=count)
-                for document in self.scan_or_query_all():
+                for document in self.datashare_client.scan_or_query_all(self.datashare_project, source, self.sort_by,
+                                              self.order_by, self.scroll, self.query_body,
+                                              self.from_, self.size):
                     try:
                         self.download_raw_file(document)
                         self.save_indexed_document(document)

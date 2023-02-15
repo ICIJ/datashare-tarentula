@@ -51,14 +51,14 @@ class TestExportByQuery(TestAbstract):
                 self.assertIsInstance(datetime_object, datetime)
                 self.assertEqual(row['documentNumber'], '1')
 
-    def test_csv_file_with_skip(self):
+    def test_csv_file_with_from(self):
         with self.existing_species_documents(), TemporaryDirectory() as tmp:
             output_file = join(tmp, 'output.csv')
             runner = CliRunner()
             runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
                                 self.elasticsearch_url, '--datashare-project', self.datashare_project, '--query',
                                 'Actinopodidae OR Antrodiaetidae', 
-                                '--skip', 1, '--output-file', output_file])
+                                '--from', 1, '--output-file', output_file])
             with open(output_file, newline='') as csv_file:
                 csv_reader = csv.DictReader(csv_file)
                 self.assertEqual(len(list(csv_reader)), 1) # total size is 2 documents

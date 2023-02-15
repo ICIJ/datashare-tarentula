@@ -24,7 +24,7 @@ class Download:
                  path_format: str = '{id_2b}/{id_4b}/{id}',
                  scroll: str = None,
                  source: str = None,
-                 skip: int = 0,
+                 from_: int = 0,
                  sort_by: str = '_id',
                  order_by: str = 'asc',
                  once: bool = False,
@@ -46,7 +46,7 @@ class Download:
         self.raw_file = raw_file
         self.source = source
         self.scroll = scroll
-        self.skip = skip
+        self.from_ = from_
         self.sort_by = sort_by
         self.order_by = order_by
         self.type = type
@@ -130,7 +130,7 @@ class Download:
 
     def count_matches(self):
         index = self.datashare_project
-        return self.datashare_client.count(index=index, query=self.query_body).get('count') - self.skip
+        return self.datashare_client.count(index=index, query=self.query_body).get('count') - self.from_
 
     def log_matches(self):
         index = self.datashare_project
@@ -144,11 +144,11 @@ class Download:
         sort = {self.sort_by: self.order_by}
         if self.scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
-            return self.datashare_client.query_all(**{'index': index, 'query': self.query_body, 'source': source, 'sort': sort, 'from': self.skip})
+            return self.datashare_client.query_all(**{'index': index, 'query': self.query_body, 'source': source, 'sort': sort, 'from': self.from_})
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
-            if self.skip > 0:
-                logger.warning('skip will not be used when scrolling documents')
+            if self.from_ > 0:
+                logger.warning('"from" will not be used when scrolling documents')
             return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, sort=sort)
 
     def download_raw_file(self, document):

@@ -25,7 +25,7 @@ class ExportByQuery:
                  scroll: str = None,
                  source: str = 'contentType,contentLength:0,extractionDate,path',
                  size: int = 1000,
-                 skip: int = 0,
+                 from_: int = 0,
                  sort_by: str = '_id',
                  order_by: str = 'asc',
                  traceback: bool = False,
@@ -44,7 +44,7 @@ class ExportByQuery:
         self.scroll = scroll
         self.source = source
         self.size = size
-        self.skip = skip
+        self.from_ = from_
         self.sort_by = sort_by
         self.order_by = order_by
         self.type = type
@@ -146,12 +146,12 @@ class ExportByQuery:
         if self.scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
             return self.datashare_client.query_all(
-                **{'index': index, 'query': self.query_body, 'source': source, 'sort': sort, 'from': self.skip, 'size': self.size})
+                **{'index': index, 'query': self.query_body, 'source': source, 'sort': sort, 'from': self.from_, 'size': self.size})
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
-            if self.skip > 0:
-                logger.warning('skip will not be used when scrolling documents')
-            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, size=self.size, skip=self.skip, sort=sort)
+            if self.from_ > 0:
+                logger.warning('"from" will not be used when scrolling documents')
+            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, size=self.size, skip=self.from_, sort=sort)
 
     def document_default_values(self, document, number):
         index = self.datashare_project
@@ -188,7 +188,7 @@ class ExportByQuery:
 
     def start(self):
         count = self.log_matches()
-        count -= self.skip
+        count -= self.from_
         count = self.size if self.size and self.size < count else count
         
         desc = 'Exporting %s document(s)' % count

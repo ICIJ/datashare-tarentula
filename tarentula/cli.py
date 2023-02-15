@@ -217,6 +217,9 @@ def list_metadata(**options):
 @click.option('--type', help='Type of indexed documents to download', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 @click.option('--by', help='Field to use to aggregate results', default='contentType')
+@click.option('--run', help='Operation to run ', default='count', 
+                            type=click.Choice(['count', 'nunique']))
+
 def aggregate(**options):
     # Instantiate a Count class with all the options
     agg = Aggregate(**options)

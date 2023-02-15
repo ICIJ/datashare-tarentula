@@ -15,6 +15,7 @@ class Aggregate:
                  traceback: bool = False,
                  type: str = 'Document',
                  by: str = 'contentType',
+                 run: str = 'count',
                  ):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
@@ -24,6 +25,7 @@ class Aggregate:
         self.traceback = traceback
         self.type = type
         self.by = by
+        self.run = run
         try:
             self.datashare_client = DatashareClient(datashare_url,
                                                     elasticsearch_url,
@@ -43,6 +45,7 @@ class Aggregate:
 
     @property
     def query_body_from_string(self):
+        operation = "_count" if self.run == "count" else "_nunique"
         return {
             "aggs": {
                 "contentType": {
@@ -57,7 +60,7 @@ class Aggregate:
                     "terms": {
                         "field": self.by,
                         "order": {
-                            "_count": "desc"
+                            operation: "desc"
                         },
                         "size": 25
                     }

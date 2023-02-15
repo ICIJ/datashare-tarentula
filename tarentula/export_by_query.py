@@ -119,7 +119,6 @@ class ExportByQuery:
             names.insert(0, 'query')
         return names
 
-
     def source_field_params(self, field):
         field_params = field.strip().split(':')
         field_name = field_params[0]
@@ -138,20 +137,6 @@ class ExportByQuery:
         count = self.count_matches()
         logger.info('%s matching document(s) in %s' % (count, index))
         return count
-
-    def scan_or_query_all(self):
-        index = self.datashare_project
-        source = self.source_fields_names
-        sort = {self.sort_by: self.order_by}
-        if self.scroll is None:
-            logger.info('Searching document(s) metadata in %s' % index)
-            return self.datashare_client.query_all(
-                **{'index': index, 'query': self.query_body, 'source': source, 'sort': sort, 'from': self.from_, 'size': self.size})
-        else:
-            logger.info('Scrolling over document(s) metadata in %s' % index)
-            if self.from_ > 0:
-                logger.warning('"from" will not be used when scrolling documents')
-            return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, size=self.size, skip=self.from_, sort=sort)
 
     def document_default_values(self, document, number):
         index = self.datashare_project
@@ -195,7 +180,9 @@ class ExportByQuery:
         try:
             with Progress(disable=self.no_progressbar) as progress:  
                 task = progress.add_task(desc, total=count) 
-                documents = self.scan_or_query_all()
+                documents = self.datashare_client.scan_or_query_all(self.datashare_project, self.source_fields_names, self.sort_by,
+                                              self.order_by, self.scroll, self.query_body,
+                                              self.from_, self.size)
                 with self.create_csv_file() as csvwriter:
                     for index, document in enumerate(documents):
                         try:

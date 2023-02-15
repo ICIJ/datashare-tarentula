@@ -5,6 +5,8 @@ from datetime import datetime
 from http.cookies import SimpleCookie
 from uuid import uuid4
 
+from tarentula.logger import logger
+
 
 def urljoin(*args):
     return '/'.join(s.strip('/') for s in args if s is not None)
@@ -196,3 +198,16 @@ class DatashareClient:
                 self.delete_index(project)
         return project
 
+    def scan_or_query_all(self, datashare_project, source_fields_names, sort_by, order_by, scroll, query_body, from_, size):
+        index = datashare_project
+        source = source_fields_names
+        sort = {sort_by: order_by}
+        if scroll is None:
+            logger.info('Searching document(s) metadata in %s' % index)
+            return self.query_all(
+                **{'index': index, 'query': query_body, 'source': source, 'sort': sort, 'from': from_, 'size': size})
+        else:
+            logger.info('Scrolling over document(s) metadata in %s' % index)
+            if from_ > 0:
+                logger.warning('"from" will not be used when scrolling documents')
+            return self.scan_all(index=index, query=query_body, source=source, scroll=scroll, size=size, skip=from_, sort=sort)

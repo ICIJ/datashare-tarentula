@@ -121,6 +121,7 @@ def clean_tags_by_query(**options):
 @click.option('--source', help='A comma-separated list of field to include in the downloaded document from the index',
               default=None)
 @click.option('--from', '-f', 'from_', type=int, help='Passed to the search it will bypass the first n documents', default=0)
+@click.option('--size', help='Size of the scroll request that powers the operation.', default=1000)
 @click.option('--sort-by', help='Field to use to sort results', default='_id')
 @click.option('--order-by', help='Order to use to sort results', default='asc', 
                             type=click.Choice(['asc', 'desc']))

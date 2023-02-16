@@ -156,6 +156,7 @@ Options:
   --source TEXT                   A comma-separated list of field to include
                                   in the downloaded document from the index
 
+  --from INTEGER                  Number of first results to skip in the response.
   --sort-by TEXT                  Field to use to sort results
   --order-by [asc|desc]           Order to use to sort results
   --once / --not-once             Download file only once
@@ -201,7 +202,7 @@ Options:
   --progressbar / --no-progressbar
                                   Display a progressbar
   --type [Document|NamedEntity]   Type of indexed documents to download
-  --skip INTEGER                  Number of first results to skip in the response.
+  --from INTEGER                  Number of first results to skip in the response.
   --size INTEGER                  Size of the scroll request that powers the
                                   operation.
 

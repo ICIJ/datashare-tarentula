@@ -124,8 +124,6 @@ class DatashareClient:
         return dest if result.status_code == requests.codes.ok else None
 
     def query(self, index=DATASHARE_DEFAULT_PROJECT, query={}, q=None, source=None, scroll=None, **kwargs):
-        if "skip" in kwargs.keys():
-            kwargs["from"] = kwargs.pop("skip")
         local_query = {"sort": {"_id": "asc"}, **query, **kwargs}
         if source is not None:
             local_query.update({'_source': source})
@@ -226,4 +224,5 @@ class DatashareClient:
             logger.info('Scrolling over document(s) metadata in %s' % index)
             if from_ > 0:
                 logger.warning('"from" will not be used when scrolling documents')
-            return self.scan_all(index=index, query=query_body, source=source, scroll=scroll, size=size, skip=from_, sort=sort)
+            scroll_after_args = {'size': size, 'from': from_, 'sort': sort}
+            return self.scan_all(index=index, query=query_body, source=source, scroll=scroll, **scroll_after_args)

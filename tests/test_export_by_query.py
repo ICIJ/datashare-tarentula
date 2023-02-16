@@ -62,3 +62,47 @@ class TestExportByQuery(TestAbstract):
             with open(output_file, newline='') as csv_file:
                 csv_reader = csv.DictReader(csv_file)
                 self.assertEqual(len(list(csv_reader)), 1) # total size is 2 documents
+
+    def test_csv_file_with_limit_1(self):
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output_file = join(tmp, 'output.csv')
+            runner = CliRunner()
+            runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                '--limit', 3, '--output-file', output_file])
+            with open(output_file, newline='') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                self.assertEqual(len(list(csv_reader)), 3)
+
+    def test_csv_file_with_limit_2(self):
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output_file = join(tmp, 'output.csv')
+            runner = CliRunner()
+            runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                '--from', 2, '--limit', 3, '--output-file', output_file])
+            with open(output_file, newline='') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                self.assertEqual(len(list(csv_reader)), 3)
+
+    def test_csv_file_with_limit_3(self):
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output_file = join(tmp, 'output.csv')
+            runner = CliRunner()
+            runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                '--size', 2, '--limit', 10, '--output-file', output_file])
+            with open(output_file, newline='') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                self.assertEqual(len(list(csv_reader)), 10)
+
+    def test_csv_file_with_limit_4(self):
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output_file = join(tmp, 'output.csv')
+            runner = CliRunner()
+            runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                '--size', 20, '--limit', 3, '--output-file', output_file])
+            with open(output_file, newline='') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                self.assertEqual(len(list(csv_reader)), 3)

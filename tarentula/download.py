@@ -137,7 +137,8 @@ class Download:
         total_matched = self.datashare_client \
                     .count(index=index, query=self.query_body) \
                     .get('count')
-        total_matched -= self.from_
+        total_matched = total_matched - self.from_ if total_matched >= self.from_ \
+                                                    else total_matched
         total_matched = total_matched if (self.limit == 0) or \
                                          (self.limit > total_matched) \
                                       else self.limit

@@ -165,6 +165,7 @@ def download(**options):
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 @click.option('--size', help='Size of the scroll request that powers the operation.', default=1000)
 @click.option('--from', '-f', 'from_', type=int, help='Passed to the search it will bypass the first n documents', default=0)
+@click.option('--limit', '-l', type=int, help='Limit the total results to return', default=0)
 @click.option('--query-field/--no-query-field', help='Add the query to the export CSV', default=True)
 def export_by_query(**options):
     # Instantiate an ExportByQuery class with all the options

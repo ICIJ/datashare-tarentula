@@ -24,6 +24,7 @@ class Download:
                  path_format: str = '{id_2b}/{id_4b}/{id}',
                  scroll: str = None,
                  source: str = None,
+                 limit: int = 0,
                  from_: int = 0,
                  size: int = 0,
                  sort_by: str = '_id',
@@ -47,6 +48,7 @@ class Download:
         self.raw_file = raw_file
         self.source = source
         self.scroll = scroll
+        self.limit = limit
         self.from_ = from_
         self.size = size
         self.sort_by = sort_by
@@ -132,7 +134,14 @@ class Download:
 
     def count_matches(self):
         index = self.datashare_project
-        return self.datashare_client.count(index=index, query=self.query_body).get('count') - self.from_
+        total_matched = self.datashare_client \
+                    .count(index=index, query=self.query_body) \
+                    .get('count')
+        total_matched -= self.from_
+        total_matched = total_matched if (self.limit == 0) or \
+                                         (self.limit > total_matched) \
+                                      else self.limit
+        return total_matched  
 
     def log_matches(self):
         index = self.datashare_project
@@ -181,7 +190,7 @@ class Download:
                 task = progress.add_task(desc, total=count)
                 for document in self.datashare_client.scan_or_query_all(self.datashare_project, source, self.sort_by,
                                               self.order_by, self.scroll, self.query_body,
-                                              self.from_, self.size):
+                                              self.from_, self.limit, self.size):
                     try:
                         self.download_raw_file(document)
                         self.save_indexed_document(document)

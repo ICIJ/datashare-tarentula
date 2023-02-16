@@ -155,10 +155,25 @@ class DatashareClient:
             response = self.scroll(scroll_id, scroll)
 
     def query_all(self, **kwargs):
+        # for low limit value cases
+        limit = kwargs.pop('limit')
+        if (limit != 0) and (kwargs['size'] > limit):
+            kwargs['size'] = limit
+
+        num_yielded = 0
         response = self.query(**kwargs)
         while len(response['hits']['hits']) > 0:
+
             for item in response['hits']['hits']:
                 yield item
+                
+            # update size window for next iteration
+            num_yielded += len(response['hits']['hits'])
+            if (limit != 0) and (kwargs['size'] + num_yielded > limit ):
+                kwargs['size'] = limit - num_yielded
+            if kwargs['size'] == 0:
+                break
+
             search_after = response['hits']['hits'][-1]['sort']
             search_after_args = {k: v for k, v in kwargs.items() if k != 'from'}
             response = self.query(search_after=search_after, **search_after_args)
@@ -212,17 +227,17 @@ class DatashareClient:
                 self.delete_index(project)
         return project
 
-    def scan_or_query_all(self, datashare_project, source_fields_names, sort_by, order_by, scroll, query_body, from_, size):
+    def scan_or_query_all(self, datashare_project, source_fields_names, sort_by, order_by, scroll, query_body, from_, limit, size):
         index = datashare_project
         source = source_fields_names
         sort = {sort_by: order_by}
         if scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
             return self.query_all(
-                **{'index': index, 'query': query_body, 'source': source, 'sort': sort, 'from': from_, 'size': size})
+                **{'index': index, 'query': query_body, 'source': source, 'sort': sort, 'from': from_, 'limit': limit, 'size': size})
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
             if from_ > 0:
                 logger.warning('"from" will not be used when scrolling documents')
-            scroll_after_args = {'size': size, 'from': from_, 'sort': sort}
+            scroll_after_args = {'size': size, 'from': from_, 'limit': limit, 'sort': sort}
             return self.scan_all(index=index, query=query_body, source=source, scroll=scroll, **scroll_after_args)

@@ -26,6 +26,7 @@ class ExportByQuery:
                  source: str = 'contentType,contentLength:0,extractionDate,path',
                  size: int = 1000,
                  from_: int = 0,
+                 limit: int = 0,
                  sort_by: str = '_id',
                  order_by: str = 'asc',
                  traceback: bool = False,
@@ -45,6 +46,7 @@ class ExportByQuery:
         self.source = source
         self.size = size
         self.from_ = from_
+        self.limit = limit
         self.sort_by = sort_by
         self.order_by = order_by
         self.type = type
@@ -130,7 +132,15 @@ class ExportByQuery:
 
     def count_matches(self):
         index = self.datashare_project
-        return self.datashare_client.count(index=index, query=self.query_body).get('count')
+        total_matched = self.datashare_client \
+                    .count(index=index, query=self.query_body) \
+                    .get('count')
+        total_matched = total_matched - self.from_ if total_matched >= self.from_ \
+                                                    else total_matched
+        total_matched = total_matched if (self.limit == 0) or \
+                                         (self.limit > total_matched) \
+                                      else self.limit
+        return total_matched  
 
     def log_matches(self):
         index = self.datashare_project
@@ -182,7 +192,7 @@ class ExportByQuery:
                 task = progress.add_task(desc, total=count) 
                 documents = self.datashare_client.scan_or_query_all(self.datashare_project, self.source_fields_names, self.sort_by,
                                               self.order_by, self.scroll, self.query_body,
-                                              self.from_, self.size)
+                                              self.from_, self.limit, self.size)
                 with self.create_csv_file() as csvwriter:
                     for index, document in enumerate(documents):
                         try:

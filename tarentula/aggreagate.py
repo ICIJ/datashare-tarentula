@@ -48,7 +48,7 @@ class Aggregate:
         operation = "_count" if self.run == "count" else "_nunique"
         return {
             "aggs": {
-                "contentType": {
+                "aggregation-1": {
                     "aggs": {
                         "bucket_truncate": {
                             "bucket_sort": {

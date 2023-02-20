@@ -15,6 +15,7 @@ class Aggregate:
                  traceback: bool = False,
                  type: str = 'Document',
                  by: str = 'contentType',
+                 operation_field: str = None,
                  run: str = 'count',
                  ):
         self.datashare_url = datashare_url
@@ -26,6 +27,7 @@ class Aggregate:
         self.type = type
         self.by = by
         self.run = run
+        self.operation_field = operation_field
         try:
             self.datashare_client = DatashareClient(datashare_url,
                                                     elasticsearch_url,
@@ -45,26 +47,40 @@ class Aggregate:
 
     @property
     def query_body_from_string(self):
-        operation = "_count" if self.run == "count" else "_nunique"
+        if self.run == "count":
+            operation = "_count" 
+            agg_level_1 = {
+                "aggs": {
+                    "bucket_truncate": {
+                        "bucket_sort": {
+                            "from": 0,
+                            "size": 25
+                        }
+                    }
+                },
+                "terms": {
+                    "field": self.by,
+                    "order": {
+                        operation: "desc"
+                    },
+                    "size": 25
+                }
+            }
+
+        elif self.run == "_nunique":
+            # operation = "_count" 
+            pass
+
+        elif self.run == 'sum':
+            agg_level_1 = {
+                "sum": {
+                    "field": self.operation_field
+                }
+            }
+
         return {
             "aggs": {
-                "aggregation-1": {
-                    "aggs": {
-                        "bucket_truncate": {
-                            "bucket_sort": {
-                                "from": 0,
-                                "size": 25
-                            }
-                        }
-                    },
-                    "terms": {
-                        "field": self.by,
-                        "order": {
-                            operation: "desc"
-                        },
-                        "size": 25
-                    }
-                }
+                "aggregation-1": agg_level_1,
             },
             "query": {
                 "bool": {

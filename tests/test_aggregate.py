@@ -40,20 +40,32 @@ class TestAggregate(TestAbstract):
 
             self.assertEqual(expected_text+"\n", result.output)
 
-    def test_aggregate_by_field_and_nunique(self):
+    def test_aggregate_nunique_field_1(self):
         with self.existing_species_documents():
             runner = CliRunner()
 
             result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
                                 self.elasticsearch_url, '--datashare-project', self.datashare_project, 
-                                '--by',  'contentType',
                                 '--run',  'nunique',
+                                '--operation_field',  'contentType',
                                 '--query',  '*' ])
 
-            with open('tests/fixtures/species_test_aggs_nunique_response_1.json', 'r') as ifile:
+            with open('tests/fixtures/species_test_aggs_nunique_contenttype.json', 'r') as ifile:
                 expected_text = ifile.read()
 
             self.assertEqual(expected_text+"\n", result.output)
+
+    def test_aggregate_nunique_luxleaks_languages(self):
+        with self.existing_luxleaks_documents():
+            runner = CliRunner()
+
+            result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                '--run',  'nunique',
+                                '--operation_field',  'language'])
+
+            expected_text = """{\n    "aggregation-1": {\n        "value": 3\n    }\n}\n"""
+            self.assertEqual(expected_text, result.output)
 
     def test_aggregate_sum_field(self):
         with self.existing_luxleaks_documents():

@@ -22,6 +22,7 @@ class TestAbstract(TestCase):
         cls.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8080')
         cls.datashare_client = DatashareClient(cls.datashare_url, cls.elasticsearch_url)
         cls.species_path = absolute_path('tests/fixtures/species.json')
+        cls.luxleaks_path = absolute_path('tests/fixtures/luxleaks-sample.json')
         cls.datashare_client.create(cls.datashare_project)
 
     @classmethod
@@ -53,6 +54,16 @@ class TestAbstract(TestCase):
                 yield species
             finally:
                 self.delete_documents(species)
+
+    @contextmanager
+    def existing_luxleaks_documents(self):
+        with open(self.luxleaks_path, 'r') as luxleaks_file:
+            luxleaks = json.loads(luxleaks_file.read())
+            self.index_documents(luxleaks)
+            try:
+                yield luxleaks
+            finally:
+                self.delete_documents(luxleaks)
 
     from contextlib import contextmanager
 

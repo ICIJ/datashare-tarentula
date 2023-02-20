@@ -54,3 +54,32 @@ class TestAggregate(TestAbstract):
                 expected_text = ifile.read()
 
             self.assertEqual(expected_text+"\n", result.output)
+
+    def test_aggregate_sum_field(self):
+        with self.existing_luxleaks_documents():
+            runner = CliRunner()
+
+            result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                '--run',  'sum',
+                                '--operation_field',  'contentLength',
+                                '--query',  '*' ])
+
+            with open('tests/fixtures/luxleaks_test_aggs_sum_contentlength_all.json', 'r') as ifile:
+                expected_text = ifile.read()
+
+            self.assertEqual(expected_text+"\n", result.output)
+    def test_aggregate_query_and_sum_field(self):
+        with self.existing_luxleaks_documents():
+            runner = CliRunner()
+
+            result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                '--run',  'sum',
+                                '--operation_field',  'contentLength',
+                                '--query',  'language:FRENCH' ])
+
+            with open('tests/fixtures/luxleaks_test_aggs_sum_contentlength_filter1.json', 'r') as ifile:
+                expected_text = ifile.read()
+
+            self.assertEqual(expected_text+"\n", result.output)

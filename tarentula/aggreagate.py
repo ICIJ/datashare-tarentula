@@ -14,7 +14,7 @@ class Aggregate:
                  elasticsearch_url: str = None,
                  traceback: bool = False,
                  type: str = 'Document',
-                 by: str = 'contentType',
+                 group_by: str = 'contentType',
                  operation_field: str = None,
                  run: str = 'count',
                  ):
@@ -25,7 +25,7 @@ class Aggregate:
         self.apikey = apikey
         self.traceback = traceback
         self.type = type
-        self.by = by
+        self.group_by = group_by
         self.run = run
         self.operation_field = operation_field
         try:
@@ -59,7 +59,7 @@ class Aggregate:
                     }
                 },
                 "terms": {
-                    "field": self.by,
+                    "field": self.group_by,
                     "order": {
                         operation: "desc"
                     },

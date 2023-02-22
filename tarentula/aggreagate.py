@@ -47,7 +47,7 @@ class Aggregate:
 
     @property
     def query_body_from_string(self):
-        if self.run == "count":
+        if self.group_by and self.run == "count":
             operation = "_count" 
             agg_level_1 = {
                 "aggs": {
@@ -73,9 +73,10 @@ class Aggregate:
                     "field": self.operation_field
                 }
             }
-        elif self.run == 'sum':
+        # elif self.run == 'sum':
+        elif self.run in ['sum', 'stats', 'string_stats', 'min', 'max', 'avg']:
             agg_level_1 = {
-                "sum": {
+                self.run: {
                     "field": self.operation_field
                 }
             }

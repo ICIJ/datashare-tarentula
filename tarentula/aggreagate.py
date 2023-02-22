@@ -68,13 +68,11 @@ class Aggregate:
             }
 
         elif self.run == "nunique":
-            # operation = "_count" 
             agg_level_1 = {
                 "cardinality": {
                     "field": self.operation_field
                 }
             }
-
         elif self.run == 'sum':
             agg_level_1 = {
                 "sum": {

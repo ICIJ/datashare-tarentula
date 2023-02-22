@@ -18,7 +18,7 @@ class TestAggregate(TestAbstract):
 
             result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
                                 self.elasticsearch_url, '--datashare-project', self.datashare_project, 
-                                '--by',  'contentType',
+                                '--group_by',  'contentType',
                                 '--query',  '*' ])
 
             with open('tests/fixtures/species_test_aggs_count_response_1.json', 'r') as ifile:
@@ -32,7 +32,7 @@ class TestAggregate(TestAbstract):
 
             result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
                                 self.elasticsearch_url, '--datashare-project', self.datashare_project, 
-                                '--by',  'contentType',
+                                '--group_by',  'contentType',
                                 '--query',  'Actinopodidae OR Antrodiaetidae' ])
 
             with open('tests/fixtures/species_test_aggs_count_response_2.json', 'r') as ifile:

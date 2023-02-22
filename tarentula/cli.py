@@ -202,7 +202,9 @@ def count(**options):
 @click.option('--group_by', help='Field to use to aggregate results', default=None)
 @click.option('--operation_field', help='Field to run the operation on', default=None)
 @click.option('--run', help='Operation to run ', default='count', 
-                            type=click.Choice(['count', 'nunique', 'sum', 'stats', 'string_stats', 'min', 'max', 'avg']))
+                            type=click.Choice(['count', 'nunique', 'sum', 'stats', 'string_stats', 'min', 'max', 'avg', 'date_histogram']))
+@click.option('--calendar_interval', help='Calendar interval for date histogram aggregation', default='year', 
+                            type=click.Choice(['year', 'month']))
 def aggregate(**options):
     # Instantiate a Count class with all the options
     agg = Aggregate(**options)

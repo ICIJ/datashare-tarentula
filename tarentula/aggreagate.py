@@ -17,6 +17,7 @@ class Aggregate:
                  group_by: str = 'contentType',
                  operation_field: str = None,
                  run: str = 'count',
+                 calendar_interval: str = 'year'
                  ):
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
@@ -28,6 +29,7 @@ class Aggregate:
         self.group_by = group_by
         self.run = run
         self.operation_field = operation_field
+        self.calendar_interval = calendar_interval
         try:
             self.datashare_client = DatashareClient(datashare_url,
                                                     elasticsearch_url,
@@ -71,6 +73,13 @@ class Aggregate:
             agg_level_1 = {
                 "cardinality": {
                     "field": self.operation_field
+                }
+            }
+        elif self.run == "date_histogram":
+            agg_level_1 = {
+                "date_histogram": {
+                    "field": self.operation_field,
+                    "calendar_interval": self.calendar_interval
                 }
             }
         # elif self.run == 'sum':

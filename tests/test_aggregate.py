@@ -81,6 +81,19 @@ class TestAggregate(TestAbstract):
                 expected_text = ifile.read()
 
             self.assertEqual(expected_text+"\n", result.output)
+            
+    def test_aggregate_string_stats(self):
+        with self.existing_luxleaks_documents():
+            runner = CliRunner()
+
+            result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                '--run',  'string_stats',
+                                '--operation_field',  'language' ])
+
+            expected_text = '{\n    "aggregation-1": {\n        "count": 212,\n        "min_length": 6,\n        "max_length": 7,\n        "avg_length": 6.933962264150943,\n        "entropy": 2.970184813429149\n    }\n}\n'
+            self.assertEqual(expected_text, result.output)
+            
     def test_aggregate_query_and_sum_field(self):
         with self.existing_luxleaks_documents():
             runner = CliRunner()

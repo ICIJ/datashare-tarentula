@@ -216,10 +216,10 @@ def list_metadata(**options):
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--type', help='Type of indexed documents to download', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
-@click.option('--group_by', help='Field to use to aggregate results', default='contentType')
+@click.option('--group_by', help='Field to use to aggregate results', default=None)
 @click.option('--operation_field', help='Field to run the operation on', default=None)
 @click.option('--run', help='Operation to run ', default='count', 
-                            type=click.Choice(['count', 'nunique', 'sum']))
+                            type=click.Choice(['count', 'nunique', 'sum', 'stats', 'string_stats', 'min', 'max', 'avg']))
 def aggregate(**options):
     # Instantiate a Count class with all the options
     agg = Aggregate(**options)

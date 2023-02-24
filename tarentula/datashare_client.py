@@ -156,7 +156,7 @@ class DatashareClient:
 
     def query_all(self, **kwargs):
         # for low limit value cases
-        limit = kwargs.pop('limit')
+        limit = kwargs.pop('limit', 0)
         if (limit != 0) and (kwargs['size'] > limit):
             kwargs['size'] = limit
 

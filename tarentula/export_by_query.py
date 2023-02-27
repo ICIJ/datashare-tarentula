@@ -183,8 +183,6 @@ class ExportByQuery:
 
     def start(self):
         count = self.log_matches()
-        count -= self.from_
-        count = self.size if self.size and self.size < count else count
         
         desc = 'Exporting %s document(s)' % count
         try:

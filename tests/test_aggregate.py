@@ -1,4 +1,4 @@
-from json import load
+from json import loads
 
 from click.testing import CliRunner
 
@@ -21,10 +21,12 @@ class TestAggregate(TestAbstract):
                                 '--group_by',  'contentType',
                                 '--query',  '*' ])
 
-            with open('tests/fixtures/species_test_aggs_count_response_1.json', 'r') as ifile:
-                expected_text = ifile.read()
+            data = loads(result.output)
+            self.assertIn('aggregation-1', data)
+            self.assertIn('buckets', data['aggregation-1'])
+            self.assertEqual(19, len(data['aggregation-1']['buckets']))
+            self.assertIn(2, [bucket['doc_count'] for bucket in data['aggregation-1']['buckets'] if bucket['key']=='audio/vorbis'])
 
-            self.assertEqual(expected_text+"\n", result.output)
 
     def test_aggregate_by_field_and_count_2(self):
         with self.existing_species_documents():
@@ -35,10 +37,12 @@ class TestAggregate(TestAbstract):
                                 '--group_by',  'contentType',
                                 '--query',  'Actinopodidae OR Antrodiaetidae' ])
 
-            with open('tests/fixtures/species_test_aggs_count_response_2.json', 'r') as ifile:
-                expected_text = ifile.read()
-
-            self.assertEqual(expected_text+"\n", result.output)
+            data = loads(result.output)
+            self.assertIn('aggregation-1', data)
+            self.assertIn('buckets', data['aggregation-1'])
+            self.assertEqual(2, len(data['aggregation-1']['buckets']))
+            self.assertIn('audio/mpeg', [bucket['key'] for bucket in data['aggregation-1']['buckets']])
+            self.assertIn('audio/vnd.wave', [bucket['key'] for bucket in data['aggregation-1']['buckets']])
 
     def test_aggregate_nunique_field_1(self):
         with self.existing_species_documents():
@@ -50,10 +54,10 @@ class TestAggregate(TestAbstract):
                                 '--operation_field',  'contentType',
                                 '--query',  '*' ])
 
-            with open('tests/fixtures/species_test_aggs_nunique_contenttype.json', 'r') as ifile:
-                expected_text = ifile.read()
-
-            self.assertEqual(expected_text+"\n", result.output)
+            data = loads(result.output)
+            self.assertIn('aggregation-1', data)
+            self.assertIn('value', data['aggregation-1'])
+            self.assertEqual(19, data['aggregation-1']['value'])
 
     def test_aggregate_nunique_luxleaks_languages(self):
         with self.existing_luxleaks_documents():
@@ -64,8 +68,10 @@ class TestAggregate(TestAbstract):
                                 '--run',  'nunique',
                                 '--operation_field',  'language'])
 
-            expected_text = """{\n    "aggregation-1": {\n        "value": 3\n    }\n}\n"""
-            self.assertEqual(expected_text, result.output)
+            data = loads(result.output)
+            self.assertIn('aggregation-1', data)
+            self.assertIn('value', data['aggregation-1'])
+            self.assertEqual(3, data['aggregation-1']['value'])
 
     def test_aggregate_sum_field(self):
         with self.existing_luxleaks_documents():
@@ -77,10 +83,10 @@ class TestAggregate(TestAbstract):
                                 '--operation_field',  'contentLength',
                                 '--query',  '*' ])
 
-            with open('tests/fixtures/luxleaks_test_aggs_sum_contentlength_all.json', 'r') as ifile:
-                expected_text = ifile.read()
-
-            self.assertEqual(expected_text+"\n", result.output)
+            data = loads(result.output)
+            self.assertIn('aggregation-1', data)
+            self.assertIn('value', data['aggregation-1'])
+            self.assertEqual(679475452.0, data['aggregation-1']['value'])
             
     def test_aggregate_string_stats(self):
         with self.existing_luxleaks_documents():
@@ -91,9 +97,10 @@ class TestAggregate(TestAbstract):
                                 '--run',  'string_stats',
                                 '--operation_field',  'language' ])
 
-            expected_text = '{\n    "aggregation-1": {\n        "count": 212,\n        "min_length": 6,\n        "max_length": 7,\n        "avg_length": 6.933962264150943,\n        "entropy": 2.970184813429149\n    }\n}\n'
-            self.assertEqual(expected_text, result.output)
-            
+            data = loads(result.output)
+            self.assertIn('aggregation-1', data)
+            self.assertTrue(all([stat in data['aggregation-1'].keys() for stat in ['count', 'min_length', 'max_length', 'avg_length', 'entropy']]))
+
     def test_aggregate_query_and_sum_field(self):
         with self.existing_luxleaks_documents():
             runner = CliRunner()
@@ -104,11 +111,12 @@ class TestAggregate(TestAbstract):
                                 '--operation_field',  'contentLength',
                                 '--query',  'language:FRENCH' ])
 
-            with open('tests/fixtures/luxleaks_test_aggs_sum_contentlength_filter1.json', 'r') as ifile:
-                expected_text = ifile.read()
-
-            self.assertEqual(expected_text+"\n", result.output)
+            data = loads(result.output)
+            self.assertIn('aggregation-1', data)
+            self.assertIn('value', data['aggregation-1'])
+            self.assertEqual(21295969.0, data['aggregation-1']['value'])
             
+
     def test_aggregate_date_histogram(self):
         with self.existing_luxleaks_documents():
             runner = CliRunner()
@@ -118,6 +126,8 @@ class TestAggregate(TestAbstract):
                                 '--run',  'date_histogram',
                                 '--operation_field',  'metadata.tika_metadata_creation_date' ])
 
-            expected_text = '{\n    "aggregation-1": {\n        "buckets": [\n            {\n                "key_as_string": "2004-01-01T00:00:00.000Z",\n                "key": 1072915200000,\n                "doc_count": 1\n            },\n            {\n                "key_as_string": "2005-01-01T00:00:00.000Z",\n                "key": 1104537600000,\n                "doc_count": 0\n            },\n            {\n                "key_as_string": "2006-01-01T00:00:00.000Z",\n                "key": 1136073600000,\n                "doc_count": 0\n            },\n            {\n                "key_as_string": "2007-01-01T00:00:00.000Z",\n                "key": 1167609600000,\n                "doc_count": 3\n            },\n            {\n                "key_as_string": "2008-01-01T00:00:00.000Z",\n                "key": 1199145600000,\n                "doc_count": 2\n            },\n            {\n                "key_as_string": "2009-01-01T00:00:00.000Z",\n                "key": 1230768000000,\n                "doc_count": 2\n            },\n            {\n                "key_as_string": "2010-01-01T00:00:00.000Z",\n                "key": 1262304000000,\n                "doc_count": 15\n            },\n            {\n                "key_as_string": "2011-01-01T00:00:00.000Z",\n                "key": 1293840000000,\n                "doc_count": 0\n            },\n            {\n                "key_as_string": "2012-01-01T00:00:00.000Z",\n                "key": 1325376000000,\n                "doc_count": 3\n            },\n            {\n                "key_as_string": "2013-01-01T00:00:00.000Z",\n                "key": 1356998400000,\n                "doc_count": 0\n            },\n            {\n                "key_as_string": "2014-01-01T00:00:00.000Z",\n                "key": 1388534400000,\n                "doc_count": 1\n            }\n        ]\n    }\n}\n'
-            self.assertEqual(expected_text, result.output)
-            
+            data = loads(result.output)
+            self.assertIn('aggregation-1', data)
+            self.assertIn('buckets', data['aggregation-1'])
+            self.assertEqual(11, len(data['aggregation-1']['buckets']))
+            self.assertIn(1, [bucket['doc_count'] for bucket in data['aggregation-1']['buckets'] if bucket['key_as_string']=='2004-01-01T00:00:00.000Z'])

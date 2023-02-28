@@ -204,6 +204,7 @@ def list_metadata(**options):
     metadata.start()
 
 
+@click.command()
 @click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
 @click.option('--datashare-url', help='Datashare URL', default=ConfigFileReader('datashare_url', 'http://localhost:8080'))
 @click.option('--datashare-project', help='Datashare project', default=ConfigFileReader('datashare_project', 'local-datashare'))
@@ -236,6 +237,7 @@ cli.add_command(export_by_query)
 cli.add_command(count)
 cli.add_command(list_metadata)
 cli.add_command(aggregate)
+
 
 if __name__ == '__main__':
     cli()

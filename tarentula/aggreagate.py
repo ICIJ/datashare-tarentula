@@ -125,10 +125,8 @@ class Aggregate:
     def log_matches(self):
         index = self.datashare_project
         agg = self.aggregate_matches()
-        logger.info('%s matching document(s) in %s' % (agg, index))
         return agg
 
     def start(self):
         agg = self.log_matches()
-        logger.info(json.dumps(agg, indent=4))
         print(json.dumps(agg, indent=4))

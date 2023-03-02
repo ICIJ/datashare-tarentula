@@ -30,6 +30,7 @@ class Aggregate:
         self.run = run
         self.operation_field = operation_field
         self.calendar_interval = calendar_interval
+        self.agg_level_1 = None
         try:
             self.datashare_client = DatashareClient(datashare_url,
                                                     elasticsearch_url,
@@ -49,50 +50,9 @@ class Aggregate:
 
     @property
     def query_body_from_string(self):
-        if self.group_by and self.run == "count":
-            operation = "_count" 
-            agg_level_1 = {
-                "aggs": {
-                    "bucket_truncate": {
-                        "bucket_sort": {
-                            "from": 0,
-                            "size": 25
-                        }
-                    }
-                },
-                "terms": {
-                    "field": self.group_by,
-                    "order": {
-                        operation: "desc"
-                    },
-                    "size": 25
-                }
-            }
-
-        elif self.run == "nunique":
-            agg_level_1 = {
-                "cardinality": {
-                    "field": self.operation_field
-                }
-            }
-        elif self.run == "date_histogram":
-            agg_level_1 = {
-                "date_histogram": {
-                    "field": self.operation_field,
-                    "calendar_interval": self.calendar_interval
-                }
-            }
-        # elif self.run == 'sum':
-        elif self.run in ['sum', 'stats', 'string_stats', 'min', 'max', 'avg']:
-            agg_level_1 = {
-                self.run: {
-                    "field": self.operation_field
-                }
-            }
-
         return {
             "aggs": {
-                "aggregation-1": agg_level_1,
+                "aggregation-1": self.agg_level_1,
             },
             "query": {
                 "bool": {
@@ -111,7 +71,7 @@ class Aggregate:
                 }
             }
         }
-    
+
     @property
     def query_body_from_file(self):
         with open(self.query[1:]) as json_file:
@@ -122,11 +82,68 @@ class Aggregate:
         index = self.datashare_project
         return self.datashare_client.query(index=index, query=self.query_body).get('aggregations')
 
-    def log_matches(self):
-        index = self.datashare_project
-        agg = self.aggregate_matches()
-        return agg
-
     def start(self):
-        agg = self.log_matches()
+        agg = self.aggregate_matches()
         print(json.dumps(agg, indent=4))
+
+
+class AggCount(Aggregate):
+
+    @property
+    def query_body_from_string(self):
+        self.agg_level_1 = {
+            "aggs": {
+                "bucket_truncate": {
+                    "bucket_sort": {
+                        "from": 0,
+                        "size": 25
+                    }
+                }
+            },
+            "terms": {
+                "field": self.group_by,
+                "order": {
+                    "_count": "desc"
+                },
+                "size": 25
+            }
+        }
+        return super().query_body_from_string
+
+
+class NumUnique(Aggregate):
+
+    @property
+    def query_body_from_string(self):
+        self.agg_level_1 = {
+                "cardinality": {
+                    "field": self.operation_field
+                }
+            }
+        return super().query_body_from_string
+
+
+class DateHistogram(Aggregate):
+
+    @property
+    def query_body_from_string(self):
+        self.agg_level_1 = {
+                "date_histogram": {
+                    "field": self.operation_field,
+                    "calendar_interval": self.calendar_interval
+                }
+            }
+        return super().query_body_from_string
+
+
+class GeneralStats(Aggregate):
+    """Run one of the following agreggations: 'sum', 'stats', 'string_stats', 'min', 'max', 'avg' """ 
+    
+    @property
+    def query_body_from_string(self):
+        self.agg_level_1 = {
+                self.run: {
+                    "field": self.operation_field
+                }
+            }
+        return super().query_body_from_string

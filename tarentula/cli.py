@@ -10,7 +10,7 @@ from tarentula.tagging_by_query import TaggerByQuery
 from tarentula.download import Download
 from tarentula.export_by_query import ExportByQuery
 from tarentula.count import Count
-from tarentula.aggreagate import Aggregate
+from tarentula.aggregate import AggCount, GeneralStats, DateHistogram, NumUnique
 from tarentula import __version__
 
 
@@ -124,7 +124,7 @@ def clean_tags_by_query(**options):
 @click.option('--from', '-f', 'from_', type=int, help='Passed to the search it will bypass the first n documents', default=0)
 @click.option('--size', help='Size of the scroll request that powers the operation.', default=1000)
 @click.option('--sort-by', help='Field to use to sort results', default='_id')
-@click.option('--order-by', help='Order to use to sort results', default='asc', 
+@click.option('--order-by', help='Order to use to sort results', default='asc',
                             type=click.Choice(['asc', 'desc']))
 @click.option('--once/--not-once', help='Download file only once', default=False)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
@@ -155,7 +155,7 @@ def download(**options):
 @click.option('--source', help='A comma-separated list of field to include in the export',
               default='contentType,contentLength:0,extractionDate,path')
 @click.option('--sort-by', help='Field to use to sort results', default='_id')
-@click.option('--order-by', help='Order to use to sort results', default='asc', 
+@click.option('--order-by', help='Order to use to sort results', default='asc',
                             type=click.Choice(['asc', 'desc']))
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
@@ -219,13 +219,22 @@ def list_metadata(**options):
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 @click.option('--group_by', help='Field to use to aggregate results', default=None)
 @click.option('--operation_field', help='Field to run the operation on', default=None)
-@click.option('--run', help='Operation to run ', default='count', 
-                            type=click.Choice(['count', 'nunique', 'sum', 'stats', 'string_stats', 'min', 'max', 'avg', 'date_histogram']))
-@click.option('--calendar_interval', help='Calendar interval for date histogram aggregation', default='year', 
+@click.option('--run', help='Operation to run ', default='count',
+                            type=click.Choice(['count', 'nunique', 'date_histogram', 'sum', 'stats', 'string_stats', 'min', 'max', 'avg']))
+@click.option('--calendar_interval', help='Calendar interval for date histogram aggregation', default='year',
                             type=click.Choice(['year', 'month']))
 def aggregate(**options):
-    # Instantiate a Count class with all the options
-    agg = Aggregate(**options)
+    agg_operation = options['run']
+
+    if agg_operation == 'count':
+        agg = AggCount(**options)
+    elif agg_operation == 'nunique':
+        agg = NumUnique(**options)
+    elif agg_operation == 'date_histogram':
+        agg = DateHistogram(**options)
+    elif agg_operation in ['sum', 'stats', 'string_stats', 'min', 'max', 'avg']:
+        agg = GeneralStats(**options)
+
     agg.start()
 
 

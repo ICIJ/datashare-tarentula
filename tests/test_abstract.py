@@ -1,5 +1,6 @@
 import json
 import os
+import requests
 
 from contextlib import contextmanager
 from os.path import dirname
@@ -16,17 +17,29 @@ class TestAbstract(TestCase):
     datashare_client = None
     datashare_project = 'test-datashare'
 
+
     @classmethod
     def setUpClass(cls):
         cls.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://elasticsearch:9200')
         cls.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8080')
         cls.datashare_client = DatashareClient(cls.datashare_url, cls.elasticsearch_url)
         cls.species_path = absolute_path('tests/fixtures/species.json')
+        cls.luxleaks_path = absolute_path('tests/fixtures/luxleaks-sample.json')
         cls.datashare_client.create(cls.datashare_project)
 
     @classmethod
     def tearDownClass(cls):
         cls.datashare_client.delete_index(cls.datashare_project)
+
+    @property
+    def elasticsearch_version(self):
+        response = requests.get(self.elasticsearch_url)
+        response.raise_for_status()
+        return response.json().get('version').get('number')
+    
+    @property
+    def elasticsearch_version_info(self):
+        return tuple(map(int, self.elasticsearch_version.split('.')))
 
     def index_documents(self, documents=None):
         if documents is None:
@@ -53,6 +66,16 @@ class TestAbstract(TestCase):
                 yield species
             finally:
                 self.delete_documents(species)
+
+    @contextmanager
+    def existing_luxleaks_documents(self):
+        with open(self.luxleaks_path, 'r') as luxleaks_file:
+            luxleaks = json.loads(luxleaks_file.read())
+            self.index_documents(luxleaks)
+            try:
+                yield luxleaks
+            finally:
+                self.delete_documents(luxleaks)
 
     from contextlib import contextmanager
 

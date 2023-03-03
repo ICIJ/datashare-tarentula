@@ -10,6 +10,7 @@ from tarentula.tagging_by_query import TaggerByQuery
 from tarentula.download import Download
 from tarentula.export_by_query import ExportByQuery
 from tarentula.count import Count
+from tarentula.aggregate import AggCount, GeneralStats, DateHistogram, NumUnique
 from tarentula import __version__
 
 
@@ -123,7 +124,7 @@ def clean_tags_by_query(**options):
 @click.option('--from', '-f', 'from_', type=int, help='Passed to the search it will bypass the first n documents', default=0)
 @click.option('--size', help='Size of the scroll request that powers the operation.', default=1000)
 @click.option('--sort-by', help='Field to use to sort results', default='_id')
-@click.option('--order-by', help='Order to use to sort results', default='asc', 
+@click.option('--order-by', help='Order to use to sort results', default='asc',
                             type=click.Choice(['asc', 'desc']))
 @click.option('--once/--not-once', help='Download file only once', default=False)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
@@ -154,7 +155,7 @@ def download(**options):
 @click.option('--source', help='A comma-separated list of field to include in the export',
               default='contentType,contentLength:0,extractionDate,path')
 @click.option('--sort-by', help='Field to use to sort results', default='_id')
-@click.option('--order-by', help='Order to use to sort results', default='asc', 
+@click.option('--order-by', help='Order to use to sort results', default='asc',
                             type=click.Choice(['asc', 'desc']))
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
@@ -203,6 +204,40 @@ def list_metadata(**options):
     metadata.start()
 
 
+@click.command()
+@click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
+@click.option('--datashare-url', help='Datashare URL', default=ConfigFileReader('datashare_url', 'http://localhost:8080'))
+@click.option('--datashare-project', help='Datashare project', default=ConfigFileReader('datashare_project', 'local-datashare'))
+@click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
+                                          'capabilities of Elasticsearch (useful when dealing with a lot of results)',
+              default=None)
+@click.option('--query', help='The query string to filter documents', default='*')
+@click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
+                                'semicolons: key1=val1;key2=val2;...', default='')
+@click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
+@click.option('--type', help='Type of indexed documents to download', default='Document',
+              type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
+@click.option('--group_by', help='Field to use to aggregate results', default=None)
+@click.option('--operation_field', help='Field to run the operation on', default=None)
+@click.option('--run', help='Operation to run ', default='count',
+                            type=click.Choice(['count', 'nunique', 'date_histogram', 'sum', 'stats', 'string_stats', 'min', 'max', 'avg']))
+@click.option('--calendar_interval', help='Calendar interval for date histogram aggregation', default='year',
+                            type=click.Choice(['year', 'month']))
+def aggregate(**options):
+    agg_operation = options['run']
+
+    if agg_operation == 'count':
+        agg = AggCount(**options)
+    elif agg_operation == 'nunique':
+        agg = NumUnique(**options)
+    elif agg_operation == 'date_histogram':
+        agg = DateHistogram(**options)
+    elif agg_operation in ['sum', 'stats', 'string_stats', 'min', 'max', 'avg']:
+        agg = GeneralStats(**options)
+
+    agg.start()
+
+
 cli.add_command(tagging)
 cli.add_command(download)
 cli.add_command(tagging_by_query)
@@ -210,6 +245,8 @@ cli.add_command(clean_tags_by_query)
 cli.add_command(export_by_query)
 cli.add_command(count)
 cli.add_command(list_metadata)
+cli.add_command(aggregate)
+
 
 if __name__ == '__main__':
     cli()

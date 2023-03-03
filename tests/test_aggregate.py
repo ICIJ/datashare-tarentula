@@ -1,5 +1,6 @@
-from json import loads
+import pytest
 
+from json import loads
 from click.testing import CliRunner
 
 from tarentula.cli import cli
@@ -87,8 +88,10 @@ class TestAggregate(TestAbstract):
             self.assertIn('aggregation-1', data)
             self.assertIn('value', data['aggregation-1'])
             self.assertEqual(679475452.0, data['aggregation-1']['value'])
-            
+
     def test_aggregate_string_stats(self):
+        if self.elasticsearch_version_info < (7,11):
+            return pytest.skip("requires ElasticSearch 7.11+")            
         with self.existing_luxleaks_documents():
             runner = CliRunner()
 

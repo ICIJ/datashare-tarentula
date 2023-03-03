@@ -1,5 +1,6 @@
 import json
 import os
+import requests
 
 from contextlib import contextmanager
 from os.path import dirname
@@ -16,6 +17,7 @@ class TestAbstract(TestCase):
     datashare_client = None
     datashare_project = 'test-datashare'
 
+
     @classmethod
     def setUpClass(cls):
         cls.elasticsearch_url = os.environ.get('TEST_ELASTICSEARCH_URL', 'http://elasticsearch:9200')
@@ -28,6 +30,16 @@ class TestAbstract(TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.datashare_client.delete_index(cls.datashare_project)
+
+    @property
+    def elasticsearch_version(self):
+        response = requests.get(self.elasticsearch_url)
+        response.raise_for_status()
+        return response.json().get('version').get('number')
+    
+    @property
+    def elasticsearch_version_info(self):
+        return tuple(map(int, self.elasticsearch_version.split('.')))
 
     def index_documents(self, documents=None):
         if documents is None:

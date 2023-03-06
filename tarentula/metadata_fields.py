@@ -37,10 +37,10 @@ class MetadataFields:
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
             exit()
 
-    def query_mapping(self):
+    def query_mappings(self):
         return self.datashare_client.mappings(self.datashare_project)
 
-    def query_count(self, complete_field_name):
+    def query_field_count(self, complete_field_name):
         query={
             "query": {"bool": {"must": {"match": {"type": self.type}},
                                 "filter": {"exists": {"field": complete_field_name}}}}
@@ -54,17 +54,23 @@ class MetadataFields:
         results = []
         for field, properties in mapping[self.datashare_project]['mappings']['properties'].items():
             complete_field_name = '.'.join(field_stack + [field])
-            count = self.query_count(complete_field_name)
 
             if 'type' in properties:
-                if count["count"] > 0:
-                    results.append({"field": complete_field_name, "type": properties["type"], "count": count["count"]})
+                item = {"field": complete_field_name, "type": properties["type"] }
+                if self.count:
+                    field_count = self.query_field_count(complete_field_name)
+                    if field_count["count"] > 0:
+                        item["count"] = field_count["count"]
+                        results.append(item)
+                else:
+                    results.append(item)
+
             elif 'properties' in properties:
                 results += self.get_fields({self.datashare_project: {
                                     "mappings": mapping[self.datashare_project]['mappings']['properties'][field]}
                                 }, 
                                 field_stack + [field])
-        
+
         return results
 
     def query_mappings(self):

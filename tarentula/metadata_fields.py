@@ -94,8 +94,6 @@ class MetadataFields:
         return self.datashare_client.count(self.datashare_project, query)
 
     def get_fields(self, mapping, field_stack):
-        num_properties = len(mapping[self.datashare_project]['mappings']['properties'])
-        logger.info(f"We found {num_properties} properties indexed")
 
         results = []
         for field, properties in mapping[self.datashare_project]['mappings']['properties'].items():

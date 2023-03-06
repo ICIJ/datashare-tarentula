@@ -161,6 +161,12 @@ class DatashareClient:
             search_after_args = {k: v for k, v in kwargs.items() if k != 'from'}
             response = self.query(search_after=search_after, **search_after_args)
 
+    def mappings(self, index=DATASHARE_DEFAULT_PROJECT):
+        url = urljoin(self.elasticsearch_host, index)
+        return requests.get(url, 
+                             cookies=self.cookies,
+                             headers=self.headers).json()
+
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):
         if query is None: query = {}
         url = urljoin(self.elasticsearch_host, index, '_count')

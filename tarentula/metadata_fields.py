@@ -1,32 +1,40 @@
 import requests
 from json import dumps
 
+from tarentula.datashare_client import DatashareClient
+from tarentula.logger import logger
 from tarentula.datashare_client import urljoin
 
 
 class MetadataFields:
     def __init__(self,
+                 datashare_url: str = 'http://localhost:8080',
                  datashare_project: str = 'local-datashare',
                  elasticsearch_url: str = 'http://elasticsearch:9200',
-                 filter_by: str = '',
+                 cookies: str = '',
+                 apikey: str = None,
+                 traceback: bool = False,
                  type: str = 'Document'):
+        self.datashare_url = datashare_url
         self.elasticsearch_url = elasticsearch_url
         self.datashare_project = datashare_project
-
-        if filter_by and "=" in filter_by:
-            filters = filter_by.split(",")
-            filter_pairs = [map(str.strip, part.split("=")) for part in filters if "=" in part]
-            self.query_filters = [
-                {"term": {f"{k}": f"{v}"}} for k, v in filter_pairs
-            ]
-        else:
-            self.query_filters = []
-
+        self.cookies_string = cookies
+        self.apikey = apikey
+        self.traceback = traceback
         self.type = type
 
+        try:
+            self.datashare_client = DatashareClient(datashare_url,
+                                                    elasticsearch_url,
+                                                    datashare_project,
+                                                    cookies,
+                                                    apikey)
+        except (ConnectionRefusedError, ConnectionError):
+            logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
+            exit()
+
     def query_mapping(self):
-        url = urljoin(self.elasticsearch_url, self.datashare_project)
-        return requests.get(url).json()
+        return self.datashare_client.mappings(self.datashare_project)
 
     def query_count(self, complete_field_name):
         query_filters = self.query_filters + [{"exists": {"field": complete_field_name}}]
@@ -44,12 +52,13 @@ class MetadataFields:
                 }
             }
         }
-        url = urljoin(self.elasticsearch_url, self.datashare_project, '_count')
-        return requests.post(url, json=query).json()
+        return self.datashare_client.count(self.datashare_project, query)
 
     def get_fields(self, mapping, field_stack):
-        results = []
+        num_properties = len(mapping[self.datashare_project]['mappings']['properties'])
+        logger.info(f"We found {num_properties} properties indexed")
 
+        results = []
         for field, properties in mapping[self.datashare_project]['mappings']['properties'].items():
             complete_field_name = '.'.join(field_stack + [field])
             count = self.query_count(complete_field_name)

@@ -202,8 +202,7 @@ def count(**options):
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--type', help='Type of indexed documents to get metadata', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
-@click.option('--filter_by', help='Filter documents by pairs concatenated by coma of field names and values separated by =.'
-                                  'Example "contentType=message/rfc822,contentType=message/rfc822"', default='')
+@click.option('--count/--not-count', help='Count or not the number of docs for each property found', default=True)
 def list_metadata(**options):
     metadata = MetadataFields(**options)
     metadata.start()

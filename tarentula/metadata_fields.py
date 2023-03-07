@@ -36,47 +36,16 @@ class MetadataFields:
             ]
         else:
             self.query_filters = []
-
-    def query_mapping(self):
-        url = urljoin(self.elasticsearch_url, self.datashare_project)
-        return requests.get(url).json()
-
-    def query_count(self, complete_field_name):
-        query_filters = self.query_filters + [{"exists": {"field": complete_field_name}}]
-        query={
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "match": {
-                                "type": self.type
-                            }
-                        }
-                    ],
-                    "filter": query_filters
-                }
-            }
-        }
-        url = urljoin(self.elasticsearch_url, self.datashare_project, '_count')
-        return requests.post(url, json=query).json()
-
-    def get_fields(self, mapping, field_stack):
-        results = []
-
-        for field, properties in mapping[self.datashare_project]['mappings']['properties'].items():
-            complete_field_name = '.'.join(field_stack + [field])
-            count = self.query_count(complete_field_name)
-
-            if 'type' in properties:
-                if count["count"] > 0:
-                    results.append({"field": complete_field_name, "type": properties["type"], "count": count["count"]})
-            elif 'properties' in properties:
-                results += self.get_fields({self.datashare_project: {
-                                    "mappings": mapping[self.datashare_project]['mappings']['properties'][field]}
-                                }, 
-                                field_stack + [field])
-        
-        return results
+            
+        try:
+            self.datashare_client = DatashareClient(datashare_url,
+                                                    elasticsearch_url,
+                                                    datashare_project,
+                                                    cookies,
+                                                    apikey)
+        except (ConnectionRefusedError, ConnectionError):
+            logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
+            exit()
 
     def query_mappings(self):
         return self.datashare_client.mappings(self.datashare_project)

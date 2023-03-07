@@ -17,6 +17,7 @@ class MetadataFields:
                  apikey: str = None,
                  traceback: bool = False,
                  type: str = 'Document',
+                 filter_by: str = '',
                  count: bool = True):
         self.datashare_url = datashare_url
         self.elasticsearch_url = elasticsearch_url
@@ -26,6 +27,15 @@ class MetadataFields:
         self.traceback = traceback
         self.type = type
         self.count = count
+
+        if filter_by and "=" in filter_by:
+            filters = filter_by.split(",")
+            filter_pairs = [map(str.strip, part.split("=")) for part in filters if "=" in part]
+            self.query_filters = [
+                {"term": {f"{k}": f"{v}"}} for k, v in filter_pairs
+            ]
+        else:
+            self.query_filters = []
 
         try:
             self.datashare_client = DatashareClient(datashare_url,
@@ -77,6 +87,7 @@ class MetadataFields:
         return self.datashare_client.mappings(self.datashare_project)
 
     def query_field_count(self, complete_field_name):
+        query_filters = self.query_filters + [{"exists": {"field": complete_field_name}}]
         query={
             "query": {
                 "bool": {
@@ -87,7 +98,7 @@ class MetadataFields:
                             }
                         }
                     ],
-                    "filter": complete_field_name
+                    "filter": query_filters
                 }
             }
         }

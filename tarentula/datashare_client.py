@@ -13,10 +13,12 @@ def urljoin(*args):
 
 
 DATASHARE_DEFAULT_PROJECT = 'local-datashare'
+DATASHARE_DEFAULT_URL = 'http://localhost:8080'
+ELASTICSEARCH_DEFAULT_URL = 'local-datashare'
 
 
 class DatashareClient:
-    def __init__(self, datashare_url='http://localhost:8080', elasticsearch_url=None,
+    def __init__(self, datashare_url=DATASHARE_DEFAULT_URL, elasticsearch_url=ELASTICSEARCH_DEFAULT_URL,
                  datashare_project=DATASHARE_DEFAULT_PROJECT, cookies='', apikey=None):
         self.datashare_url = datashare_url
         self.cookies_string = cookies

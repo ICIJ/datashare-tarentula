@@ -22,7 +22,7 @@ class TestMultiFilter(TestAbstract):
                                         '--elasticsearch-url', self.elasticsearch_url, 
                                         '--datashare-project', self.datashare_project,
                                         '--filter_by', 'type=Document,contentType=message/abc', 
-                                        ])
+                                        '--count'])
             json_result = loads(result.output)
             self.assertEqual([], json_result)
 
@@ -33,7 +33,7 @@ class TestMultiFilter(TestAbstract):
                                         '--elasticsearch-url', self.elasticsearch_url, 
                                         '--datashare-project', self.datashare_project,
                                         '--filter_by', 'type=Document,contentType=image/png', 
-                                        ])
+                                        '--count'])
             json_result = loads(result.output)
             self.assertEqual([{'count': 1, 'field': 'contentType', 'type': 'keyword'},
                             {"count": 1, "field": "extractionDate", "type": "date"},

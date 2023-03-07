@@ -16,8 +16,10 @@ class TestMetadataFields(TestAbstract):
                                "_id": "id1"}
                               ])
         runner = CliRunner()
-        result = runner.invoke(cli, ['list-metadata', '--elasticsearch-url',
-                                     self.elasticsearch_url, '--datashare-project', self.datashare_project])
+        result = runner.invoke(cli, ['list-metadata', 
+                                     '--elasticsearch-url', self.elasticsearch_url, 
+                                     '--datashare-project', self.datashare_project,
+                                     '--count'])
         json_result = loads(result.output)
         self.assertEqual([
             {"field": "contentType", "type": "keyword", "count": 1},
@@ -31,8 +33,10 @@ class TestMetadataFields(TestAbstract):
                                "metadata": {"tika_metadata_dcterms_created": datetime.utcnow().isoformat()}}
                               ])
         runner = CliRunner()
-        result = runner.invoke(cli, ['list-metadata', '--elasticsearch-url',
-                                     self.elasticsearch_url, '--datashare-project', self.datashare_project])
+        result = runner.invoke(cli, ['list-metadata', 
+                                     '--elasticsearch-url', self.elasticsearch_url, 
+                                     '--datashare-project', self.datashare_project,
+                                     '--count'])
         json_result = loads(result.output)
         self.assertEqual([{'count': 1, 'field': 'contentType', 'type': 'keyword'},
                           {'count': 1, 'field': 'extractionDate', 'type': 'date'},
@@ -41,6 +45,44 @@ class TestMetadataFields(TestAbstract):
                            'type': 'date'},
                           {'count': 1, 'field': 'name', 'type': 'text'},
                           {'count': 1, 'field': 'type', 'type': 'keyword'}], json_result)
+    
+    def test_metadata_field_filter_no_sum(self):
+        self.index_documents([
+            {"name": "Antrodiaetidae", "type": "Document", "contentType": "audio/vnd.wave", "_id": "id1"},
+            {"name": "Antrodiaetidae", "type": "Document", "contentType": "message/rfc822", "subject": "hello world", "_id": "id2"}
+        ])
+        runner = CliRunner()
+        result = runner.invoke(cli, ['list-metadata', 
+                                    '--elasticsearch-url', self.elasticsearch_url, 
+                                    '--datashare-project', self.datashare_project,
+                                    '--filter_by', 'contentType=audio/vnd.wave', 
+                                    '--count',
+                                    ])
+        json_result = loads(result.output)
+        self.assertEqual([{'count': 1, 'field': 'contentType', 'type': 'keyword'},
+                          {'count': 1, 'field': 'extractionDate', 'type': 'date'},
+                          {'count': 1, 'field': 'name', 'type': 'text'},
+                          {'count': 1, 'field': 'type', 'type': 'keyword'}], json_result)
+
+    def test_metadata_field_filter_sum(self):
+        self.index_documents([
+            {"name": "Antrodiaetidae", "type": "Document", "contentType": "audio/vnd.wave", "_id": "id1"},
+            {"name": "Antrodiaetidae", "type": "Document", "contentType": "message/rfc822", "subject": "Hello World", "_id": "id2"},
+            {"name": "Antrodiaetidae", "type": "Document", "contentType": "message/rfc822", "subject": "Bye Moon", "_id": "id3"}
+        ])
+        runner = CliRunner()
+        result = runner.invoke(cli, ['list-metadata', 
+                                    '--elasticsearch-url', self.elasticsearch_url, 
+                                    '--datashare-project', self.datashare_project,
+                                    '--filter_by', 'contentType=message/rfc822',
+                                     '--count', 
+                                    ])
+        json_result = loads(result.output)
+        self.assertEqual([{'count': 2, 'field': 'contentType', 'type': 'keyword'},
+                          {'count': 2, 'field': 'extractionDate', 'type': 'date'},
+                          {'count': 2, 'field': 'name', 'type': 'text'},
+                          {'count': 2, 'field': 'subject', 'type': 'text'},
+                          {'count': 2, 'field': 'type', 'type': 'keyword'}], json_result)
 
     def test_dont_count(self):
         self.index_documents([{"name": "Antrodiaetidae", "type": "Document", "contentType": "audio/vnd.wave",
@@ -50,7 +92,7 @@ class TestMetadataFields(TestAbstract):
         result = runner.invoke(cli, ['list-metadata', 
                                     '--elasticsearch-url', self.elasticsearch_url, 
                                      '--datashare-project', self.datashare_project,
-                                     '--not-count'])
+                                     '--no-count'])
         json_result = loads(result.output)
         self.assertGreater(len(json_result), 0)
         self.assertTrue(all(['field' in item for item in json_result]))

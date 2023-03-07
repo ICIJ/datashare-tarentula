@@ -1,7 +1,7 @@
 import requests
 from json import dumps
 
-from tarentula.datashare_client import DatashareClient
+from tarentula.datashare_client import DatashareClient, DATASHARE_DEFAULT_PROJECT, DATASHARE_DEFAULT_URL, ELASTICSEARCH_DEFAULT_URL
 from tarentula.logger import logger
 from tarentula.datashare_client import urljoin
 from tarentula.logger import logger
@@ -10,9 +10,9 @@ from tarentula.datashare_client import urljoin
 
 class MetadataFields:
     def __init__(self,
-                 datashare_url: str = 'http://localhost:8080',
-                 datashare_project: str = 'local-datashare',
-                 elasticsearch_url: str = 'http://elasticsearch:9200',
+                 datashare_url: str = DATASHARE_DEFAULT_URL,
+                 datashare_project: str = DATASHARE_DEFAULT_PROJECT,
+                 elasticsearch_url: str = ELASTICSEARCH_DEFAULT_URL,
                  cookies: str = '',
                  apikey: str = None,
                  traceback: bool = False,

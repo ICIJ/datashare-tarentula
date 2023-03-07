@@ -102,7 +102,7 @@ class DatashareClient:
     def delete_all(self, index):
         url = urljoin(self.elasticsearch_url, index, '_delete_by_query')
         body = {"query": {"match_all": {}}}
-        params = {"conflicts": "proceed", "refresh": True}
+        params = {"conflicts": "proceed", "refresh": 'true'}
         return requests.post(url, json=body, params=params)
 
     def reindex(self, source=DATASHARE_DEFAULT_PROJECT, dest=None, size=1):

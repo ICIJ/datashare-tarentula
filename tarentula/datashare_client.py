@@ -184,12 +184,6 @@ class DatashareClient:
                              cookies=self.cookies,
                              headers=self.headers).json()
 
-    def mappings(self, index=DATASHARE_DEFAULT_PROJECT):
-        url = urljoin(self.elasticsearch_host, index)
-        return requests.get(url, 
-                             cookies=self.cookies,
-                             headers=self.headers).json()
-
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):
         if query is None: query = {}
         url = urljoin(self.elasticsearch_host, index, '_count')

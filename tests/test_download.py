@@ -1,7 +1,6 @@
 import glob
 import json
 from os.path import join
-from glob import glob
 from tempfile import TemporaryDirectory
 
 from click.testing import CliRunner

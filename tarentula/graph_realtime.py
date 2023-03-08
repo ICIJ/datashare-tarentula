@@ -31,6 +31,7 @@ class GraphRealTime:
         plt.show()
 
     def add_point(self, _i):
+        # pylint: disable=invalid-name
         result = requests.post(self.elasticsearch_endpoint, json=self.query, timeout=10).json()
         x = datetime.now()
         # call get on result while there are dots in self.field

@@ -1,9 +1,9 @@
 import logging
 import sys
-from syslog import LOG_LOCAL7
 
-import coloredlogs
+from syslog import LOG_LOCAL7
 from logging.handlers import SysLogHandler
+import coloredlogs
 
 logger = logging.getLogger('tarentula')
 logger.setLevel(logging.INFO)
@@ -14,11 +14,11 @@ def default_log_formatter() -> logging.Formatter:
 
 
 def add_syslog_handler(address: str = 'localhost', port: int = 514, facility: int = LOG_LOCAL7) -> None:
-    sysLogFormatter = default_log_formatter()
-    sysLogHandler = SysLogHandler(address = (address, port), facility = facility)
-    sysLogHandler.setLevel(logging.INFO)
-    sysLogHandler.setFormatter(sysLogFormatter)
-    logger.addHandler(sysLogHandler)
+    syslog_formatter = default_log_formatter()
+    syslog_handler = SysLogHandler(address = (address, port), facility = facility)
+    syslog_handler.setLevel(logging.INFO)
+    syslog_handler.setFormatter(syslog_formatter)
+    logger.addHandler(syslog_handler)
 
 
 def add_stdout_handler(level: int = logging.ERROR) -> None:

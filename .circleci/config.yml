@@ -42,6 +42,10 @@ jobs:
           shell: /bin/sh
           command: wget --retry-connrefused --waitretry=5 --read-timeout=30 --timeout=30 -t 10 http://localhost:8080
       - run:
+          name: Run lint
+          command: |
+            pylint tarentula
+      - run:
           name: Run tests
           command: |
             TEST_ELASTICSEARCH_URL=http://localhost:9200 make test

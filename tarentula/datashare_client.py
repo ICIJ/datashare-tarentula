@@ -1,9 +1,8 @@
-import requests
-
 from contextlib import contextmanager
 from datetime import datetime
 from http.cookies import SimpleCookie
 from uuid import uuid4
+import requests
 
 from tarentula.logger import logger
 
@@ -15,7 +14,7 @@ def urljoin(*args):
 DATASHARE_DEFAULT_PROJECT = 'local-datashare'
 DATASHARE_DEFAULT_URL = 'http://localhost:8080'
 ELASTICSEARCH_DEFAULT_URL = 'local-datashare'
-
+HTTP_REQUEST_TIMEOUT_SEC = 10
 
 
 class DatashareClient:
@@ -41,20 +40,18 @@ class DatashareClient:
     def headers(self):
         if self.apikey is None:
             return None
-        else:
-            return {'Authorization': f'bearer {self.apikey}'}
+        return {'Authorization': f'bearer {self.apikey}'}
 
     @property
     def elasticsearch_host(self):
         if self.elasticsearch_url is not None:
             return self.elasticsearch_url
-        else:
-            # @see https://github.com/ICIJ/datashare/wiki/Datashare-API
-            return urljoin(self.datashare_url, '/api/index/search/')
+        # @see https://github.com/ICIJ/datashare/wiki/Datashare-API
+        return urljoin(self.datashare_url, '/api/index/search/')
 
     def create(self, index=DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.datashare_url, '/api/index/', index)
-        return requests.put(url)
+        return requests.put(url, timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def index(self, index=DATASHARE_DEFAULT_PROJECT, document=None, id=None, routing=None):
         if document is None:
@@ -76,7 +73,7 @@ class DatashareClient:
         document.update({'extractionDate': extraction_date})
         if id is None:
             url = urljoin(self.elasticsearch_url, index, '/_doc?refresh')
-            result = requests.post(url, json=document, params=params)
+            result = requests.post(url, json=document, params=params, timeout=HTTP_REQUEST_TIMEOUT_SEC)
         # When an id is provided, we use PUT method (to update the resource)
         else:
             if routing is None:
@@ -84,39 +81,39 @@ class DatashareClient:
             else:
                 query_params = '?refresh&routing=' + routing
             url = urljoin(self.elasticsearch_url, index, '/_doc/', id, query_params)
-            result = requests.put(url, json=document, params=params)
+            result = requests.put(url, json=document, params=params, timeout=HTTP_REQUEST_TIMEOUT_SEC)
         result.raise_for_status()
         return result.json().get('_id')
 
     def delete(self, index=DATASHARE_DEFAULT_PROJECT, id=None):
         url = urljoin(self.elasticsearch_url, index, '/_doc/', id, '?refresh')
-        return requests.delete(url)
+        return requests.delete(url, timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def refresh(self, index=DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.elasticsearch_url, index, '/_refresh')
-        return requests.post(url)
+        return requests.post(url, timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def delete_index(self, index):
         url = urljoin(self.elasticsearch_url, index)
-        return requests.delete(url)
+        return requests.delete(url, timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def delete_all(self, index):
         url = urljoin(self.elasticsearch_url, index, '_delete_by_query')
         body = {"query": {"match_all": {}}}
         params = {"conflicts": "proceed", "refresh": 'true'}
-        return requests.post(url, json=body, params=params)
+        return requests.post(url, json=body, params=params, timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def reindex(self, source=DATASHARE_DEFAULT_PROJECT, dest=None, size=1):
         # Create a default destination index name
         if dest is None:
-            dest = '%s-copy-%s' % (source, uuid4().hex[:6])
+            dest = f'{source}-copy-{uuid4().hex[:6]}'
         # Source index must at least have one document
         document_id = self.index(source, document={"content": "This is a temporary document", "tags": ["tmp"]})
         # Copy everything
         json = {"source": {"index": source}, "dest": {"index": dest}, "size": size}
         # Send the request to elasticsearch
         url = urljoin(self.elasticsearch_url, '_reindex')
-        result = requests.post(url + '?refresh', json=json)
+        result = requests.post(url + '?refresh', json=json, timeout=HTTP_REQUEST_TIMEOUT_SEC)
         # Delete the dummy docs
         self.delete(source, document_id)
         self.delete(dest, document_id)
@@ -124,7 +121,9 @@ class DatashareClient:
         # Return the dest name
         return dest if result.status_code == requests.codes.ok else None
 
-    def query(self, index=DATASHARE_DEFAULT_PROJECT, query={}, q=None, source=None, scroll=None, **kwargs):
+    def query(self, index=DATASHARE_DEFAULT_PROJECT, query=None, q=None, source=None, scroll=None, **kwargs):
+        if query is None:
+            query = {}
         local_query = {"sort": {"_id": "asc"}, **query, **kwargs}
         if source is not None:
             local_query.update({'_source': source})
@@ -132,7 +131,7 @@ class DatashareClient:
         response = requests.post(url, params={"q": q, "scroll": scroll},
                                  json=local_query,
                                  headers=self.headers,
-                                 cookies=self.cookies)
+                                 cookies=self.cookies, timeout=HTTP_REQUEST_TIMEOUT_SEC)
         response.raise_for_status()
         return response.json()
 
@@ -141,7 +140,7 @@ class DatashareClient:
         body = {"scroll_id": scroll_id, "scroll": scroll}
         response = requests.post(url, json=body,
                                  cookies=self.cookies,
-                                 headers=self.headers)
+                                 headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC)
         response.raise_for_status()
         return response.json()
 
@@ -183,21 +182,21 @@ class DatashareClient:
         url = urljoin(self.elasticsearch_host, index)
         return requests.get(url,
                             cookies=self.cookies,
-                            headers=self.headers).json()
+                            headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
 
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):
         if query is None: query = {}
         url = urljoin(self.elasticsearch_host, index, '_count')
         return requests.post(url, json=query,
                              cookies=self.cookies,
-                             headers=self.headers).json()
+                             headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
 
     def document(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None, source=None):
         url = urljoin(self.elasticsearch_host, index, '/_doc/', id)
         params = {'routing': routing, '_source': source}
         return requests.get(url, params=params,
                             cookies=self.cookies,
-                            headers=self.headers).json()
+                            headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
 
     def download(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None):
         routing = routing or id
@@ -205,7 +204,7 @@ class DatashareClient:
         return requests.get(url, params={'routing': routing},
                             cookies=self.cookies,
                             headers=self.headers,
-                            stream=True)
+                            stream=True, timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def document_url(self, index=DATASHARE_DEFAULT_PROJECT, id='', routing=None):
         routing = id if routing is None else routing
@@ -228,13 +227,13 @@ class DatashareClient:
         source = source_fields_names
         sort = {sort_by: order_by}
         if scroll is None:
-            logger.info('Searching document(s) metadata in %s' % index)
+            logger.info('Searching document(s) metadata in %s', index)
             return self.query_all(
                 **{'index': index, 'query': query_body, 'source': source, 'sort': sort, 'from': from_, 'limit': limit,
                    'size': size})
-        else:
-            logger.info('Scrolling over document(s) metadata in %s' % index)
-            if from_ > 0:
-                logger.warning('"from" will not be used when scrolling documents')
-            scroll_after_args = {'size': size, 'from': from_, 'limit': limit, 'sort': sort}
-            return self.scan_all(index=index, query=query_body, source=source, scroll=scroll, **scroll_after_args)
+
+        logger.info('Scrolling over document(s) metadata in %s', index)
+        if from_ > 0:
+            logger.warning('"from" will not be used when scrolling documents')
+        scroll_after_args = {'size': size, 'from': from_, 'limit': limit, 'sort': sort}
+        return self.scan_all(index=index, query=query_body, source=source, scroll=scroll, **scroll_after_args)

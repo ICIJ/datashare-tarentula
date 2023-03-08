@@ -23,10 +23,12 @@ Options:
   --version                                 Show the installed version of Tarentula
 
 Commands:
+  aggregate
   count
   clean-tags-by-query
   download
   export-by-query
+  list-metadata
   tagging
   tagging-by-query
 ```
@@ -44,6 +46,7 @@ Commands:
   - [Tagging](#tagging)
     - [CSV formats](#csv-formats)
   - [Tagging by Query](#tagging-by-query)
+  - [Aggregate](#aggregate)
   - [Following your changes](#following-your-changes)
 - [Configuration File](#configuration-file)
 - [Testing](#testing)
@@ -156,7 +159,9 @@ Options:
   --source TEXT                   A comma-separated list of field to include
                                   in the downloaded document from the index
 
-  --from INTEGER                  Number of first results to skip in the response.
+  -f, --from INTEGER              Passed to the search it will bypass the
+                                  first n documents
+  -l, --limit INTEGER             Limit the total results to return
   --sort-by TEXT                  Field to use to sort results
   --order-by [asc|desc]           Order to use to sort results
   --once / --not-once             Download file only once
@@ -202,7 +207,9 @@ Options:
   --progressbar / --no-progressbar
                                   Display a progressbar
   --type [Document|NamedEntity]   Type of indexed documents to download
-  --from INTEGER                  Number of first results to skip in the response.
+  -f, --from INTEGER              Passed to the search it will bypass the
+                                  first n documents
+  -l, --limit INTEGER             Limit the total results to return
   --size INTEGER                  Size of the scroll request that powers the
                                   operation.
 
@@ -285,7 +292,9 @@ Options:
 
 ### List Metadata
 
-You can list the metadata from the mapping, with the number of occurrences of each field in the index.
+You can list the metadata from the mapping, optionally counting the number of occurrences of each field in the index, with the `--count` parameter. Counting the fields is disabled by default.
+
+It includes a `--filter_by` parameter to narrow retrieving metadata properties of specific sets of documents. For instance it can be used to get just emails related properties with: `--filter_by contentType=message/rfc822`
 
 ```
 $ tarentula list-metadata --help
@@ -298,8 +307,60 @@ Options:
                                  Elasticsearch (useful when dealing with a lot
                                  of results)
   --type [Document|NamedEntity]  Type of indexed documents to get metadata
+  --filter_by TEXT               Filter documents by pairs concatenated by
+                                 coma of field names and values separated by
+                                 =.Example "contentType=message/rfc822,content
+                                 Type=message/rfc822"
+  --count / --no-count           Count or not the number of docs for each
+                                 property found
+
   --help                         Show this message and exit.
 
+```
+
+### Aggregate
+
+You can run aggregations on the data, the ElasticSearch aggregations API is partially enabled with this command.
+The possibilities are:
+
+- count: grouping by a given field different values, and count the num of docs.
+- nunique: returns the number of unique values of a given field.
+- date_histogram: returns counting of monthly or yearly grouped values for a given date field.
+- sum: returns the sum of values of number type fields.
+- min: returns the min of values of number type fields.
+- max: returns the max of values of number type fields.
+- avg: returns the average of values of number type fields.
+- stats: returns a bunch of statistics for a given number type fields.
+- string_stats: returns a bunch of string statistics for a given string type fields.
+
+
+
+```
+$ tarentula aggregate --help
+Usage: tarentula aggregate [OPTIONS]
+
+Options:
+  --apikey TEXT                   Datashare authentication apikey
+  --datashare-url TEXT            Datashare URL
+  --datashare-project TEXT        Datashare project
+  --elasticsearch-url TEXT        You can additionally pass the Elasticsearch
+                                  URL in order to use scrollingcapabilities of
+                                  Elasticsearch (useful when dealing with a
+                                  lot of results)
+  --query TEXT                    The query string to filter documents
+  --cookies TEXT                  Key/value pair to add a cookie to each
+                                  request to the API. You can
+                                  separatesemicolons: key1=val1;key2=val2;...
+  --traceback / --no-traceback    Display a traceback in case of error
+  --type [Document|NamedEntity]   Type of indexed documents to download
+  --group_by TEXT                 Field to use to aggregate results
+  --operation_field TEXT          Field to run the operation on
+  --run [count|nunique|date_histogram|sum|stats|string_stats|min|max|avg]
+                                  Operation to run
+  --calendar_interval [year|month]
+                                  Calendar interval for date histogram
+                                  aggregation
+  --help                          Show this message and exit.
 ```
 
 ### Following your changes

@@ -96,9 +96,6 @@ additional-builtins=
 
 [BASIC]
 
-# List of builtins function names that should not be used, separated by a comma
-bad-functions=apply,input,reduce
-
 
 # Disable the report(s) with the given id(s).
 # All non-Google reports are disabled by default.

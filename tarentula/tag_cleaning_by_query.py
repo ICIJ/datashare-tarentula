@@ -3,6 +3,7 @@ from http.cookies import SimpleCookie
 
 import requests
 
+from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC
 from tarentula.logger import logger
 
 
@@ -40,8 +41,9 @@ class TagsCleanerByQuery:
     def headers(self):
         if self.apikey is not None:
             return {
-                'Authorization': 'bearer %s' % self.apikey
+                'Authorization': f'bearer {self.apikey}'
             }
+        return None
 
     @property
     def tagging_by_query_endpoint(self):
@@ -52,14 +54,15 @@ class TagsCleanerByQuery:
         logger.info("This action will remove all tags for documents matching query")
         script = {"script": {"source": "ctx._source['tags'] = []"}}
         params = {"wait_for_completion": str(self.wait_for_completion).lower()}
-        result = requests.post(self.tagging_by_query_endpoint, 
-                                params=params, 
-                                json={**script, **self.query},
-                                cookies=self.cookies,
-                                headers=self.headers)
+        result = requests.post(self.tagging_by_query_endpoint,
+                               params=params,
+                               json={**script, **self.query},
+                               cookies=self.cookies,
+                               headers=self.headers,
+                               timeout=HTTP_REQUEST_TIMEOUT_SEC)
         result.raise_for_status()
         if self.wait_for_completion:
-            logger.info('updated %s documents' % result.json()['updated'])
+            logger.info('updated %s documents', result.json()['updated'])
         else:
-            logger.info('task created: [%s]' % result.json()['task'])
+            logger.info('task created: [%s]', result.json()['task'])
         return result

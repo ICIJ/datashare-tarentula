@@ -5,16 +5,17 @@ from os.path import join, isfile
 import configparser
 import os
 
+
 class ConfigFileReader:
-    def __init__(self, name, defaultValue = None, section = 'DEFAULT'):
+    def __init__(self, name, default_value=None, section='DEFAULT'):
         self.name = name
-        self.defaultValue = defaultValue
+        self.default_value = default_value
         self.section = section
 
     def __call__(self) -> Optional[str]:
         if self.config_has_section:
-            return self.config[self.section].get(self.name, self.defaultValue)
-        return self.defaultValue
+            return self.config[self.section].get(self.name, self.default_value)
+        return self.default_value
 
     @property
     def config(self):
@@ -32,6 +33,7 @@ class ConfigFileReader:
         for path in self.config_paths:
             if path is not None and isfile(path):
                 return path
+        return None
 
     @property
     def config_paths(self) -> list:
@@ -47,6 +49,7 @@ class ConfigFileReader:
         env_value = os.getenv('TARENTULA_CONFIG', None)
         if env_value is not None:
             return os.path.abspath(env_value)
+        return None
 
     @property
     def home_directory_path(self) -> str:

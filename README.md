@@ -294,7 +294,7 @@ Options:
 
 You can list the metadata from the mapping, optionally counting the number of occurrences of each field in the index, with the `--count` parameter. Counting the fields is disabled by default.
 
-It includes a `--filter_by` parameter to narrow retrieving metadata properties of specific sets of documents. For instance it can be used to get just emails related properties with: `--filter_by contentType=message/rfc822`
+It includes a `--filter_by` parameter to narrow retrieving metadata properties of specific sets of documents. For instance it can be used to get just emails related properties with: `--filter_by "contentType=message/rfc822"`
 
 ```
 $ tarentula list-metadata --help

@@ -1,11 +1,12 @@
 import csv
+import sys
 
 from collections import OrderedDict
 from contextlib import contextmanager
+from time import sleep
 from requests.exceptions import HTTPError
 from rich.progress import Progress
 from urllib3.exceptions import ProtocolError
-from time import sleep
 
 from tarentula.command import Command
 from tarentula.datashare_client import DatashareClient
@@ -58,7 +59,7 @@ class ExportByQuery(Command):
                                                     apikey)
         except (ConnectionRefusedError, ConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
-            exit()
+            sys.exit()
 
     @property
     def no_progressbar(self):
@@ -110,7 +111,7 @@ class ExportByQuery(Command):
     def log_matches(self):
         index = self.datashare_project
         count = self.count_matches()
-        logger.info('%s matching document(s) in %s' % (count, index))
+        logger.info('%s matching document(s) in %s', count, index)
         return count
 
     def document_default_values(self, document, number):
@@ -148,8 +149,7 @@ class ExportByQuery(Command):
 
     def start(self):
         count = self.log_matches()
-
-        desc = 'Exporting %s document(s)' % count
+        desc = f'Exporting {count} document(s)'
         try:
             with Progress(disable=self.no_progressbar) as progress:
                 task = progress.add_task(desc, total=count)
@@ -161,12 +161,12 @@ class ExportByQuery(Command):
                     for index, document in enumerate(documents):
                         try:
                             self.save_indexed_document(csvwriter, document, index)
-                            logger.info('Saved document %s' % document.get('_id', None))
+                            logger.info('Saved document %s', document.get('_id', None))
                         except HTTPError:
-                            logger.error('Unable to export document %s' % document.get('_id', None),
+                            logger.error('Unable to export document %s', document.get('_id', None),
                                          exc_info=self.traceback)
                         progress.advance(task)
                         self.sleep()
-                logger.info('Written documents metadata in %s' % self.output_file)
+                logger.info('Written documents metadata in %s', self.output_file)
         except ProtocolError:
             logger.error('Exception while exporting documents', exc_info=self.traceback)

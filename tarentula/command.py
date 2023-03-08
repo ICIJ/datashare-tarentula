@@ -31,8 +31,7 @@ class Command:
     def query_body(self):
         if self.query.startswith('@'):
             return self.query_body_from_file
-        else:
-            return self.query_body_from_string
+        return self.query_body_from_string
 
     @property
     def query_body_from_file(self):

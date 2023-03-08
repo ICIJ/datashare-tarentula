@@ -1,5 +1,6 @@
 import json
 import shutil
+import sys
 from os import makedirs
 from os.path import join, dirname, basename, exists
 from time import sleep
@@ -62,7 +63,7 @@ class Download(Command):
                                                     apikey)
         except (ConnectionRefusedError, ConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
-            exit()
+            sys.exit()
 
     @property
     def no_progressbar(self):
@@ -101,19 +102,19 @@ class Download(Command):
     def count_matches(self):
         index = self.datashare_project
         total_matched = self.datashare_client \
-                    .count(index=index, query=self.query_body) \
-                    .get('count')
+            .count(index=index, query=self.query_body) \
+            .get('count')
         total_matched = total_matched - self.from_ if total_matched >= self.from_ \
-                                                    else total_matched
+            else total_matched
         total_matched = total_matched if (self.limit == 0) or \
                                          (self.limit > total_matched) \
-                                      else self.limit
-        return total_matched  
+            else self.limit
+        return total_matched
 
     def log_matches(self):
         index = self.datashare_project
         count = self.count_matches()
-        logger.info('%s matching document(s) in %s' % (count, index))
+        logger.info('%s matching document(s) in %s', count, index)
         return count
 
     def download_raw_file(self, document):
@@ -121,18 +122,21 @@ class Download(Command):
         routing = document.get('_routing', id)
         # Skip raw file
         if not self.raw_file:
-            return
+            return None
         # Skip existing
         if self.once and self.raw_file_exists(document):
-            return logger.info('Skipping existing document %s' % document.get('_id'))
+            logger.info('Skipping existing document %s', document.get('_id'))
+            return None
         # Skip non-downloadable file
         if document.get('_source', {}).get('type', None) != 'Document':
-            return logger.warning('Not a raw document. Skipping %s' % id)
-        logger.info('Downloading raw file %s' % id)
+            logger.warning('Not a raw document. Skipping %s', id)
+            return None
+        logger.info('Downloading raw file %s', id)
         document_file_stream = self.datashare_client.download(self.datashare_project, id, routing)
         document_file_stream.raw.decode_content = True
         document_file_stream.raise_for_status()
         self.save_raw_file(document, document_file_stream)
+        return None
 
     def raw_file_exists(self, document):
         raw_file_path = self.raw_file_path(document)
@@ -150,20 +154,20 @@ class Download(Command):
 
     def start(self):
         count = self.log_matches()
-        desc = "Downloading %s document(s)" % count
+        desc = f'Downloading {count} document(s)'
         source = ["path", "parentDocument", "type"] + str(self.source).split(',')
         try:
-            with Progress(disable=self.no_progressbar) as progress:  
+            with Progress(disable=self.no_progressbar) as progress:
                 task = progress.add_task(desc, total=count)
                 for document in self.datashare_client.scan_or_query_all(self.datashare_project, source, self.sort_by,
-                                              self.order_by, self.scroll, self.query_body,
-                                              self.from_, self.limit, self.size):
+                                                                        self.order_by, self.scroll, self.query_body,
+                                                                        self.from_, self.limit, self.size):
                     try:
                         self.download_raw_file(document)
                         self.save_indexed_document(document)
-                        logger.info('Processed document %s' % document.get('_id'))
+                        logger.info('Processed document %s', document.get('_id'))
                     except HTTPError:
-                        logger.error('Unable to download document %s' % document.get('_id'), exc_info=self.traceback)
+                        logger.error('Unable to download document %s', document.get('_id'), exc_info=self.traceback)
                     progress.advance(task)
                     self.sleep()
         except ProtocolError:

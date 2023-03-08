@@ -17,6 +17,7 @@ DATASHARE_DEFAULT_URL = 'http://localhost:8080'
 ELASTICSEARCH_DEFAULT_URL = 'local-datashare'
 
 
+
 class DatashareClient:
     def __init__(self, datashare_url=DATASHARE_DEFAULT_URL, elasticsearch_url=ELASTICSEARCH_DEFAULT_URL,
                  datashare_project=DATASHARE_DEFAULT_PROJECT, cookies='', apikey=None):
@@ -41,7 +42,7 @@ class DatashareClient:
         if self.apikey is None:
             return None
         else:
-            return {'Authorization': 'bearer %s' % self.apikey}
+            return {'Authorization': f'bearer {self.apikey}'}
 
     @property
     def elasticsearch_host(self):
@@ -166,10 +167,10 @@ class DatashareClient:
 
             for item in response['hits']['hits']:
                 yield item
-                
+
             # update size window for next iteration
             num_yielded += len(response['hits']['hits'])
-            if (limit != 0) and (kwargs['size'] + num_yielded > limit ):
+            if (limit != 0) and (kwargs['size'] + num_yielded > limit):
                 kwargs['size'] = limit - num_yielded
             if kwargs['size'] == 0:
                 break
@@ -180,9 +181,9 @@ class DatashareClient:
 
     def mappings(self, index=DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.elasticsearch_host, index)
-        return requests.get(url, 
-                             cookies=self.cookies,
-                             headers=self.headers).json()
+        return requests.get(url,
+                            cookies=self.cookies,
+                            headers=self.headers).json()
 
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):
         if query is None: query = {}
@@ -221,14 +222,16 @@ class DatashareClient:
                 self.delete_index(project)
         return project
 
-    def scan_or_query_all(self, datashare_project, source_fields_names, sort_by, order_by, scroll, query_body, from_, limit, size):
+    def scan_or_query_all(self, datashare_project, source_fields_names, sort_by, order_by, scroll, query_body, from_,
+                          limit, size):
         index = datashare_project
         source = source_fields_names
         sort = {sort_by: order_by}
         if scroll is None:
             logger.info('Searching document(s) metadata in %s' % index)
             return self.query_all(
-                **{'index': index, 'query': query_body, 'source': source, 'sort': sort, 'from': from_, 'limit': limit, 'size': size})
+                **{'index': index, 'query': query_body, 'source': source, 'sort': sort, 'from': from_, 'limit': limit,
+                   'size': size})
         else:
             logger.info('Scrolling over document(s) metadata in %s' % index)
             if from_ > 0:

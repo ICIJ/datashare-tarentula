@@ -66,11 +66,11 @@ class ExportByQuery(Command):
 
     @property
     def source_fields(self):
-        return [ self.source_field_params(f) for f in self.source.split(',') ]
+        return [self.source_field_params(f) for f in self.source.split(',')]
 
     @property
     def source_fields_names(self):
-        return [ field.pop(0) for field in self.source_fields ]
+        return [field.pop(0) for field in self.source_fields]
 
     @property
     def csv_fields_names(self):
@@ -98,14 +98,14 @@ class ExportByQuery(Command):
     def count_matches(self):
         index = self.datashare_project
         total_matched = self.datashare_client \
-                    .count(index=index, query=self.query_body) \
-                    .get('count')
+            .count(index=index, query=self.query_body) \
+            .get('count')
         total_matched = total_matched - self.from_ if total_matched >= self.from_ \
-                                                    else total_matched
+            else total_matched
         total_matched = total_matched if (self.limit == 0) or \
                                          (self.limit > total_matched) \
-                                      else self.limit
-        return total_matched  
+            else self.limit
+        return total_matched
 
     def log_matches(self):
         index = self.datashare_project
@@ -118,8 +118,8 @@ class ExportByQuery(Command):
         id = document.get('_id')
         routing = document.get('_routing', id)
         url = self.datashare_client.document_url(index, id, routing)
-        return { 'query': self.query, 'documentUrl': url, 'documentId': id,
-                 'rootId': routing, 'documentNumber': number }
+        return {'query': self.query, 'documentUrl': url, 'documentId': id,
+                'rootId': routing, 'documentNumber': number}
 
     def document_source_values(self, document):
         source_values = {}
@@ -137,7 +137,7 @@ class ExportByQuery(Command):
     def save_indexed_document(self, csvwriter, document, document_number):
         default_values = self.document_default_values(document, document_number)
         source_values = self.document_source_values(document)
-        csvwriter.writerow({ **default_values, **source_values })
+        csvwriter.writerow({**default_values, **source_values})
 
     @contextmanager
     def create_csv_file(self):
@@ -148,14 +148,15 @@ class ExportByQuery(Command):
 
     def start(self):
         count = self.log_matches()
-        
+
         desc = 'Exporting %s document(s)' % count
         try:
-            with Progress(disable=self.no_progressbar) as progress:  
-                task = progress.add_task(desc, total=count) 
-                documents = self.datashare_client.scan_or_query_all(self.datashare_project, self.source_fields_names, self.sort_by,
-                                              self.order_by, self.scroll, self.query_body,
-                                              self.from_, self.limit, self.size)
+            with Progress(disable=self.no_progressbar) as progress:
+                task = progress.add_task(desc, total=count)
+                documents = self.datashare_client.scan_or_query_all(self.datashare_project, self.source_fields_names,
+                                                                    self.sort_by,
+                                                                    self.order_by, self.scroll, self.query_body,
+                                                                    self.from_, self.limit, self.size)
                 with self.create_csv_file() as csvwriter:
                     for index, document in enumerate(documents):
                         try:
@@ -163,7 +164,7 @@ class ExportByQuery(Command):
                             logger.info('Saved document %s' % document.get('_id', None))
                         except HTTPError:
                             logger.error('Unable to export document %s' % document.get('_id', None),
-                                exc_info=self.traceback)
+                                         exc_info=self.traceback)
                         progress.advance(task)
                         self.sleep()
                 logger.info('Written documents metadata in %s' % self.output_file)

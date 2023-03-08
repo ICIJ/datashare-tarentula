@@ -107,19 +107,18 @@ class Tagger:
         logger.info(summary)
         return summary
 
-    
     def start(self):
-        with Progress(disable=self.no_progressbar) as progress:     
+        with Progress(disable=self.no_progressbar) as progress:
             desc = self.summarize()
-            task = progress.add_task(desc, total=self.total_steps) 
+            task = progress.add_task(desc, total=self.total_steps)
             for document_id, leaf in self.tree.items():
                 endpoint_url = self.leaf_tagging_endpoint(leaf)
                 for tag in leaf['tags']:
                     try:
-                        result = requests.put(endpoint_url, 
-                                                json=[tag], 
-                                                cookies=self.cookies,
-                                                headers=self.headers)
+                        result = requests.put(endpoint_url,
+                                              json=[tag],
+                                              cookies=self.cookies,
+                                              headers=self.headers)
                         result.raise_for_status()
                         if result.status_code == requests.codes.ok:
                             logger.info('Tag "%s" already exists on document "%s"' % (tag, document_id,))
@@ -127,5 +126,6 @@ class Tagger:
                             logger.info('Added "%s" to document "%s"' % (tag, document_id,))
                         self.sleep()
                     except (HTTPError, ConnectionError):
-                        logger.warning('Unable to add "%s" to document "%s"' % (tag, document_id), exc_info=self.traceback)
+                        logger.warning('Unable to add "%s" to document "%s"' % (tag, document_id),
+                                       exc_info=self.traceback)
                     progress.advance(task)

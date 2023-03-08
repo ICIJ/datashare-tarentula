@@ -1,5 +1,5 @@
-import click
 import logging
+import click
 
 from tarentula.config_file_reader import ConfigFileReader
 from tarentula.logger import add_syslog_handler, add_stdout_handler
@@ -15,15 +15,17 @@ from tarentula import __version__
 
 
 def validate_loglevel(ctx, param, value):
+    # pylint: disable=unused-argument
     try:
         if isinstance(value, str):
             return getattr(logging, value)
         return int(value)
-    except (AttributeError, ValueError):
-        raise click.BadParameter('must be a valid log level (CRITICAL, ERROR, WARNING, INFO, DEBUG or NOTSET)')
+    except (AttributeError, ValueError) as exc:
+        raise click.BadParameter('must be a valid log level (CRITICAL, ERROR, WARNING, INFO, DEBUG or NOTSET)') from exc
 
 
 def validate_progressbar(ctx, param, value):
+    # pylint: disable=unused-argument
     # If no value given, we activate the progress bar only when the
     # stdout_loglevel value is higher than INFO (20)
     return value if value is not None else ctx.obj['stdout_loglevel'] > 20
@@ -143,8 +145,8 @@ def clean_tags_by_query(**options):
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 def download(**options):
     # Instantiate a Download class with all the options
-    download = Download(**options)
-    download.start()
+    downl = Download(**options)
+    downl.start()
 
 
 @click.command()
@@ -200,8 +202,8 @@ def export_by_query(**options):
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
 def count(**options):
     # Instantiate a Count class with all the options
-    count = Count(**options)
-    count.start()
+    cnt = Count(**options)
+    cnt.start()
 
 
 @click.command()
@@ -274,4 +276,4 @@ cli.add_command(list_metadata)
 cli.add_command(aggregate)
 
 if __name__ == '__main__':
-    cli()
+    cli(None) # ctx from @cli.pass_context

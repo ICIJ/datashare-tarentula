@@ -44,7 +44,7 @@ jobs:
       - run:
           name: Run lint
           command: |
-            pylint tarentula
+            poetry run pylint tarentula
       - run:
           name: Run tests
           command: |

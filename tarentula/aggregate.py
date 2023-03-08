@@ -1,10 +1,11 @@
 import json
 
+from tarentula.command import Command
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
 
 
-class Aggregate:
+class Aggregate(Command):
     def __init__(self,
                  datashare_url: str = 'http://localhost:8080',
                  datashare_project: str = 'local-datashare',
@@ -19,13 +20,12 @@ class Aggregate:
                  run: str = 'count',
                  calendar_interval: str = 'year'
                  ):
+        super().__init__(query, type)
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
-        self.query = query
         self.cookies_string = cookies
         self.apikey = apikey
         self.traceback = traceback
-        self.type = type
         self.group_by = group_by
         self.run = run
         self.operation_field = operation_field
@@ -42,41 +42,13 @@ class Aggregate:
             exit()
 
     @property
-    def query_body(self):
-        if self.query.startswith('@'):
-            return self.query_body_from_file
-        else:
-            return self.query_body_from_string
-
-    @property
     def query_body_from_string(self):
         return {
             "aggs": {
                 "aggregation-1": self.agg_level_1,
             },
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "match": {
-                                "type": self.type
-                            }
-                        },
-                        {
-                            "query_string": {
-                                "query": self.query
-                            }
-                        }
-                    ]
-                }
-            }
+            "query": (super().query_body_from_string['query'])
         }
-
-    @property
-    def query_body_from_file(self):
-        with open(self.query[1:]) as json_file:
-            query_body = json.load(json_file)
-        return query_body
 
     def aggregate_matches(self):
         index = self.datashare_project

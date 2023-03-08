@@ -1,4 +1,4 @@
-import json
+import sys
 
 from tarentula.command import Command
 from tarentula.datashare_client import DatashareClient
@@ -29,7 +29,7 @@ class Count(Command):
                                                     apikey)
         except (ConnectionRefusedError, ConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
-            exit()
+            sys.exit()
 
     def count_matches(self):
         index = self.datashare_project
@@ -38,10 +38,10 @@ class Count(Command):
     def log_matches(self):
         index = self.datashare_project
         count = self.count_matches()
-        logger.info('%s matching document(s) in %s' % (count, index))
+        logger.info('%s matching document(s) in %s', count, index)
         return count
 
     def start(self):
         count = self.log_matches()
-        logger.info('Number of matched elements: %s' % count)
-        print('Number of matched elements: %s' % count)
+        logger.info('Number of matched elements: %s', count)
+        print(f'Number of matched elements: {count}')

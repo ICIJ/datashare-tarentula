@@ -1,5 +1,4 @@
 import csv
-import json
 
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -8,11 +7,12 @@ from rich.progress import Progress
 from urllib3.exceptions import ProtocolError
 from time import sleep
 
+from tarentula.command import Command
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
 
 
-class ExportByQuery:
+class ExportByQuery(Command):
     def __init__(self,
                  datashare_url: str = 'http://localhost:8080',
                  datashare_project: str = 'local-datashare',
@@ -33,9 +33,9 @@ class ExportByQuery:
                  progressbar: bool = True,
                  type: str = 'Document',
                  query_field: bool = True):
+        super().__init__(query, type)
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
-        self.query = query
         self.output_file = output_file
         self.throttle = throttle
         self.cookies_string = cookies
@@ -49,7 +49,6 @@ class ExportByQuery:
         self.limit = limit
         self.sort_by = sort_by
         self.order_by = order_by
-        self.type = type
         self.query_field = query_field
         try:
             self.datashare_client = DatashareClient(datashare_url,
@@ -60,40 +59,6 @@ class ExportByQuery:
         except (ConnectionRefusedError, ConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
             exit()
-
-    @property
-    def query_body(self):
-        if self.query.startswith('@'):
-            return self.query_body_from_file
-        else:
-            return self.query_body_from_string
-
-    @property
-    def query_body_from_string(self):
-        return {
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "match": {
-                                "type": self.type
-                            }
-                        },
-                        {
-                            "query_string": {
-                                "query": self.query
-                            }
-                        }
-                    ]
-                }
-            }
-        }
-
-    @property
-    def query_body_from_file(self):
-        with open(self.query[1:]) as json_file:
-            query_body = json.load(json_file)
-        return query_body
 
     @property
     def no_progressbar(self):

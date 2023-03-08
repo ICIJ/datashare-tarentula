@@ -1,10 +1,11 @@
 import json
 
+from tarentula.command import Command
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
 
 
-class Count:
+class Count(Command):
     def __init__(self,
                  datashare_url: str = 'http://localhost:8080',
                  datashare_project: str = 'local-datashare',
@@ -14,13 +15,12 @@ class Count:
                  elasticsearch_url: str = None,
                  traceback: bool = False,
                  type: str = 'Document'):
+        super().__init__(query, type)
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
-        self.query = query
         self.cookies_string = cookies
         self.apikey = apikey
         self.traceback = traceback
-        self.type = type
         try:
             self.datashare_client = DatashareClient(datashare_url,
                                                     elasticsearch_url,
@@ -30,40 +30,6 @@ class Count:
         except (ConnectionRefusedError, ConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
             exit()
-
-    @property
-    def query_body(self):
-        if self.query.startswith('@'):
-            return self.query_body_from_file
-        else:
-            return self.query_body_from_string
-
-    @property
-    def query_body_from_string(self):
-        return {
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "match": {
-                                "type": self.type
-                            }
-                        },
-                        {
-                            "query_string": {
-                                "query": self.query
-                            }
-                        }
-                    ]
-                }
-            }
-        }
-
-    @property
-    def query_body_from_file(self):
-        with open(self.query[1:]) as json_file:
-            query_body = json.load(json_file)
-        return query_body
 
     def count_matches(self):
         index = self.datashare_project

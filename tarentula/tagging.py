@@ -1,11 +1,12 @@
 import csv
 import re
-import requests
 from time import sleep
-from rich.progress import Progress
 from http.cookies import SimpleCookie
+from rich.progress import Progress
+import requests
 from requests.exceptions import HTTPError, ConnectionError
 
+from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC
 from tarentula.logger import logger
 
 DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/d/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
@@ -44,7 +45,7 @@ class Tagger:
         return list(dict.fromkeys([row['tag'] for row in self.csv_rows]))
 
     @property
-    def documentIds(self):
+    def document_ids(self):
         return list(dict.fromkeys([row['documentId'] for row in self.csv_rows]))
 
     @property
@@ -74,8 +75,9 @@ class Tagger:
     def headers(self):
         if self.apikey is not None:
             return {
-                'Authorization': 'bearer %s' % self.apikey
+                'Authorization': f'bearer {self.apikey}'
             }
+        return None
 
     @property
     def total_steps(self):
@@ -92,7 +94,7 @@ class Tagger:
         return row
 
     def leaf_tagging_endpoint(self, leaf):
-        document_id, tags, routing = (leaf['document_id'], leaf['tags'], leaf['routing'])
+        document_id, routing = (leaf['document_id'], leaf['routing'])
         # @see https://github.com/ICIJ/datashare/wiki/Datashare-API
         url_template = '{datashare_url}/api/{datashare_project}/documents/tags/{document_id}?routing={routing}'
         return url_template.format(
@@ -103,7 +105,7 @@ class Tagger:
         )
 
     def summarize(self):
-        summary = 'Adding %s tags to %s documents' % (len(self.tags), len(self.documentIds))
+        summary = f'Adding {len(self.tags)} tags to {len(self.document_ids)} documents'
         logger.info(summary)
         return summary
 
@@ -118,14 +120,15 @@ class Tagger:
                         result = requests.put(endpoint_url,
                                               json=[tag],
                                               cookies=self.cookies,
-                                              headers=self.headers)
+                                              headers=self.headers,
+                                              timeout=HTTP_REQUEST_TIMEOUT_SEC)
                         result.raise_for_status()
                         if result.status_code == requests.codes.ok:
-                            logger.info('Tag "%s" already exists on document "%s"' % (tag, document_id,))
+                            logger.info('Tag "%s" already exists on document "%s"', tag, document_id)
                         elif result.status_code == requests.codes.created:
-                            logger.info('Added "%s" to document "%s"' % (tag, document_id,))
+                            logger.info('Added "%s" to document "%s"', tag, document_id)
                         self.sleep()
                     except (HTTPError, ConnectionError):
-                        logger.warning('Unable to add "%s" to document "%s"' % (tag, document_id),
+                        logger.warning('Unable to add "%s" to document "%s"', tag, document_id,
                                        exc_info=self.traceback)
                     progress.advance(task)

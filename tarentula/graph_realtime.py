@@ -17,7 +17,7 @@ class GraphRealTime:
         else:
             self.query = json.loads(query)
         self.field = field
-        self.elasticsearch_endpoint = '%s/%s/_search?size=0' % (elasticsearch_url, index)
+        self.elasticsearch_endpoint = f'{elasticsearch_url}/{index}/_search?size=0'
         self.refresh_interval = refresh_interval
         self.xs = [] if xs_param is None else xs_param
         self.ys = [] if xs_param is None else ys_param
@@ -31,7 +31,7 @@ class GraphRealTime:
         plt.show()
 
     def add_point(self, _i):
-        result = requests.post(self.elasticsearch_endpoint, json=self.query).json()
+        result = requests.post(self.elasticsearch_endpoint, json=self.query, timeout=10).json()
         x = datetime.now()
         # call get on result while there are dots in self.field
         y = functools.reduce(dict.get, [result] + self.field.split('.'))
@@ -42,17 +42,21 @@ class GraphRealTime:
         self.ax.plot(self.xs, self.ys)
 
         plt.xticks(rotation=45, ha='right')
-        plt.title("Dynamic Plot of %s" % self.field)
-        plt.xlabel("Time")
+        plt.title(f'Dynamic Plot of {self.field}')
+        plt.xlabel('Time')
         plt.ylabel(self.field)
 
 
 @click.command()
-@click.option('--query', help='Give a JSON query to filter documents. It can be a file with @path/to/file. Default to all.', default='{"query":{"match_all":{}}}')
+@click.option('--query',
+              help='Give a JSON query to filter documents. It can be a file with @path/to/file. Default to all.',
+              default='{"query":{"match_all":{}}}')
 @click.option('--index', help='Elasticsearch index (default local-datashare)', default='local-datashare')
 @click.option('--refresh-interval', help='Graph refresh interval in seconds (default 5)', default=5)
-@click.option('--field', help='Field indicator to display over time (default hits.total.value)', default='hits.total.value')
-@click.option('--elasticsearch-url', help='Elasticsearch URL which is used to perform update by query', default='http://elasticsearch:9200')
+@click.option('--field', help='Field indicator to display over time (default hits.total.value)',
+              default='hits.total.value')
+@click.option('--elasticsearch-url', help='Elasticsearch URL which is used to perform update by query',
+              default='http://elasticsearch:9200')
 def graph(**options) -> None:
     GraphRealTime(**options).show_graph()
 

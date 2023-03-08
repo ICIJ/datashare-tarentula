@@ -1,11 +1,8 @@
-import requests
 from json import dumps
 
-from tarentula.datashare_client import DatashareClient, DATASHARE_DEFAULT_PROJECT, DATASHARE_DEFAULT_URL, ELASTICSEARCH_DEFAULT_URL
+from tarentula.datashare_client import DatashareClient, DATASHARE_DEFAULT_PROJECT, DATASHARE_DEFAULT_URL, \
+    ELASTICSEARCH_DEFAULT_URL
 from tarentula.logger import logger
-from tarentula.datashare_client import urljoin
-from tarentula.logger import logger
-from tarentula.datashare_client import urljoin
 
 
 class MetadataFields:
@@ -36,7 +33,7 @@ class MetadataFields:
             ]
         else:
             self.query_filters = []
-            
+
         try:
             self.datashare_client = DatashareClient(datashare_url,
                                                     elasticsearch_url,
@@ -51,9 +48,9 @@ class MetadataFields:
         return self.datashare_client.mappings(self.datashare_project)
 
     def query_field_count(self, complete_field_name):
-        query={
+        query = {
             "query": {"bool": {"must": {"match": {"type": self.type}},
-                                "filter": {"exists": {"field": complete_field_name}}}}
+                               "filter": {"exists": {"field": complete_field_name}}}}
         }
         return self.datashare_client.count(self.datashare_project, query)
 
@@ -66,7 +63,7 @@ class MetadataFields:
             complete_field_name = '.'.join(field_stack + [field])
 
             if 'type' in properties:
-                item = {"field": complete_field_name, "type": properties["type"] }
+                item = {"field": complete_field_name, "type": properties["type"]}
                 if self.count:
                     field_count = self.query_field_count(complete_field_name)
                     if field_count["count"] > 0:
@@ -77,9 +74,9 @@ class MetadataFields:
 
             elif 'properties' in properties:
                 results += self.get_fields({self.datashare_project: {
-                                    "mappings": mapping[self.datashare_project]['mappings']['properties'][field]}
-                                }, 
-                                field_stack + [field])
+                    "mappings": mapping[self.datashare_project]['mappings']['properties'][field]}
+                },
+                    field_stack + [field])
 
         return results
 
@@ -88,7 +85,7 @@ class MetadataFields:
 
     def query_field_count(self, complete_field_name):
         query_filters = self.query_filters + [{"exists": {"field": complete_field_name}}]
-        query={
+        query = {
             "query": {
                 "bool": {
                     "must": [
@@ -111,7 +108,7 @@ class MetadataFields:
             complete_field_name = '.'.join(field_stack + [field])
 
             if 'type' in properties:
-                item = {"field": complete_field_name, "type": properties["type"] }
+                item = {"field": complete_field_name, "type": properties["type"]}
                 if self.count:
                     field_count = self.query_field_count(complete_field_name)
                     if field_count["count"] > 0:
@@ -122,14 +119,14 @@ class MetadataFields:
 
             elif 'properties' in properties:
                 results += self.get_fields({self.datashare_project: {
-                                    "mappings": mapping[self.datashare_project]['mappings']['properties'][field]}
-                                }, 
-                                field_stack + [field])
+                    "mappings": mapping[self.datashare_project]['mappings']['properties'][field]}
+                },
+                    field_stack + [field])
 
         return results
 
     def start(self):
-        mapping = self.query_mappings()        
-        
+        mapping = self.query_mappings()
+
         fields = self.get_fields(mapping, [])
         print(dumps(fields))

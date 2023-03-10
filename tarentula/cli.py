@@ -250,7 +250,8 @@ def list_metadata(**options):
               type=click.Choice(
                   ['count', 'nunique', 'date_histogram', 'sum', 'stats', 'string_stats', 'min', 'max', 'avg']))
 @click.option('--calendar_interval', help='Calendar interval for date histogram aggregation', default='year',
-              type=click.Choice(['year', 'month']))
+                            type=click.Choice(['year', 'month']))
+@click.option('--csv_format', help='Output in tabular format instead of json', default=True)
 def aggregate(**options):
     agg_operation = options['run']
 

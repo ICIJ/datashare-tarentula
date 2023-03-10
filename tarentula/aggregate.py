@@ -1,5 +1,6 @@
 import json
 import sys
+import csv
 
 from tarentula.command import Command
 from tarentula.datashare_client import DatashareClient
@@ -19,7 +20,8 @@ class Aggregate(Command):
                  group_by: str = 'contentType',
                  operation_field: str = None,
                  run: str = 'count',
-                 calendar_interval: str = 'year'
+                 calendar_interval: str = 'year',
+                 csv_format: bool = True,
                  ):
         super().__init__(query, type)
         self.datashare_url = datashare_url
@@ -31,6 +33,7 @@ class Aggregate(Command):
         self.run = run
         self.operation_field = operation_field
         self.calendar_interval = calendar_interval
+        self.csv_format = csv_format
         self.agg_level_1 = None
         try:
             self.datashare_client = DatashareClient(datashare_url,
@@ -55,10 +58,20 @@ class Aggregate(Command):
         index = self.datashare_project
         return self.datashare_client.query(index=index, query=self.query_body).get('aggregations')
 
+    @staticmethod
+    def tabular(agg):
+        keys = agg['aggregation-1'].keys()
+        spamwriter = csv.writer(sys.stdout, delimiter=',', quotechar='"')
+        spamwriter.writerow(keys)
+        spamwriter.writerow(["{}".format(agg['aggregation-1'][k]) for k in keys])
+
     def start(self):
         agg = self.aggregate_matches()
-        print(json.dumps(agg, indent=4))
-
+        if self.csv_format:
+            self.tabular(agg)
+        else:
+            print(json.dumps(agg, indent=4))
+    
 
 class AggCount(Aggregate):
 
@@ -82,6 +95,22 @@ class AggCount(Aggregate):
             }
         }
         return super().query_body_from_string
+
+    @staticmethod
+    def tabular(agg):
+        items = agg['aggregation-1']['buckets']
+        
+        # get all unique keys
+        keys = []
+        for item in items:
+            keys += item.keys()
+        keys = list(set(keys))
+
+        spamwriter = csv.writer(sys.stdout, delimiter=',', quotechar='"')
+        spamwriter.writerow(keys)
+        for item in items:
+            row = ["{}".format(item[k]) if k in item.keys() else None for k in keys]
+            spamwriter.writerow(row)
 
 
 class NumUnique(Aggregate):
@@ -108,6 +137,21 @@ class DateHistogram(Aggregate):
         }
         return super().query_body_from_string
 
+    @staticmethod
+    def tabular(agg):
+        items = agg['aggregation-1']['buckets']
+        
+        # get all unique keys
+        keys = []
+        for item in items:
+            keys += item.keys()
+        keys = list(set(keys))
+
+        spamwriter = csv.writer(sys.stdout, delimiter=',', quotechar='"')
+        spamwriter.writerow(keys)
+        for item in items:
+            row = ["{}".format(item[k]) if k in item.keys() else None for k in keys]
+            spamwriter.writerow(row)
 
 class GeneralStats(Aggregate):
     """Run one of the following agreggations: 'sum', 'stats', 'string_stats', 'min', 'max', 'avg' """

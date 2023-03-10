@@ -99,7 +99,6 @@ class AggCount(Aggregate):
     @staticmethod
     def tabular(agg):
         items = agg['aggregation-1']['buckets']
-
         # get all unique keys
         keys = []
         for item in items:
@@ -140,7 +139,7 @@ class DateHistogram(Aggregate):
     @staticmethod
     def tabular(agg):
         items = agg['aggregation-1']['buckets']
-
+        
         # get all unique keys
         keys = []
         for item in items:

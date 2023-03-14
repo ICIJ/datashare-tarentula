@@ -63,7 +63,7 @@ class Aggregate(Command):
         keys = agg['aggregation-1'].keys()
         spamwriter = csv.writer(sys.stdout, delimiter=',', quotechar='"')
         spamwriter.writerow(keys)
-        spamwriter.writerow(["{}".format(agg['aggregation-1'][k]) for k in keys])
+        spamwriter.writerow([f"{agg['aggregation-1'][k]}" for k in keys])
 
     def start(self):
         agg = self.aggregate_matches()
@@ -71,7 +71,7 @@ class Aggregate(Command):
             self.tabular(agg)
         else:
             print(json.dumps(agg, indent=4))
-    
+
 
 class AggCount(Aggregate):
 
@@ -99,7 +99,7 @@ class AggCount(Aggregate):
     @staticmethod
     def tabular(agg):
         items = agg['aggregation-1']['buckets']
-        
+
         # get all unique keys
         keys = []
         for item in items:
@@ -109,7 +109,7 @@ class AggCount(Aggregate):
         spamwriter = csv.writer(sys.stdout, delimiter=',', quotechar='"')
         spamwriter.writerow(keys)
         for item in items:
-            row = ["{}".format(item[k]) if k in item.keys() else None for k in keys]
+            row = [f"{item[k]}" if k in item.keys() else None for k in keys]
             spamwriter.writerow(row)
 
 
@@ -140,7 +140,7 @@ class DateHistogram(Aggregate):
     @staticmethod
     def tabular(agg):
         items = agg['aggregation-1']['buckets']
-        
+
         # get all unique keys
         keys = []
         for item in items:
@@ -150,7 +150,7 @@ class DateHistogram(Aggregate):
         spamwriter = csv.writer(sys.stdout, delimiter=',', quotechar='"')
         spamwriter.writerow(keys)
         for item in items:
-            row = ["{}".format(item[k]) if k in item.keys() else None for k in keys]
+            row = [f"{item[k]}" if k in item.keys() else None for k in keys]
             spamwriter.writerow(row)
 
 class GeneralStats(Aggregate):

@@ -143,7 +143,7 @@ class ExportByQuery(Command):
     @contextmanager
     def create_csv_file(self):
         with open(self.output_file, 'w', newline='') as csv_file:
-            writer = csv.DictWriter(csv_file, 
+            writer = csv.DictWriter(csv_file,
                                     fieldnames=self.csv_fields_names,
                                     escapechar='\\')
             writer.writeheader()

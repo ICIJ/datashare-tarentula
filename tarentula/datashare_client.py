@@ -14,7 +14,7 @@ def urljoin(*args):
 DATASHARE_DEFAULT_PROJECT = 'local-datashare'
 DATASHARE_DEFAULT_URL = 'http://localhost:8080'
 ELASTICSEARCH_DEFAULT_URL = 'local-datashare'
-HTTP_REQUEST_TIMEOUT_SEC = 10
+HTTP_REQUEST_TIMEOUT_SEC = 60
 
 
 class DatashareClient:

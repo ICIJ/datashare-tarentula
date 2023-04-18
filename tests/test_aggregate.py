@@ -1,3 +1,4 @@
+import csv
 from typing import Optional
 
 import pytest
@@ -30,7 +31,8 @@ class TestAggregate(TestAbstract):
         result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
                             self.elasticsearch_url, '--datashare-project', self.datashare_project,
                             '--group_by',  'contentType',
-                            '--query',  '*' ])
+                            '--query',  '*' ,
+                            '--csv_format', 'false'])
 
         data = loads(result.output)
         self.assertIn('aggregation-1', data)
@@ -39,6 +41,31 @@ class TestAggregate(TestAbstract):
         self.assertEqual(2, get_bucket(data, 'audio/vorbis')['doc_count'])
         self.assertEqual(1, get_bucket(data, 'audio/mp3')['doc_count'])
         self.assertEqual(1, get_bucket(data, 'audio/flac')['doc_count'])
+
+    def test_aggregate_by_field_and_count_csv_format(self):
+        self.index_documents([{"name": "foo", "type": "Document", "contentType": "audio/vorbis",
+                               "_id": "id1"},
+                              {"name": "bar", "type": "Document", "contentType": "audio/vorbis",
+                               "_id": "id2"},
+                              {"name": "baz", "type": "Document", "contentType": "audio/mp3",
+                               "_id": "id3"},
+                              {"name": "qux", "type": "Document", "contentType": "audio/flac",
+                               "_id": "id4"}
+                              ])
+        runner = CliRunner()
+
+        result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                            self.elasticsearch_url, '--datashare-project', self.datashare_project,
+                            '--group_by',  'contentType',
+                            '--query',  '*' ])
+
+
+        csv_reader = csv.DictReader(result.output.splitlines(), delimiter=',', quotechar='"')
+        data = list(csv_reader)
+        self.assertEqual(len(data), 3)
+        self.assertTrue(all(['doc_count' in row.keys() for row in data]))
+        self.assertEqual('2', [d['doc_count'] for d in data if d['key'] == 'audio/vorbis'][0])
+        self.assertEqual('1', [d['doc_count'] for d in data if d['key'] == 'audio/mp3'][0])
 
     def test_aggregate_by_num_unique_field(self):
         self.index_documents([{"name": "foo", "type": "Document", "contentType": "image/jpeg",
@@ -52,12 +79,33 @@ class TestAggregate(TestAbstract):
                             self.elasticsearch_url, '--datashare-project', self.datashare_project,
                             '--run',  'nunique',
                             '--operation_field',  'contentType',
-                            '--query',  '*' ])
+                            '--query',  '*',
+                            '--csv_format', 'false'])
 
         data = loads(result.output)
         self.assertIn('aggregation-1', data)
         self.assertIn('value', data['aggregation-1'])
         self.assertEqual(2, data['aggregation-1']['value'])
+
+    def test_aggregate_by_num_unique_field_csv_format(self):
+        self.index_documents([{"name": "foo", "type": "Document", "contentType": "image/jpeg",
+                               "_id": "id1"},
+                              {"name": "bar", "type": "Document", "contentType": "image/png",
+                               "_id": "id2"}
+                              ])
+        runner = CliRunner()
+
+        result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                            self.elasticsearch_url, '--datashare-project', self.datashare_project,
+                            '--run',  'nunique',
+                            '--operation_field',  'contentType',
+                            '--query',  '*' ])
+
+        csv_reader = csv.DictReader(result.output.splitlines(), delimiter=',', quotechar='"')
+        data = list(csv_reader)
+        self.assertEqual(len(data), 1)
+        self.assertIn('value', data[0])
+        self.assertEqual('2', data[0]['value'])
 
     def test_aggregate_sum_field(self):
         self.index_documents([{"name": "foo", "type": "Document", "contentLength": 15,
@@ -71,7 +119,8 @@ class TestAggregate(TestAbstract):
                             self.elasticsearch_url, '--datashare-project', self.datashare_project,
                             '--run',  'sum',
                             '--operation_field',  'contentLength',
-                            '--query',  '*' ])
+                            '--query',  '*',
+                            '--csv_format', 'false'])
 
         data = loads(result.output)
         self.assertIn('aggregation-1', data)
@@ -92,11 +141,37 @@ class TestAggregate(TestAbstract):
         result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
                             self.elasticsearch_url, '--datashare-project', self.datashare_project,
                             '--run',  'string_stats',
-                            '--operation_field',  'language' ])
+                            '--operation_field',  'language',
+                            '--csv_format', 'false'])
 
         data = loads(result.output)
         self.assertIn('aggregation-1', data)
         self.assertTrue(all([stat in data['aggregation-1'].keys() for stat in ['count', 'min_length', 'max_length', 'avg_length', 'entropy']]))
+
+    def test_aggregate_string_stats_csv_format(self):
+        if self.elasticsearch_version_info < (7, 11):
+            return pytest.skip("requires ElasticSearch 7.11+")
+
+        self.index_documents([{"name": "foo", "type": "Document", "language": "FRENCH",
+                               "_id": "id1"},
+                              {"name": "bar", "type": "Document", "language": "ENGLISH",
+                               "_id": "id2"}
+                              ])
+        runner = CliRunner()
+
+        result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                            self.elasticsearch_url, '--datashare-project', self.datashare_project,
+                            '--run',  'string_stats',
+                            '--operation_field',  'language'])
+
+        csv_reader = csv.DictReader(result.output.splitlines(), delimiter=',', quotechar='"')
+        data = list(csv_reader)[0]
+
+        self.assertEqual(len(data), 5)
+        self.assertIn('count', data.keys())
+        self.assertIn('min_length', data.keys())
+        self.assertIn('entropy', data.keys())
+        self.assertEqual('3.238901256602631', data['entropy'])
 
     def test_aggregate_query_and_sum_field(self):
         self.index_documents([{"name": "foo", "type": "Document", "language": "FRENCH", "contentLength": 123,
@@ -110,7 +185,8 @@ class TestAggregate(TestAbstract):
                             self.elasticsearch_url, '--datashare-project', self.datashare_project,
                             '--run',  'sum',
                             '--operation_field',  'contentLength',
-                            '--query',  'language:FRENCH' ])
+                            '--query',  'language:FRENCH',
+                            '--csv_format', 'false'])
 
         data = loads(result.output)
         self.assertIn('aggregation-1', data)
@@ -128,7 +204,8 @@ class TestAggregate(TestAbstract):
         result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
                             self.elasticsearch_url, '--datashare-project', self.datashare_project,
                             '--run',  'date_histogram',
-                            '--operation_field',  'metadata.tika_metadata_creation_date' ])
+                            '--operation_field',  'metadata.tika_metadata_creation_date',
+                            '--csv_format', 'false'])
 
         data = loads(result.output)
         self.assertIn('aggregation-1', data)

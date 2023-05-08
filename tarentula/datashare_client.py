@@ -179,7 +179,7 @@ class DatashareClient:
             response = self.query(search_after=search_after, **search_after_args)
 
     def mappings(self, index=DATASHARE_DEFAULT_PROJECT):
-        url = urljoin(self.elasticsearch_host, index)
+        url = urljoin(self.elasticsearch_host, index, '_mappings')
         return requests.get(url,
                             cookies=self.cookies,
                             headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()

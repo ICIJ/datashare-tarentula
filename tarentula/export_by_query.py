@@ -119,8 +119,10 @@ class ExportByQuery(Command):
         id = document.get('_id')
         routing = document.get('_routing', id)
         url = self.datashare_client.document_url(index, id, routing)
-        return {'query': self.query, 'documentUrl': url, 'documentId': id,
-                'rootId': routing, 'documentNumber': number}
+        values = {'documentUrl': url, 'documentId': id, 'rootId': routing, 'documentNumber': number}
+        if self.query_field:
+            return {'query': self.query, **values}
+        return values
 
     def document_source_values(self, document):
         source_values = {}

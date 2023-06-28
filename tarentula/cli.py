@@ -173,7 +173,7 @@ def download(**options):
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
               callback=validate_progressbar)
 @click.option('--type', help='Type of indexed documents to download', default='Document',
-              type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
+              type=click.Choice(['Document', 'NamedEntity', 'Duplicate'], case_sensitive=True))
 @click.option('--size', help='Size of the scroll request that powers the operation.', default=1000)
 @click.option('--from', '-f', 'from_', type=int, help='Passed to the search it will bypass the first n documents',
               default=0)

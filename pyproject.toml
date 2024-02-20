@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "tarentula"}]
 
 [tool.poetry.dependencies]
-python = "^3.8,<3.11"
+python = "^3.8"
 click = "^8.1"
 requests = "^2.28"
 coloredlogs = "==14.0"

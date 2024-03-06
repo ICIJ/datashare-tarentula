@@ -85,6 +85,26 @@ class DatashareClient:
         result.raise_for_status()
         return result.json().get('_id')
 
+    @staticmethod
+    def log_errors(response):
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            logger.error('HTTP error: %s', e)
+        except requests.RequestException as e:
+            logger.error('Request error: %s', e)
+
+    @staticmethod
+    def get_valid_response(response, as_json=True):
+        if response.status_code < 400:
+            if as_json is True:
+                return response.json()
+
+            return response
+
+        # empty response
+        return {'hits': {'hits': []}}
+
     def delete(self, index=DATASHARE_DEFAULT_PROJECT, id=None):
         url = urljoin(self.elasticsearch_url, index, '/_doc/', id, '?refresh')
         return requests.delete(url, timeout=HTTP_REQUEST_TIMEOUT_SEC)
@@ -132,8 +152,8 @@ class DatashareClient:
                                  json=local_query,
                                  headers=self.headers,
                                  cookies=self.cookies, timeout=HTTP_REQUEST_TIMEOUT_SEC)
-        response.raise_for_status()
-        return response.json()
+        self.log_errors(response)
+        return self.get_valid_response(response)
 
     def scroll(self, scroll_id, scroll=None):
         url = urljoin(self.elasticsearch_host, '/_search/scroll')
@@ -142,7 +162,8 @@ class DatashareClient:
                                  cookies=self.cookies,
                                  headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC)
         response.raise_for_status()
-        return response.json()
+        self.log_errors(response)
+        return self.get_valid_response(response)
 
     def scan_all(self, scroll='10m', **kwargs):
         response = self.query(scroll=scroll, **kwargs)
@@ -180,31 +201,39 @@ class DatashareClient:
 
     def mappings(self, index=DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.elasticsearch_host, index, '_mappings')
-        return requests.get(url,
+        response = requests.get(url,
                             cookies=self.cookies,
-                            headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
+                            headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC)
+        self.log_errors(response)
+        return self.get_valid_response(response)
 
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):
         if query is None: query = {}
         url = urljoin(self.elasticsearch_host, index, '_count')
-        return requests.post(url, json=query,
+        response = requests.post(url, json=query,
                              cookies=self.cookies,
-                             headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
+                             headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC)
+        self.log_errors(response)
+        return self.get_valid_response(response)
 
     def document(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None, source=None):
         url = urljoin(self.elasticsearch_host, index, '/_doc/', id)
         params = {'routing': routing, '_source': source}
-        return requests.get(url, params=params,
+        response = requests.get(url, params=params,
                             cookies=self.cookies,
-                            headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
+                            headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC)
+        self.log_errors(response)
+        return self.get_valid_response(response)
 
     def download(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None):
         routing = routing or id
         url = urljoin(self.datashare_url, 'api', index, '/documents/src', id)
-        return requests.get(url, params={'routing': routing},
+        response = requests.get(url, params={'routing': routing},
                             cookies=self.cookies,
                             headers=self.headers,
                             stream=True, timeout=HTTP_REQUEST_TIMEOUT_SEC)
+        self.log_errors(response)
+        return self.get_valid_response(response, as_json=False)
 
     def document_url(self, index=DATASHARE_DEFAULT_PROJECT, id='', routing=None):
         routing = id if routing is None else routing

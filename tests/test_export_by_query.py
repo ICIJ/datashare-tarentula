@@ -68,7 +68,7 @@ class TestExportByQuery(TestAbstract):
             output_file = join(tmp, 'output.csv')
             runner = CliRunner()
             runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
-                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project,
                                 '--limit', 3, '--output-file', output_file])
             with open(output_file, newline='') as csv_file:
                 csv_reader = csv.DictReader(csv_file)
@@ -79,7 +79,7 @@ class TestExportByQuery(TestAbstract):
             output_file = join(tmp, 'output.csv')
             runner = CliRunner()
             runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
-                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project,
                                 '--from', 2, '--limit', 3, '--output-file', output_file])
             with open(output_file, newline='') as csv_file:
                 csv_reader = csv.DictReader(csv_file)
@@ -90,7 +90,7 @@ class TestExportByQuery(TestAbstract):
             output_file = join(tmp, 'output.csv')
             runner = CliRunner()
             runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
-                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project,
                                 '--size', 2, '--limit', 10, '--output-file', output_file])
             with open(output_file, newline='') as csv_file:
                 csv_reader = csv.DictReader(csv_file)
@@ -101,7 +101,7 @@ class TestExportByQuery(TestAbstract):
             output_file = join(tmp, 'output.csv')
             runner = CliRunner()
             runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
-                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project,
                                 '--size', 20, '--limit', 3, '--output-file', output_file])
             with open(output_file, newline='') as csv_file:
                 csv_reader = csv.DictReader(csv_file)

@@ -94,6 +94,15 @@ class DatashareClient:
         except requests.RequestException as e:
             logger.error('Request error: %s', e)
 
+        msg = response.json()
+        if '_shards' in msg and 'failed' in msg['_shards'] and msg['_shards']['failed'] > 0:
+            for failure in msg['_shards']['failures']:
+                text = f"Shard {failure['shard']} - " + \
+                        f"Index {failure['index']} - " + \
+                        f"Node {failure['node']} - " + \
+                        f"Reason {failure['reason']['reason']}"
+                logger.error('Elasticsearch error: %s', text)
+
     @staticmethod
     def get_valid_response(response, as_json=True):
         if response.status_code < 400:

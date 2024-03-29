@@ -124,3 +124,12 @@ class TestDatashareClient(TestAbstract):
             for document in self.datashare_client.scan_all(index=project, q='name:*', size=2):
                 count = count + 1
             self.assertEqual(count, 7)
+
+    def test_count_with_multiple_fields_query(self):
+        with self.datashare_client.temporary_project(self.datashare_project) as project:
+            query = {'query': {'bool': {'must': [{'term': {'contentType': 'application/pdf'}}]}}, 'runtime_mappings': {}}
+            try:
+                self.datashare_client.count(index=project, query=query)
+            except Exception as e:
+                msg = f"Error when counting with a complex query: {e}: {e.__traceback__}"
+                self.fail(msg)

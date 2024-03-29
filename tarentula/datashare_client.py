@@ -186,6 +186,7 @@ class DatashareClient:
 
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):
         if query is None: query = {}
+        query = {'query': query['query']}
         url = urljoin(self.elasticsearch_host, index, '_count')
         return requests.post(url, json=query,
                              cookies=self.cookies,

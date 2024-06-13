@@ -181,7 +181,7 @@ class DatashareClient:
                 search_after_args = {k: v for k, v in kwargs.items() if k != 'from'}
                 response = self.query(search_after=search_after, **search_after_args)
             else:
-                if not 'from' in kwargs:
+                if 'from' not in kwargs:
                     kwargs['from'] = 0
                 kwargs['from'] += kwargs['size']
                 response = self.query(**kwargs)

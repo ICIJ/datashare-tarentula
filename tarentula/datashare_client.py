@@ -124,7 +124,8 @@ class DatashareClient:
     def query(self, index=DATASHARE_DEFAULT_PROJECT, query=None, q=None, source=None, scroll=None, **kwargs):
         if query is None:
             query = {}
-        local_query = {"sort": {"_id": "asc"}, **query, **kwargs}
+        local_query = {**query, **kwargs}
+
         if source is not None:
             local_query.update({'_source': source})
         url = urljoin(self.elasticsearch_host, index, '/_search')
@@ -174,9 +175,16 @@ class DatashareClient:
             if kwargs['size'] == 0:
                 break
 
-            search_after = response['hits']['hits'][-1]['sort']
-            search_after_args = {k: v for k, v in kwargs.items() if k != 'from'}
-            response = self.query(search_after=search_after, **search_after_args)
+            last_item = response['hits']['hits'][-1]
+            if 'sort' in last_item:
+                search_after = last_item['sort']
+                search_after_args = {k: v for k, v in kwargs.items() if k != 'from'}
+                response = self.query(search_after=search_after, **search_after_args)
+            else:
+                if not 'from' in kwargs:
+                    kwargs['from'] = 0
+                kwargs['from'] += kwargs['size']
+                response = self.query(**kwargs)
 
     def mappings(self, index=DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.elasticsearch_host, index, '_mappings')

@@ -133,8 +133,8 @@ def clean_tags_by_query(**options):
 @click.option('--from', '-f', 'from_', type=int, help='Passed to the search it will bypass the first n documents',
               default=0)
 @click.option('--size', help='Size of the scroll request that powers the operation.', default=1000)
-@click.option('--sort-by', help='Field to use to sort results', default='_id')
-@click.option('--order-by', help='Order to use to sort results', default='asc',
+@click.option('--sort-by', help='Field to use to sort results', default='_score')
+@click.option('--order-by', help='Order to use to sort results', default='desc',
               type=click.Choice(['asc', 'desc']))
 @click.option('--once/--not-once', help='Download file only once', default=False)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
@@ -166,8 +166,8 @@ def download(**options):
 @click.option('--scroll', help='Scroll duration', default=None)
 @click.option('--source', help='A comma-separated list of field to include in the export',
               default='contentType,contentLength:0,extractionDate,path')
-@click.option('--sort-by', help='Field to use to sort results', default='_id')
-@click.option('--order-by', help='Order to use to sort results', default='asc',
+@click.option('--sort-by', help='Field to use to sort results', default='_score')
+@click.option('--order-by', help='Order to use to sort results', default='desc',
               type=click.Choice(['asc', 'desc']))
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,

@@ -9,6 +9,7 @@ from tarentula.tagging import Tagger
 from tarentula.tagging_by_query import TaggerByQuery
 from tarentula.download import Download
 from tarentula.export_by_query import ExportByQuery
+from tarentula.sim_docs import SimilarDocs
 from tarentula.count import Count
 from tarentula.aggregate import AggCount, GeneralStats, DateHistogram, NumUnique
 from tarentula import __version__
@@ -185,6 +186,33 @@ def export_by_query(**options):
     export.start()
 
 
+
+@click.command()
+@click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
+@click.option('--datashare-url', help='Datashare URL',
+              default=ConfigFileReader('datashare_url', 'http://localhost:8080'))
+@click.option('--datashare-project', help='Datashare project',
+              default=ConfigFileReader('datashare_project', 'local-datashare'))
+@click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
+                                          'capabilities of Elasticsearch (useful when dealing with a lot of results)',
+              default=None)
+@click.option('--query', help='The query string to filter documents', default='*')
+@click.option('--output-file', help='Path to the output file with the desired query', default='query-similar-docs.json')
+@click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
+                                'semicolons: key1=val1;key2=val2;...', default='')
+@click.option('--source', help='A comma-separated list of field to include in the export',
+              default='contentType,contentLength:0,extractionDate,path')
+@click.option('--sort-by', help='Field to use to sort results', default='_score')
+@click.option('--order-by', help='Order to use to sort results', default='desc',
+              type=click.Choice(['asc', 'desc']))
+@click.option('--type', help='Type of indexed documents to download', default='Document',
+              type=click.Choice(['Document', 'NamedEntity', 'Duplicate'], case_sensitive=True))
+def similar_docs(**options):
+    # Instantiate an ExportByQuery class with all the options
+    proc = SimilarDocs(**options)
+    proc.start()
+
+
 @click.command()
 @click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
 @click.option('--datashare-url', help='Datashare URL',
@@ -274,6 +302,7 @@ cli.add_command(export_by_query)
 cli.add_command(count)
 cli.add_command(list_metadata)
 cli.add_command(aggregate)
+cli.add_command(similar_docs)
 
 if __name__ == '__main__':
     cli(None) # ctx from @cli.pass_context

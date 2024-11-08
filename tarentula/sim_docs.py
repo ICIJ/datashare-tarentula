@@ -1,5 +1,6 @@
 import csv
 import json
+import inquirer
 
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -17,7 +18,7 @@ class SimilarDocs:
                  cookies: str = '',
                  apikey: str = None,
                  elasticsearch_url: str = None,
-                 source: str = 'contentType,contentLength:0,extractionDate,path',
+                 source: str = 'contentType,contentLength:0,extractionDate,path,metadata.tika_metadata_resourcename',
                  sort_by: str = '_id',
                  order_by: str = 'asc',
                  type: str = 'Document',
@@ -33,6 +34,12 @@ class SimilarDocs:
         self.order_by = order_by
         self.type = type
         self.query_field = query_field
+
+        self.scroll = None
+        self.size = 1000
+        self.from_ = 0
+        self.limit = 10
+
         try:
             self.datashare_client = DatashareClient(datashare_url,
                                                     elasticsearch_url,
@@ -78,31 +85,12 @@ class SimilarDocs:
         return query_body
 
     @property
-    def no_progressbar(self):
-        return not self.progressbar
-
-    @property
     def source_fields(self):
         return [ self.source_field_params(f) for f in self.source.split(',') ]
 
     @property
     def source_fields_names(self):
         return [ field.pop(0) for field in self.source_fields ]
-
-    @property
-    def csv_fields_names(self):
-        names = self.default_csv_fields_names
-        names += self.source_fields_names
-        # Remove duplicated values while preserving order
-        return list(OrderedDict.fromkeys(names))
-
-    @property
-    def default_csv_fields_names(self):
-        names = ['documentUrl', 'documentId', 'rootId', 'documentNumber']
-        if self.query_field:
-            names.insert(0, 'query')
-        return names
-
 
     def source_field_params(self, field):
         field_params = field.strip().split(':')
@@ -120,101 +108,157 @@ class SimilarDocs:
         logger.info('%s matching document(s) in %s' % (count, index))
         return count
 
-    def scan_or_query_all(self):
+    def scan_or_query_all(self, query_body=None):
+        if not query_body:
+            query_body = self.query_body
+            
         index = self.datashare_project
         source = self.source_fields_names
-        sort = { self.sort_by: self.order_by }
         logger.info('Searching document(s) metadata in %s' % index)
-        return self.datashare_client.query_all(index=index, query=self.query_body, source=source, sort=sort)
+        return self.datashare_client.scan_or_query_all(index, source,
+                                                        self.sort_by,
+                                                        self.order_by,
+                                                        self.scroll,
+                                                        query_body,
+                                                        self.from_, self.limit, self.size)
 
-    def document_default_values(self, document, number):
+    # function that queries for a document by id and returns the content
+    def query_doc_content(self, doc_ids):
         index = self.datashare_project
-        id = document.get('_id')
-        routing = document.get('_routing', id)
-        url = self.datashare_client.document_url(index, id, routing)
-        return { 'query': self.query, 'documentUrl': url, 'documentId': id,
-                 'rootId': routing, 'documentNumber': number }
-
-    def document_source_values(self, document):
-        source_values = {}
-        source = document.get('_source', {})
-        for [name, default] in self.source_fields:
-            # Get the nested value for `name` (it can be a path, ie: metadata.tika_metadata_author)
-            source_values[name] = source
-            for key in name.split('.'):
-                try:
-                    source_values[name] = source_values[name][key]
-                except (KeyError, TypeError):
-                    source_values[name] = default
-        return source_values
-
-    def save_indexed_document(self, csvwriter, document, document_number):
-        default_values = self.document_default_values(document, document_number)
-        source_values = self.document_source_values(document)
-        csvwriter.writerow({ **default_values, **source_values })
-
-    @contextmanager
-    def create_csv_file(self):
-        with open(self.output_file, 'w', newline='') as csv_file:
-            writer = csv.DictWriter(csv_file, fieldnames=self.csv_fields_names)
-            writer.writeheader()
-            yield writer
-
-    def query_for_content(self, ids):
-        index = self.datashare_project
-        source = ['_id', 'content']
-        sort = { self.sort_by: self.order_by }
+        source = 'content'
         query = {
-            'query': {
-                'ids': {
-                    'values': ids
+            "query": {
+                "terms": {
+                    "_id": doc_ids
                 }
             }
         }
-        logger.info('Searching document(s) content in %s' % index)
-        return self.datashare_client.query_all(index=index, query=query, source=source)
 
-    def start(self):
-        documents = self.scan_or_query_all()
-        import inquirer
-        
-        ids_and_names = [
-            (document.get('_id'), document.get('name')) 
-            for document in documents
-        ]
-        choices = [f"{id[:6]} - {name}" for id, name in ids_and_names]
+        resp = self.datashare_client.query(index, query=query, source=source)
+        return resp['hits']['hits']
+    
+    # function pretty prints to console the content of a doc
+    def print_doc_content(self, doc):
+        text = doc['_source']['content']
+        print(doc.splitlines())
 
+    def find_ngrams(self, doc):
+        text = doc['_source']['content']
+        ngrams = []
+        for i in range(len(text)-2):
+            ngrams.append(text[i:i+3])
+        return ngrams
+    
+    def find_lines(self, doc):
+        text = doc['_source']['content']
+        return [line.strip() for line in text.split('\n') if line.strip()]
+    
+    def common_lines(self, docs):
+        common_lines = set(self.find_lines(docs[0]))
+        for doc in docs[1:]:
+            common_lines = common_lines & set(self.find_lines(doc))
+        return common_lines
+    
+    def common_ngrams(self, docs):
+        common_ngrams = set(self.find_ngrams(docs[0]))
+        for doc in docs[1:]:
+            common_ngrams = common_ngrams & set(self.find_ngrams(doc))
+        return common_ngrams
+
+    def ask_user_to_choose(self, name, question, choices):
         questions = [
-            inquirer.Checkbox('first_docs',
-                message='Which docs are you interested in?',
+            inquirer.Checkbox(name,
+                message=question,
                 choices=choices,
             ),
         ]
+        return inquirer.prompt(questions)
 
-        answers = inquirer.prompt(questions)
-        print_json(answers)
-      
-        # interact for selecting documents
-        # content_documents = self.query_for_content(ids)
-        # print(content_documents)
+    def build_query_multiple_terms(self, terms):
+        q = {
+            "query": {
+                "bool": {
+                    "should": [
+                        {
+                            "match": {
+                                "content": term
+                            }
+                        }
+                        for term in terms
+                    ]
+                }
+            }
+        }
+        return q
+
+    def build_choices_from_docs(self, docs):
+        return [f"{doc['_id'][:6]} - {doc['_source']['path']}" for doc in docs]
+                
+    def start(self):
+        documents = self.scan_or_query_all()
+        documents = list(documents)
+        document = documents[0]
+        print(document)
+
+        choices = self.build_choices_from_docs(documents)
+        answers = self.ask_user_to_choose('first_docs', 'Which docs are you interested in?', choices)
+
+        # get sliced ids from answers
+        sliced_ids = [answer.split(' - ')[0] for answer in answers['first_docs']]
+        selected_docs = [doc for doc in documents if doc.get('_id')[:6] in sliced_ids]
+
+        # get selected docs metadata
+        full_docs = self.query_doc_content([doc.get('_id') for doc in selected_docs])
+        print(full_docs)
+
+        if len(selected_docs) == 1:
         
+            # pretty print doc content
+            self.print_doc_content(full_docs[0])
 
-        # count = self.log_matches()
-        # desc = 'Exporting %s document(s)' % count
-        # try:
-        #     with Progress(disable=self.no_progressbar) as progress:  
-        #         task = progress.add_task(desc, total=count) 
-        #         documents = self.scan_or_query_all()
-        #         with self.create_csv_file() as csvwriter:
-        #             for index, document in enumerate(documents):
-        #                 try:
-        #                     self.save_indexed_document(csvwriter, document, index)
-        #                     logger.info('Saved document %s' % document.get('_id', None))
-        #                 except HTTPError:
-        #                     logger.error('Unable to export document %s' % document.get('_id', None),
-        #                         exc_info=self.traceback)
-        #                 progress.advance(task)
-        #                 self.sleep()
-        #         logger.info('Written documents metadata in %s' % self.output_file)
-        # except ProtocolError:
-        #     logger.error('Exception while exporting documents', exc_info=self.traceback)
+            # select between finding ngrams or entire lines to search another similar doc
+            answers = self.ask_user_to_choose('search_type', 
+                                            'What would you like to search for?', 
+                                            ['ngrams', 'lines'])
+
+            # if ngrams, find ngrams
+            if answers['search_type'] == 'ngrams':
+                # find ngrams
+                possible_search_terms = self.find_ngrams(full_docs[0])
+            else:
+                # find lines
+                possible_search_terms = self.find_lines(full_docs[0])
+
+            print(possible_search_terms)
+
+            # interact for selecting documents
+            self.ask_user_to_choose('search_terms', 'Which search term would you like to use?', possible_search_terms)
+
+        elif len(selected_docs) > 1:
+            # find common lines between the docs
+            commonalities = self.common_lines(full_docs)
+            print(commonalities)
+
+            if len(commonalities) == 0:
+                print(f"No common lines found between the selected documents. Trying with ngrams")
+                
+                # find common lines between the docs
+                commonalities = self.common_ngrams(full_docs)
+                print(commonalities)
+
+            # interact to select few commonalities to search docs
+            answers = self.ask_user_to_choose(
+                'commonalities', 
+                'Which common terms found would you like to use to search again?', 
+                commonalities)
+
+            # run query for the selected commonalities
+            query = self.build_query_multiple_terms(answers['commonalities'])
+            print(f"Query for commonalities: {query}")
+            new_docs = self.scan_or_query_all(query_body=query)
+            
+            self.build_choices_from_docs(new_docs)
+            answers = self.ask_user_to_choose('new_docs', 'Which docs are you interested in?', choices)
+            # get sliced ids from answers
+            sliced_ids = [answer.split(' - ')[0] for answer in answers['new_docs']]
+            selected_docs = [doc for doc in new_docs if doc.get('_id')[:6] in sliced_ids]

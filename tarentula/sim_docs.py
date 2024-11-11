@@ -7,7 +7,9 @@ from contextlib import contextmanager
 
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
+from .aggregate import AggCount, NumUnique, DateHistogram
 
+SOURCE_DEFAULT = 'extractionLevel,language,contentType,contentLength:0,extractionDate,path,metadata.tika_metadata_resourcename,metadata.tika_metadata_file_size'
 
 class SimilarDocs:
     def __init__(self,
@@ -18,7 +20,7 @@ class SimilarDocs:
                  cookies: str = '',
                  apikey: str = None,
                  elasticsearch_url: str = None,
-                 source: str = 'contentType,contentLength:0,extractionDate,path,metadata.tika_metadata_resourcename',
+                 source: str = SOURCE_DEFAULT,
                  sort_by: str = '_id',
                  order_by: str = 'asc',
                  type: str = 'Document',
@@ -40,6 +42,20 @@ class SimilarDocs:
         self.from_ = 0
         self.limit = 10
 
+        self.agg_options = {
+            'datashare_url': datashare_url,
+            'datashare_project': datashare_project,
+            'query': query,
+            'cookies': cookies,
+            'apikey': apikey,
+            'elasticsearch_url': elasticsearch_url,
+            'traceback': False,
+            'type': 'Document',
+            'group_by': 'contentType',
+            # 'operation_field': 'contentType',
+            # 'run': 'count',
+        }
+        
         try:
             self.datashare_client = DatashareClient(datashare_url,
                                                     elasticsearch_url,
@@ -98,9 +114,11 @@ class SimilarDocs:
         field_default = field_params[1] if len(field_params) > 1 else ''
         return [field_name, field_default]
 
-    def count_matches(self):
+    def count_matches(self, query_body=None):
+        if not query_body:
+            query_body = self.query_body
         index = self.datashare_project
-        return self.datashare_client.count(index=index, query=self.query_body).get('count')
+        return self.datashare_client.count(index=index, query=query_body).get('count')
 
     def log_matches(self):
         index = self.datashare_project
@@ -193,12 +211,27 @@ class SimilarDocs:
 
     def build_choices_from_docs(self, docs):
         return [f"{doc['_id'][:6]} - {doc['_source']['path']}" for doc in docs]
-                
+    
+    def print_aggs_by_query(self, query_body=None):
+        if not query_body:
+            query_body = self.query
+
+        self.agg_options.update({'query': query_body, 'operation_field': 'contentType'})
+        
+        # NumUnique(**self.agg_options).start()['aggregation-1']['value']
+        NumUnique(**self.agg_options).start()
+        AggCount(**self.agg_options).start()
+
+        # self.agg_options.update({'query': query_body, 'operation_field': 'language'})
+
     def start(self):
-        documents = self.scan_or_query_all()
+        documents = self.scan_or_query_all()        
         documents = list(documents)
         document = documents[0]
+        print("Num of matches:", self.count_matches())
         print(document)
+        print("Current query results overview :\n"),
+        self.print_aggs_by_query()
 
         choices = self.build_choices_from_docs(documents)
         answers = self.ask_user_to_choose('first_docs', 'Which docs are you interested in?', choices)
@@ -257,7 +290,7 @@ class SimilarDocs:
             print(f"Query for commonalities: {query}")
             new_docs = self.scan_or_query_all(query_body=query)
             
-            self.build_choices_from_docs(new_docs)
+            choices = self.build_choices_from_docs(new_docs)
             answers = self.ask_user_to_choose('new_docs', 'Which docs are you interested in?', choices)
             # get sliced ids from answers
             sliced_ids = [answer.split(' - ')[0] for answer in answers['new_docs']]

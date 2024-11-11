@@ -9,7 +9,7 @@ from tarentula.tagging import Tagger
 from tarentula.tagging_by_query import TaggerByQuery
 from tarentula.download import Download
 from tarentula.export_by_query import ExportByQuery
-from tarentula.sim_docs import SimilarDocs
+from tarentula.sim_docs import SimilarDocs, SOURCE_DEFAULT
 from tarentula.count import Count
 from tarentula.aggregate import AggCount, GeneralStats, DateHistogram, NumUnique
 from tarentula import __version__
@@ -201,7 +201,7 @@ def export_by_query(**options):
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
                                 'semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--source', help='A comma-separated list of field to include in the export',
-              default='contentType,contentLength:0,extractionDate,path,metadata.tika_metadata_resourcename')
+              default=SOURCE_DEFAULT)
 @click.option('--sort-by', help='Field to use to sort results', default='_score')
 @click.option('--order-by', help='Order to use to sort results', default='desc',
               type=click.Choice(['asc', 'desc']))

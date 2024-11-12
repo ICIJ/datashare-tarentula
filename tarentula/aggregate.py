@@ -51,6 +51,25 @@ class Aggregate(Command):
             "query": (super().query_body_from_string['query'])
         }
 
+    @property
+    def query_body_from_dict(self):
+        return {
+            "aggs": {
+                "aggregation-1": self.agg_level_1,
+            },
+            "query": self.query
+        }
+
+    @property
+    def query_body(self):
+        if isinstance(self.query, dict):
+            return self.query_body_from_dict
+        
+        if self.query.startswith('@'):
+            return self.query_body_from_file
+        return self.query_body_from_string
+
+
     def aggregate_matches(self):
         index = self.datashare_project
         return self.datashare_client.query(index=index, query=self.query_body).get('aggregations')

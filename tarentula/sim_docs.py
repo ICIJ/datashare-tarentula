@@ -1,4 +1,4 @@
-import csv
+import re
 import json
 import inquirer
 
@@ -9,20 +9,26 @@ from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
 from .aggregate import AggCount, NumUnique, DateHistogram
 
-SOURCE_DEFAULT = 'extractionLevel,language,contentType,contentLength:0,extractionDate,path,metadata.tika_metadata_resourcename,metadata.tika_metadata_file_size'
+DEFAULT_SOURCE = 'extractionLevel,language,contentType,contentLength:0,extractionDate,path,metadata.tika_metadata_resourcename,metadata.tika_metadata_file_size'
+DEFAULT_SORT_BY = '_id'
+DEFAULT_ORDER_BY = 'asc'
+DEFAULT_FROM = 0
+DEFAULT_LIMIT = 10
+DEFAULT_SIZE = 100
+
 
 class SimilarDocs:
     def __init__(self,
                  datashare_url: str = 'http://localhost:8080',
                  datashare_project: str = 'local-datashare',
-                 output_file: str = 'tarentula_documents.csv',
+                 output_file: str = 'similar_docs_query.json',
                  query: str = '*',
                  cookies: str = '',
                  apikey: str = None,
                  elasticsearch_url: str = None,
-                 source: str = SOURCE_DEFAULT,
-                 sort_by: str = '_id',
-                 order_by: str = 'asc',
+                 source: str = DEFAULT_SOURCE,
+                 sort_by: str = DEFAULT_SORT_BY,
+                 order_by: str = DEFAULT_ORDER_BY,
                  type: str = 'Document',
                  query_field: bool = True):
         self.datashare_url = datashare_url
@@ -38,9 +44,9 @@ class SimilarDocs:
         self.query_field = query_field
 
         self.scroll = None
-        self.size = 1000
-        self.from_ = 0
-        self.limit = 10
+        self.size = DEFAULT_SIZE
+        self.from_ = DEFAULT_FROM
+        self.limit = DEFAULT_LIMIT
 
         self.agg_options = {
             'datashare_url': datashare_url,
@@ -100,6 +106,46 @@ class SimilarDocs:
             query_body = json.load(json_file)
         return query_body
 
+    def build_query_multiple_terms(self, terms):
+        q = {
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "match": {
+                                "type": self.type
+                            }
+                        }
+                    ],
+                    "should": [
+                        {
+                            "match_phrase": {
+                                "content": term
+                            }
+                        }
+                        for term in terms
+                    ],
+                    "minimum_should_match": 1
+                }
+            }
+        }
+        return q
+
+    # function that queries for a document by id and returns the content
+    def query_doc_content(self, doc_ids):
+        index = self.datashare_project
+        source = 'content'
+        query = {
+            "query": {
+                "terms": {
+                    "_id": doc_ids
+                }
+            }
+        }
+
+        resp = self.datashare_client.query(index, query=query, source=source)
+        return resp['hits']['hits']
+
     @property
     def source_fields(self):
         return [ self.source_field_params(f) for f in self.source.split(',') ]
@@ -126,172 +172,198 @@ class SimilarDocs:
         logger.info('%s matching document(s) in %s' % (count, index))
         return count
 
-    def scan_or_query_all(self, query_body=None):
+    def query_all(self, query_body=None, 
+                  from_=DEFAULT_FROM, 
+                  limit=DEFAULT_LIMIT, 
+                  size=DEFAULT_SIZE, 
+                  sort_by=DEFAULT_SORT_BY, 
+                  order_by=DEFAULT_ORDER_BY):
+        
         if not query_body:
             query_body = self.query_body
-            
-        index = self.datashare_project
-        source = self.source_fields_names
-        logger.info('Searching document(s) metadata in %s' % index)
-        return self.datashare_client.scan_or_query_all(index, source,
-                                                        self.sort_by,
-                                                        self.order_by,
-                                                        self.scroll,
-                                                        query_body,
-                                                        self.from_, self.limit, self.size)
 
-    # function that queries for a document by id and returns the content
-    def query_doc_content(self, doc_ids):
-        index = self.datashare_project
-        source = 'content'
-        query = {
-            "query": {
-                "terms": {
-                    "_id": doc_ids
-                }
-            }
-        }
+        sort = {sort_by: order_by}
+        docs = self.datashare_client.query_all(
+                **{'index': self.datashare_project, 
+                   'query': query_body, 
+                   'source': self.source_fields_names, 
+                   'sort': sort, 
+                   'from': from_, 
+                   'limit': limit,
+                   'size': size})
 
-        resp = self.datashare_client.query(index, query=query, source=source)
-        return resp['hits']['hits']
+        return list(docs)
     
     # function pretty prints to console the content of a doc
     def print_doc_content(self, doc):
-        text = doc['_source']['content']
-        print(doc.splitlines())
+        text = doc['_source']['content'].lower()
+        text = re.sub(r'\s+', ' ', text).strip()
+        print(text.splitlines())
 
-    def find_ngrams(self, doc):
-        text = doc['_source']['content']
+    def get_doc_ngrams(self, doc):
+        text = doc['_source']['content'].lower()
+        text = re.sub(r'\s+', ' ', text).strip()
+        words = text.split(" ")
         ngrams = []
-        for i in range(len(text)-2):
-            ngrams.append(text[i:i+3])
+        for i in range(len(words)-2):
+            ngrams.append(" ".join(words[i:i+3]))
         return ngrams
     
-    def find_lines(self, doc):
+    def get_doc_lines(self, doc):
         text = doc['_source']['content']
         return [line.strip() for line in text.split('\n') if line.strip()]
     
     def common_lines(self, docs):
-        common_lines = set(self.find_lines(docs[0]))
+        common_lines = set(self.get_doc_lines(docs[0]))
         for doc in docs[1:]:
-            common_lines = common_lines & set(self.find_lines(doc))
+            common_lines = common_lines & set(self.get_doc_lines(doc))
+
+        # sort by len desc
+        common_lines = sorted(common_lines, key=len, reverse=True)
+
         return common_lines
     
     def common_ngrams(self, docs):
-        common_ngrams = set(self.find_ngrams(docs[0]))
-        for doc in docs[1:]:
-            common_ngrams = common_ngrams & set(self.find_ngrams(doc))
+        docs_ngrams = []
+        for doc in docs:
+            docs_ngrams += self.get_doc_ngrams(doc)
+        common_ngrams = set(docs_ngrams)
+
+        # sort by len desc
+        common_ngrams = sorted(common_ngrams, key=len, reverse=True)
+
         return common_ngrams
 
-    def ask_user_to_choose(self, name, question, choices):
+    def build_choices_from_docs(self, docs):
+        return [f"{doc['_id'][:6]} - {doc['_source']['path']}" for doc in docs]
+    
+    def ask_user_to_select(self, name, question, choices):
+    
         questions = [
             inquirer.Checkbox(name,
                 message=question,
                 choices=choices,
             ),
         ]
+        answers = inquirer.prompt(questions)
+
+        return answers
+
+    
+    def ask_user_to_select_docs(self, name, question, documents):
+
+        choices = self.build_choices_from_docs(documents)
+        answers = self.ask_user_to_select(name, question, choices)
+        sliced_ids = [answer.split(' - ')[0] for answer in answers[name]]
+        selected_docs = [doc for doc in documents if doc['_id'][:6] in sliced_ids]
+
+        return selected_docs
+    
+    def ask_user_to_choose(self, name, question, choices, default_idx=0):
+
+        questions = [
+            inquirer.List(name,
+                message=question,
+                choices=choices,
+                default=choices[default_idx],
+            ),
+        ]
+
         return inquirer.prompt(questions)
 
-    def build_query_multiple_terms(self, terms):
-        q = {
-            "query": {
-                "bool": {
-                    "should": [
-                        {
-                            "match": {
-                                "content": term
-                            }
-                        }
-                        for term in terms
-                    ]
-                }
-            }
-        }
-        return q
-
-    def build_choices_from_docs(self, docs):
-        return [f"{doc['_id'][:6]} - {doc['_source']['path']}" for doc in docs]
-    
     def print_aggs_by_query(self, query_body=None):
         if not query_body:
             query_body = self.query
 
         self.agg_options.update({'query': query_body, 'operation_field': 'contentType'})
-        
-        # NumUnique(**self.agg_options).start()['aggregation-1']['value']
+
         NumUnique(**self.agg_options).start()
         AggCount(**self.agg_options).start()
 
-        # self.agg_options.update({'query': query_body, 'operation_field': 'language'})
-
     def start(self):
-        documents = self.scan_or_query_all()        
-        documents = list(documents)
-        document = documents[0]
+
+        documents = self.query_all()        
         print("Num of matches:", self.count_matches())
-        print(document)
-        print("Current query results overview :\n"),
-        self.print_aggs_by_query()
 
-        choices = self.build_choices_from_docs(documents)
-        answers = self.ask_user_to_choose('first_docs', 'Which docs are you interested in?', choices)
-
-        # get sliced ids from answers
-        sliced_ids = [answer.split(' - ')[0] for answer in answers['first_docs']]
-        selected_docs = [doc for doc in documents if doc.get('_id')[:6] in sliced_ids]
-
-        # get selected docs metadata
-        full_docs = self.query_doc_content([doc.get('_id') for doc in selected_docs])
-        print(full_docs)
-
-        if len(selected_docs) == 1:
+        # TODO
+        # print("Current query results overview :\n"),
+        # self.print_aggs_by_query()
         
-            # pretty print doc content
-            self.print_doc_content(full_docs[0])
+        # Enter interactive loop
+        chat_choices = [
+            'No, keep going', 
+            'Yes, save current query and leave', 
+            'No, give it up',
+        ]
+        chat_answers = self.ask_user_to_choose('user_chat', 'Is your search good enough for you?', chat_choices, default_idx=0)
 
-            # select between finding ngrams or entire lines to search another similar doc
-            answers = self.ask_user_to_choose('search_type', 
-                                            'What would you like to search for?', 
-                                            ['ngrams', 'lines'])
+        loop_from = DEFAULT_FROM
+        loop_limit = DEFAULT_LIMIT
+        num_docs_to_show = 10
 
-            # if ngrams, find ngrams
-            if answers['search_type'] == 'ngrams':
-                # find ngrams
-                possible_search_terms = self.find_ngrams(full_docs[0])
-            else:
-                # find lines
-                possible_search_terms = self.find_lines(full_docs[0])
+        query = self.query
 
-            print(possible_search_terms)
+        while chat_answers['user_chat'] == 'No, keep going':
+            # 1 select interesting docs
+            selected_docs = self.ask_user_to_select_docs('first_docs', 'Which docs are you interested in?', documents)
 
-            # interact for selecting documents
-            self.ask_user_to_choose('search_terms', 'Which search term would you like to use?', possible_search_terms)
+            while len(selected_docs) < 2:
+                
+                # increase search page
+                loop_from += num_docs_to_show
 
-        elif len(selected_docs) > 1:
+                # show next page of results of query
+                logger.debug("Querying next page of results at from=%s, limit=%s" % (loop_from, loop_limit))
+
+                next_docs = self.query_all(query_body=query, from_=loop_from, limit=loop_limit)
+                selected_docs = self.ask_user_to_select_docs('next_docs', 'Which docs are you interested in?', next_docs)
+
+            # 2 find commonalities between them
+            full_docs = self.query_doc_content([doc['_id'] for doc in selected_docs])
+            
+            # OPTIONAL
+            # # get selected docs metadata
+            # # TODO ask user for operation with docs
+            # print(full_docs)
+
             # find common lines between the docs
             commonalities = self.common_lines(full_docs)
-            print(commonalities)
 
             if len(commonalities) == 0:
                 print(f"No common lines found between the selected documents. Trying with ngrams")
                 
                 # find common lines between the docs
                 commonalities = self.common_ngrams(full_docs)
-                print(commonalities)
 
             # interact to select few commonalities to search docs
-            answers = self.ask_user_to_choose(
+            answers = self.ask_user_to_select(
                 'commonalities', 
                 'Which common terms found would you like to use to search again?', 
                 commonalities)
 
+            # 3 search for commonalities
+                
             # run query for the selected commonalities
             query = self.build_query_multiple_terms(answers['commonalities'])
+
             print(f"Query for commonalities: {query}")
-            new_docs = self.scan_or_query_all(query_body=query)
-            
-            choices = self.build_choices_from_docs(new_docs)
-            answers = self.ask_user_to_choose('new_docs', 'Which docs are you interested in?', choices)
-            # get sliced ids from answers
-            sliced_ids = [answer.split(' - ')[0] for answer in answers['new_docs']]
-            selected_docs = [doc for doc in new_docs if doc.get('_id')[:6] in sliced_ids]
+            documents = self.query_all(query_body=query)
+            print("Num of matches:", self.count_matches(query_body=query))
+
+            # TODO fix it
+            # print("Current query results overview :\n"),
+            # self.print_aggs_by_query(query_body=query)
+ 
+            # reask to the user if he wants to keep going
+            chat_answers = self.ask_user_to_choose('user_chat', 'Is your search good enough for you?', chat_choices, default_idx=0)
+
+        print(chat_answers['user_chat'])
+        
+        # 4 see if end user is happy with the results
+        if chat_answers['user_chat'] == 'Yes, save current query and leave':
+            with open(self.output_file, 'w') as f:
+                json.dump(f, query, indent=4)
+                print("Saved query to file %s" % self.output_file)
+        
+        elif chat_answers['user_chat'] == 'No, give it up':
+            print("Ok, giving up. Bye!")

@@ -223,13 +223,13 @@ class SimilarDocs:
         text = re.sub(r'\s+', ' ', text).strip()
         print(text.splitlines())
 
-    def get_doc_ngrams(self, doc):
+    def get_doc_ngrams(self, doc, n=3):
         text = doc['_source']['content'].lower()
         text = re.sub(r'\s+', ' ', text).strip()
         words = text.split(" ")
         ngrams = []
-        for i in range(len(words)-2):
-            ngrams.append(" ".join(words[i:i+3]))
+        for i in range(len(words)-n+1):
+            ngrams.append(" ".join(words[i:i+n]))
         return ngrams
     
     def get_doc_lines(self, doc):
@@ -246,11 +246,11 @@ class SimilarDocs:
 
         return common_lines
     
-    def common_ngrams(self, docs):
+    def common_ngrams(self, docs, n=3):
         docs_ngrams = []
-        for doc in docs:
-            docs_ngrams += self.get_doc_ngrams(doc)
-        common_ngrams = set(docs_ngrams)
+        common_ngrams = set(self.get_doc_ngrams(docs[0]))
+        for doc in docs[1:]:
+            common_ngrams = common_ngrams & set(self.get_doc_ngrams(doc, n=n))
 
         # sort by len desc
         common_ngrams = sorted(common_ngrams, key=len, reverse=True)
@@ -312,21 +312,22 @@ class SimilarDocs:
         # print("Current query results overview :\n"),
         # self.print_aggs_by_query()
         
+        loop_from = DEFAULT_FROM
+        loop_limit = DEFAULT_LIMIT
+        num_docs_to_show = 10
+
+        query = self.query_body
+
         # Enter interactive loop
         chat_choices = [
             'No, keep going', 
             'Yes, save current query and leave', 
             'No, give it up',
         ]
-        chat_answers = self.ask_user_to_choose('user_chat', 'Is your search good enough for you?', chat_choices, default_idx=0)
-
-        loop_from = DEFAULT_FROM
-        loop_limit = DEFAULT_LIMIT
-        num_docs_to_show = 10
-
-        query = self.query
+        chat_answers = {'user_chat': 'No, keep going'}
 
         while chat_answers['user_chat'] == 'No, keep going':
+
             # 1 select interesting docs
             selected_docs = self.ask_user_to_select_docs('first_docs', 'Which docs are you interested in?', documents)
 
@@ -341,7 +342,7 @@ class SimilarDocs:
                     # query = self.build_mlt_query(selected_docs, [query])
                     query = self.build_query_multiple_terms([query])
                 next_docs = self.query_all(query_body=query, from_=loop_from, limit=loop_limit)
-                selected_docs = self.ask_user_to_select_docs('next_docs', 'Which docs are you interested in?', next_docs)
+                selected_docs += self.ask_user_to_select_docs('next_docs', 'Which docs are you interested in?', next_docs)
 
             # 2 find commonalities between them
             full_docs = self.query_doc_content([doc['_id'] for doc in selected_docs])
@@ -358,7 +359,12 @@ class SimilarDocs:
                 print(f"No common lines found between the selected documents. Trying with ngrams")
                 
                 # find common lines between the docs
-                commonalities = self.common_ngrams(full_docs)
+                n_grams_choices = reversed(range(1, 4))
+                for n in n_grams_choices:
+                    print(f"Trying with ngrams of size {n}")
+                    commonalities = self.common_ngrams(full_docs, n=3)
+                    if len(commonalities) > 0:
+                        break
 
             # interact to select few commonalities to search docs
             answers = self.ask_user_to_select(
@@ -392,7 +398,7 @@ class SimilarDocs:
         # 4 see if end user is happy with the results
         if chat_answers['user_chat'] == 'Yes, save current query and leave':
             with open(self.output_file, 'w') as f:
-                json.dump(f, query, indent=4)
+                json.dump(query, f, indent=4)
                 print("Saved query to file %s" % self.output_file)
         
         elif chat_answers['user_chat'] == 'No, give it up':

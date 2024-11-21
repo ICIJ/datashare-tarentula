@@ -131,7 +131,15 @@ class SimilarDocs:
         }
         return q
 
-    def build_mlt_query(self, sel_docs, terms, min_term_freq=1, max_query_terms=12):
+    def build_mlt_query(self, 
+            sel_docs, 
+            liked_terms, 
+            unliked_terms=[], 
+            max_query_terms=30,
+            min_term_freq=1, 
+            min_doc_freq=10,
+            min_word_length=4,
+        ):
         like_query_section = [
             {
                 "_index": self.datashare_project,
@@ -139,15 +147,18 @@ class SimilarDocs:
             }
             for doc_id in sel_docs
         ]
-        like_query_section += [term for term in terms]
+        like_query_section += [term for term in liked_terms]
 
         q = {
             "query": {
                 "more_like_this": {
-                "fields": [ "content" ],
-                "like": like_query_section,
-                "min_term_freq": min_term_freq,
-                "max_query_terms": max_query_terms
+                    "like": like_query_section,
+                    "unlike": [uterm for uterm in unliked_terms],
+                    "fields": [ "content" ],
+                    "min_term_freq": min_term_freq,
+                    "max_query_terms": max_query_terms,
+                    "min_doc_freq": min_doc_freq,
+                    "min_word_length": min_word_length,
                 }
             }
         }
@@ -363,14 +374,15 @@ class SimilarDocs:
                 for n in n_grams_choices:
                     print(f"Trying with ngrams of size {n}")
                     commonalities = self.common_ngrams(full_docs, n=3)
-                    if len(commonalities) > 0:
-                        break
-
-            # interact to select few commonalities to search docs
-            answers = self.ask_user_to_select(
-                'commonalities', 
-                'Which common terms found would you like to use to search again?', 
-                commonalities)
+            
+            if len(commonalities) > 0:
+                # interact to select few commonalities to search docs
+                answers = self.ask_user_to_select(
+                    'commonalities', 
+                    'Which common terms found would you like to use to search again?', 
+                    commonalities)
+            else:
+                answers = {'commonalities': []}
 
             # 3 search for commonalities
                 

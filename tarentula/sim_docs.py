@@ -131,6 +131,29 @@ class SimilarDocs:
         }
         return q
 
+    def build_mlt_query(self, sel_docs, terms, min_term_freq=1, max_query_terms=12):
+        like_query_section = [
+            {
+                "_index": self.datashare_project,
+                "_id": doc_id
+            }
+            for doc_id in sel_docs
+        ]
+        like_query_section += [term for term in terms]
+
+        q = {
+            "query": {
+                "more_like_this": {
+                "fields": [ "content" ],
+                "like": like_query_section,
+                "min_term_freq": min_term_freq,
+                "max_query_terms": max_query_terms
+                }
+            }
+        }
+
+        return q
+
     # function that queries for a document by id and returns the content
     def query_doc_content(self, doc_ids):
         index = self.datashare_project
@@ -314,7 +337,9 @@ class SimilarDocs:
 
                 # show next page of results of query
                 logger.debug("Querying next page of results at from=%s, limit=%s" % (loop_from, loop_limit))
-
+                if isinstance(query, str):
+                    # query = self.build_mlt_query(selected_docs, [query])
+                    query = self.build_query_multiple_terms([query])
                 next_docs = self.query_all(query_body=query, from_=loop_from, limit=loop_limit)
                 selected_docs = self.ask_user_to_select_docs('next_docs', 'Which docs are you interested in?', next_docs)
 
@@ -344,11 +369,16 @@ class SimilarDocs:
             # 3 search for commonalities
                 
             # run query for the selected commonalities
-            query = self.build_query_multiple_terms(answers['commonalities'])
-
+            # query = self.build_query_multiple_terms(answers['commonalities'])
+            query = self.build_mlt_query(
+                [doc['_id'] for doc in selected_docs],
+                answers['commonalities']
+            )
             print(f"Query for commonalities: {query}")
+
             documents = self.query_all(query_body=query)
             print("Num of matches:", self.count_matches(query_body=query))
+            print("Last result documents: %s" % documents)
 
             # TODO fix it
             # print("Current query results overview :\n"),

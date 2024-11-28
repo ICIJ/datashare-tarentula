@@ -181,30 +181,6 @@ class SimilarDocs:
         resp = self.datashare_client.query(index, query=query, source=source)
         return resp['hits']['hits']
     
-    def query_term_vectors(self, doc_id):
-        index = self.datashare_project
-        return self.datashare_client.query_term_vectors(index, doc_id)
-    
-    @property
-    def source_fields(self):
-        return [ self.source_field_params(f) for f in self.source.split(',') ]
-
-    @property
-    def source_fields_names(self):
-        return [ field.pop(0) for field in self.source_fields ]
-
-    def source_field_params(self, field):
-        field_params = field.strip().split(':')
-        field_name = field_params[0]
-        field_default = field_params[1] if len(field_params) > 1 else ''
-        return [field_name, field_default]
-
-    def count_matches(self, query_body=None):
-        if not query_body:
-            query_body = self.query_body
-        index = self.datashare_project
-        return self.datashare_client.count(index=index, query=query_body).get('count')
-
     def query_all(self, query_body=None, 
                   from_=DEFAULT_FROM, 
                   limit=DEFAULT_LIMIT, 
@@ -227,6 +203,26 @@ class SimilarDocs:
 
         return list(docs)
     
+    @property
+    def source_fields(self):
+        return [ self.source_field_params(f) for f in self.source.split(',') ]
+
+    @property
+    def source_fields_names(self):
+        return [ field.pop(0) for field in self.source_fields ]
+
+    def source_field_params(self, field):
+        field_params = field.strip().split(':')
+        field_name = field_params[0]
+        field_default = field_params[1] if len(field_params) > 1 else ''
+        return [field_name, field_default]
+
+    def count_matches(self, query_body=None):
+        if not query_body:
+            query_body = self.query_body
+        index = self.datashare_project
+        return self.datashare_client.count(index=index, query=query_body).get('count')
+
     # function pretty prints to console the content of a doc
     def print_doc_content(self, doc):
         text = doc['_source']['content'].lower()
@@ -351,17 +347,10 @@ class SimilarDocs:
                 if isinstance(query, str):
                     # query = self.build_mlt_query(selected_docs, [query])
                     query = self.build_query_multiple_terms([query])
+                
                 next_docs = self.query_all(query_body=query, from_=loop_from, limit=loop_limit)
-                selected_docs += self.ask_user_to_select_docs('next_docs', 'Which docs are you interested in?', next_docs)
 
-            # 1.b run termvectors for selected docs
-            for doc in selected_docs:
-                termvectors = self.query_term_vectors(doc['_id'])
-                print(f"Termvectors for doc {doc['_id']}:\n")
-                print(json.dumps(termvectors, indent=4))
-                print("-------")
-            
-            print("======")
+                selected_docs += self.ask_user_to_select_docs('next_docs', 'Which docs are you interested in?', next_docs)
 
             # 2 find commonalities between them
             full_docs = self.query_doc_content([doc['_id'] for doc in selected_docs])

@@ -15,6 +15,7 @@ DEFAULT_ORDER_BY = 'asc'
 DEFAULT_FROM = 0
 DEFAULT_LIMIT = 10
 DEFAULT_SIZE = 100
+MIN_COMMONALITIES_TO_OFFER = 2
 
 
 class SimilarDocs:
@@ -179,7 +180,11 @@ class SimilarDocs:
 
         resp = self.datashare_client.query(index, query=query, source=source)
         return resp['hits']['hits']
-
+    
+    def query_term_vectors(self, doc_id):
+        index = self.datashare_project
+        return self.datashare_client.query_term_vectors(index, doc_id)
+    
     @property
     def source_fields(self):
         return [ self.source_field_params(f) for f in self.source.split(',') ]
@@ -199,12 +204,6 @@ class SimilarDocs:
             query_body = self.query_body
         index = self.datashare_project
         return self.datashare_client.count(index=index, query=query_body).get('count')
-
-    def log_matches(self):
-        index = self.datashare_project
-        count = self.count_matches()
-        logger.info('%s matching document(s) in %s' % (count, index))
-        return count
 
     def query_all(self, query_body=None, 
                   from_=DEFAULT_FROM, 
@@ -258,7 +257,6 @@ class SimilarDocs:
         return common_lines
     
     def common_ngrams(self, docs, n=3):
-        docs_ngrams = []
         common_ngrams = set(self.get_doc_ngrams(docs[0]))
         for doc in docs[1:]:
             common_ngrams = common_ngrams & set(self.get_doc_ngrams(doc, n=n))
@@ -343,7 +341,8 @@ class SimilarDocs:
             selected_docs = self.ask_user_to_select_docs('first_docs', 'Which docs are you interested in?', documents)
 
             while len(selected_docs) < 2:
-                
+                print("You need to select at least 2 documents to find commonalities, current selection: %s" % len(selected_docs))
+
                 # increase search page
                 loop_from += num_docs_to_show
 
@@ -354,6 +353,15 @@ class SimilarDocs:
                     query = self.build_query_multiple_terms([query])
                 next_docs = self.query_all(query_body=query, from_=loop_from, limit=loop_limit)
                 selected_docs += self.ask_user_to_select_docs('next_docs', 'Which docs are you interested in?', next_docs)
+
+            # 1.b run termvectors for selected docs
+            for doc in selected_docs:
+                termvectors = self.query_term_vectors(doc['_id'])
+                print(f"Termvectors for doc {doc['_id']}:\n")
+                print(json.dumps(termvectors, indent=4))
+                print("-------")
+            
+            print("======")
 
             # 2 find commonalities between them
             full_docs = self.query_doc_content([doc['_id'] for doc in selected_docs])
@@ -366,14 +374,16 @@ class SimilarDocs:
             # find common lines between the docs
             commonalities = self.common_lines(full_docs)
 
-            if len(commonalities) == 0:
+            if len(commonalities) < MIN_COMMONALITIES_TO_OFFER:
                 print(f"No common lines found between the selected documents. Trying with ngrams")
                 
                 # find common lines between the docs
                 n_grams_choices = reversed(range(1, 4))
                 for n in n_grams_choices:
                     print(f"Trying with ngrams of size {n}")
-                    commonalities = self.common_ngrams(full_docs, n=3)
+                    commonalities += self.common_ngrams(full_docs, n=n)
+                    if len(commonalities) > MIN_COMMONALITIES_TO_OFFER:
+                        break
             
             if len(commonalities) > 0:
                 # interact to select few commonalities to search docs
@@ -395,8 +405,8 @@ class SimilarDocs:
             print(f"Query for commonalities: {query}")
 
             documents = self.query_all(query_body=query)
+            print("Last result documents: \n%s" % json.dumps(documents, indent=4))
             print("Num of matches:", self.count_matches(query_body=query))
-            print("Last result documents: %s" % documents)
 
             # TODO fix it
             # print("Current query results overview :\n"),

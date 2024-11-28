@@ -135,7 +135,32 @@ class DatashareClient:
                                  cookies=self.cookies, timeout=HTTP_REQUEST_TIMEOUT_SEC)
         response.raise_for_status()
         return response.json()
+    
+    def query_term_vectors(self, index=DATASHARE_DEFAULT_PROJECT, doc_id=None, **kwargs):
+        fields = ['content']
+        query = {
+            "fields": fields,
+            "offsets": False,
+            "payloads": True,
+            "positions": False,
+            "term_statistics": True,
+            "field_statistics": True,
+            # "filter": {
+            #     "max_num_terms": 3,
+            #     "min_term_freq": 1,
+            #     "min_doc_freq": 1
+            # }
+        }
+        url = urljoin(self.elasticsearch_host, index, '/_termvectors', doc_id)
 
+        response = requests.get(url, 
+                                 params=None,
+                                 json=query,
+                                 headers=self.headers,
+                                 cookies=self.cookies, timeout=HTTP_REQUEST_TIMEOUT_SEC)
+        response.raise_for_status()
+        return response.json()
+    
     def scroll(self, scroll_id, scroll=None):
         url = urljoin(self.elasticsearch_host, '/_search/scroll')
         body = {"scroll_id": scroll_id, "scroll": scroll}

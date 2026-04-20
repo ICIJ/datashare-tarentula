@@ -202,11 +202,11 @@ class DatashareClient:
                             headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
 
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):
-        if query is None: query = {}
-        query = {'query': query['query']}
+        if query is None:
+            query = {'query': {'match_all': {}}}
+        body = {'query': query['query']}
         url = urljoin(self.elasticsearch_host, index, '_count')
-        return requests.post(url, json=query,
-                             cookies=self.cookies,
+        return requests.post(url, json=body, cookies=self.cookies,
                              headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
 
     def document(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None, source=None):

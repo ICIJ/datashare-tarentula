@@ -158,12 +158,23 @@ class DatashareClient:
 
     def scan_all(self, scroll='10m', **kwargs):
         response = self.query(scroll=scroll, **kwargs)
-        while len(response['hits']['hits']) > 0:
-            yield from response['hits']['hits']
-            if '_scroll_id' not in response:
-                break
-            scroll_id = response['_scroll_id']
-            response = self.scroll(scroll_id, scroll)
+        scroll_id = response.get('_scroll_id')
+        try:
+            while len(response['hits']['hits']) > 0:
+                yield from response['hits']['hits']
+                if '_scroll_id' not in response:
+                    break
+                scroll_id = response['_scroll_id']
+                response = self.scroll(scroll_id, scroll)
+        finally:
+            if scroll_id is not None:
+                try:
+                    url = urljoin(self.elasticsearch_host, '/_search/scroll')
+                    requests.delete(url, json={'scroll_id': scroll_id},
+                                    cookies=self.cookies, headers=self.headers,
+                                    timeout=HTTP_REQUEST_TIMEOUT_SEC)
+                except requests.RequestException:
+                    pass
 
     def query_all(self, **kwargs):
         # for low limit value cases

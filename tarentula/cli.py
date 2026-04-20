@@ -254,18 +254,13 @@ def list_metadata(**options):
               help='Calendar interval for date histogram aggregation', default='year',
               type=click.Choice(['year', 'month']))
 def aggregate(**options):
-    agg_operation = options['run']
-
-    if agg_operation == 'count':
-        agg = AggCount(**options)
-    elif agg_operation == 'nunique':
-        agg = NumUnique(**options)
-    elif agg_operation == 'date_histogram':
-        agg = DateHistogram(**options)
-    elif agg_operation in ['sum', 'stats', 'string_stats', 'min', 'max', 'avg']:
-        agg = GeneralStats(**options)
-
-    agg.start()
+    aggregators = {
+        'count': AggCount,
+        'nunique': NumUnique,
+        'date_histogram': DateHistogram,
+    }
+    agg_cls = aggregators.get(options['run'], GeneralStats)
+    agg_cls(**options).start()
 
 
 cli.add_command(tagging)

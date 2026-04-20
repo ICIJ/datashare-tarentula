@@ -1,5 +1,6 @@
 import csv
 import re
+from functools import cached_property
 from time import sleep
 from http.cookies import SimpleCookie
 from rich.progress import Progress
@@ -35,10 +36,10 @@ class Tagger:
     def no_progressbar(self):
         return not self.progressbar
 
-    @property
+    @cached_property
     def csv_rows(self):
         with open(self.csv_path, newline='', encoding='utf-8-sig') as csv_file:
-            return list(self.sanitize_row(row) for row in csv.DictReader(csv_file))
+            return [self.sanitize_row(row) for row in csv.DictReader(csv_file)]
 
     @property
     def tags(self):

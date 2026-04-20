@@ -22,12 +22,15 @@ class GraphRealTime:
         self.xs = [] if xs_param is None else xs_param
         self.ys = [] if ys_param is None else ys_param
 
-        fig = plt.figure()
-        self.ani = animation.FuncAnimation(fig, self.add_point, interval=self.refresh_interval * 1000)
-        self.ax = fig.add_subplot(1, 1, 1)
-        plt.gcf().autofmt_xdate()
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(1, 1, 1)
+        self.fig.autofmt_xdate()
+        self.ani = None
 
     def show_graph(self):
+        self.ani = animation.FuncAnimation(self.fig, self.add_point,
+                                           interval=self.refresh_interval * 1000,
+                                           cache_frame_data=False)
         plt.show()
 
     def add_point(self, _i):

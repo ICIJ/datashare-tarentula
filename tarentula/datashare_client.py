@@ -110,7 +110,7 @@ class DatashareClient:
         # Source index must at least have one document
         document_id = self.index(source, document={"content": "This is a temporary document", "tags": ["tmp"]})
         # Copy everything
-        json = {"source": {"index": source}, "dest": {"index": dest}, "size": size}
+        json = {"source": {"index": source}, "dest": {"index": dest}, "max_docs": size}
         # Send the request to elasticsearch
         url = urljoin(self.elasticsearch_url, '_reindex')
         result = requests.post(url + '?refresh', json=json, timeout=HTTP_REQUEST_TIMEOUT_SEC)

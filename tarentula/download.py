@@ -128,7 +128,7 @@ class Download(Command):
             logger.info('Skipping existing document %s', document.get('_id'))
             return None
         # Skip non-downloadable file
-        if document.get('_source', {}).get('type', None) != 'Document':
+        if document.get('_source', {}).get('type', None) != self.type:
             logger.warning('Not a raw document. Skipping %s', id)
             return None
         logger.info('Downloading raw file %s', id)

@@ -68,7 +68,10 @@ jobs:
         run: make install
 
       - name: Wait for Datashare to be up
-        run: wget --retry-connrefused --waitretry=5 --read-timeout=30 --timeout=30 -t 10 http://localhost:8080
+        run: wget --retry-connrefused --waitretry=5 --read-timeout=30 --timeout=30 -t 20 http://localhost:8080
+
+      - name: Wait for Elasticsearch cluster to be ready
+        run: wget -q -O - --retry-connrefused --waitretry=5 --read-timeout=60 --timeout=60 -t 10 "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s"
 
       - name: Run tests
         env:

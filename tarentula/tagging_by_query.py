@@ -1,5 +1,6 @@
 import json
 
+from functools import cached_property
 from http.cookies import SimpleCookie
 from time import sleep
 from requests.exceptions import HTTPError, ConnectionError
@@ -54,7 +55,7 @@ class TaggerByQuery:
             }
         return None
 
-    @property
+    @cached_property
     def tags(self):
         with open(self.json_path, 'r') as json_file:
             tags = json.loads(json_file.read())

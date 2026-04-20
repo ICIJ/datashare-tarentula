@@ -231,9 +231,8 @@ class DatashareClient:
         routing = routing or id
         url = urljoin(self.datashare_url, 'api', index, '/documents/src', id)
         return requests.get(url, params={'routing': routing},
-                            cookies=self.cookies,
-                            headers=self.headers,
-                            stream=True, timeout=HTTP_REQUEST_TIMEOUT_SEC)
+                            cookies=self.cookies, headers=self.headers,
+                            stream=True, timeout=(HTTP_REQUEST_TIMEOUT_SEC, None))
 
     def document_url(self, index=DATASHARE_DEFAULT_PROJECT, id='', routing=None):
         routing = id if routing is None else routing

@@ -1,6 +1,8 @@
 import os
 from unittest import TestCase
 
+import matplotlib.pyplot as plt
+
 from tarentula.datashare_client import DatashareClient
 from tarentula.graph_realtime import GraphRealTime
 
@@ -21,7 +23,10 @@ class TestGraphRealTime(TestCase):
     def test_field(self):
         xs = []
         ys = []
-        GraphRealTime(query='{"query":{"match_all":{}}}', elasticsearch_url=self.es_url,
-                      index='test-datashare', field='hits.total.value', refresh_interval=5, xs_param=xs, ys_param=ys).add_point(0)
+        graph = GraphRealTime(query='{"query":{"match_all":{}}}', elasticsearch_url=self.es_url,
+                              index='test-datashare', field='hits.total.value', refresh_interval=5,
+                              xs_param=xs, ys_param=ys)
+        graph.add_point(0)
+        self.addCleanup(plt.close, 'all')
 
         self.assertEqual(ys, [0])

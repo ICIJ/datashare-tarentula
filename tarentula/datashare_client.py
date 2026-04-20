@@ -38,6 +38,7 @@ class DatashareClient:
     def __init__(self, datashare_url=DATASHARE_DEFAULT_URL, elasticsearch_url=ELASTICSEARCH_DEFAULT_URL,
                  datashare_project=DATASHARE_DEFAULT_PROJECT, cookies='', apikey=None):
         self.datashare_url = datashare_url
+        self.datashare_project = datashare_project
         self.cookies_string = cookies
         self.apikey = apikey
         self.elasticsearch_url = elasticsearch_url

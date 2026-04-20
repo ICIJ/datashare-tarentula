@@ -155,7 +155,8 @@ class Download(Command):
     def start(self):
         count = self.log_matches()
         desc = f'Downloading {count} document(s)'
-        source = ["path", "parentDocument", "type"] + str(self.source).split(',')
+        extra = self.source.split(',') if self.source else []
+        source = ["path", "parentDocument", "type"] + extra
         try:
             with Progress(disable=self.no_progressbar) as progress:
                 task = progress.add_task(desc, total=count)

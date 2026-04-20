@@ -61,4 +61,4 @@ class ConfigFileReader:
 
     @property
     def system_directory_path(self) -> str:
-        return '/etc/tarentua/tarentua.ini'
+        return '/etc/tarentula/tarentula.ini'

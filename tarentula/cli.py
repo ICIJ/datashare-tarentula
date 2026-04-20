@@ -273,4 +273,4 @@ cli.add_command(list_metadata)
 cli.add_command(aggregate)
 
 if __name__ == '__main__':
-    cli()
+    cli()  # pylint: disable=no-value-for-parameter

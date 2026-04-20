@@ -220,7 +220,7 @@ def count(**options):
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--type', help='Type of indexed documents to get metadata', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
-@click.option('--filter_by',
+@click.option('--filter-by', '--filter_by', 'filter_by',
               help='Filter documents by pairs concatenated by coma of field names and values separated by =.'
                    ' Example "contentType=message/rfc822,contentType=message/rfc822"', default='')
 @click.option('--count/--no-count', help='Count or not the number of docs for each property found', default=False)
@@ -244,12 +244,14 @@ def list_metadata(**options):
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--type', help='Type of indexed documents to download', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
-@click.option('--group_by', help='Field to use to aggregate results', default=None)
-@click.option('--operation_field', help='Field to run the operation on', default=None)
+@click.option('--group-by', '--group_by', 'group_by', help='Field to use to aggregate results', default=None)
+@click.option('--operation-field', '--operation_field', 'operation_field',
+              help='Field to run the operation on', default=None)
 @click.option('--run', help='Operation to run ', default='count',
               type=click.Choice(
                   ['count', 'nunique', 'date_histogram', 'sum', 'stats', 'string_stats', 'min', 'max', 'avg']))
-@click.option('--calendar_interval', help='Calendar interval for date histogram aggregation', default='year',
+@click.option('--calendar-interval', '--calendar_interval', 'calendar_interval',
+              help='Calendar interval for date histogram aggregation', default='year',
               type=click.Choice(['year', 'month']))
 def aggregate(**options):
     agg_operation = options['run']

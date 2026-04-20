@@ -25,13 +25,14 @@ jobs:
           name: Restore virtualenvs from previous builds
           key: virtualenvs-dependencies-cache-{{ .Branch }}-{{ checksum "poetry.lock" }}
       - run:
-          name: Install Poetry and project's pip packages
+          name: Install Poetry
           command: |
             export TERM=xterm-256color
             export COLUMNS=150
             curl -sSL https://install.python-poetry.org | python3 -
-            poetry install --with dev
-            poetry run pip install matplotlib
+      - run:
+          name: Install project dependencies
+          command: make install
       - save_cache:
           name: Save virtualenvs cache for future builds
           key: virtualenvs-dependencies-cache-{{ .Branch }}-{{ checksum "poetry.lock" }}
@@ -43,9 +44,7 @@ jobs:
           command: wget --retry-connrefused --waitretry=5 --read-timeout=30 --timeout=30 -t 10 http://localhost:8080
       - run:
           name: Run lint
-          command: |
-            poetry run pylint tarentula
+          command: make lint
       - run:
           name: Run tests
-          command: |
-            TEST_ELASTICSEARCH_URL=http://localhost:9200 make test
+          command: TEST_ELASTICSEARCH_URL=http://localhost:9200 make test

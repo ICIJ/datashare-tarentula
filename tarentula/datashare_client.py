@@ -15,6 +15,23 @@ DATASHARE_DEFAULT_PROJECT = 'local-datashare'
 DATASHARE_DEFAULT_URL = 'http://localhost:8080'
 ELASTICSEARCH_DEFAULT_URL = 'local-datashare'
 HTTP_REQUEST_TIMEOUT_SEC = 60
+DATASHARE_CSRF_COOKIE_NAME = '_ds_csrf_token'
+DATASHARE_CSRF_HEADER_NAME = 'X-DS-CSRF-TOKEN'
+
+
+def fetch_datashare_csrf(datashare_url, headers=None, cookies=None):
+    try:
+        # Datashare sets the CSRF cookie on successful GET to /api/* only for authenticated requests,
+        # so forward any auth headers/cookies the caller already has.
+        response = requests.get(urljoin(datashare_url, '/api/users/me'),
+                                headers=headers, cookies=cookies,
+                                timeout=HTTP_REQUEST_TIMEOUT_SEC)
+        token = response.cookies.get(DATASHARE_CSRF_COOKIE_NAME)
+        if token:
+            return {DATASHARE_CSRF_COOKIE_NAME: token}, {DATASHARE_CSRF_HEADER_NAME: token}
+    except requests.RequestException:
+        pass
+    return {}, {}
 
 
 class DatashareClient:
@@ -51,7 +68,13 @@ class DatashareClient:
 
     def create(self, index=DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.datashare_url, '/api/index/', index)
-        return requests.put(url, timeout=HTTP_REQUEST_TIMEOUT_SEC)
+        csrf_cookies, csrf_headers = fetch_datashare_csrf(self.datashare_url,
+                                                          headers=self.headers,
+                                                          cookies=self.cookies)
+        merged_cookies = {**csrf_cookies, **self.cookies}
+        merged_headers = {**(self.headers or {}), **csrf_headers} or None
+        return requests.put(url, cookies=merged_cookies, headers=merged_headers,
+                            timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def index(self, index=DATASHARE_DEFAULT_PROJECT, document=None, id=None, routing=None):
         if document is None:

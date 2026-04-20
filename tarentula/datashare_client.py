@@ -29,8 +29,8 @@ def fetch_datashare_csrf(datashare_url, headers=None, cookies=None):
         token = response.cookies.get(DATASHARE_CSRF_COOKIE_NAME)
         if token:
             return {DATASHARE_CSRF_COOKIE_NAME: token}, {DATASHARE_CSRF_HEADER_NAME: token}
-    except requests.RequestException:
-        pass
+    except requests.RequestException as exc:
+        logger.debug('CSRF token fetch failed: %s', exc)
     return {}, {}
 
 

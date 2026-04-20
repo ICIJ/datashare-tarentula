@@ -62,8 +62,8 @@ class Aggregate(Command):
 
 class AggCount(Aggregate):
 
-    @property
-    def query_body_from_string(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.agg_level_1 = {
             "aggs": {
                 "bucket_truncate": {
@@ -81,42 +81,38 @@ class AggCount(Aggregate):
                 "size": 25
             }
         }
-        return super().query_body_from_string
 
 
 class NumUnique(Aggregate):
 
-    @property
-    def query_body_from_string(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.agg_level_1 = {
             "cardinality": {
                 "field": self.operation_field
             }
         }
-        return super().query_body_from_string
 
 
 class DateHistogram(Aggregate):
 
-    @property
-    def query_body_from_string(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.agg_level_1 = {
             "date_histogram": {
                 "field": self.operation_field,
                 "calendar_interval": self.calendar_interval
             }
         }
-        return super().query_body_from_string
 
 
 class GeneralStats(Aggregate):
     """Run one of the following agreggations: 'sum', 'stats', 'string_stats', 'min', 'max', 'avg' """
 
-    @property
-    def query_body_from_string(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.agg_level_1 = {
             self.run: {
                 "field": self.operation_field
             }
         }
-        return super().query_body_from_string

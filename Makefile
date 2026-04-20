@@ -26,7 +26,7 @@ clean: ## Remove build artifacts and __pycache__
 
 tag_version: ## Commit pyproject.toml bump and tag the version
 	git commit -m "build: bump to ${CURRENT_VERSION}" pyproject.toml
-	git tag ${CURRENT_VERSION}
+	git tag -a ${CURRENT_VERSION} -m "Release ${CURRENT_VERSION}"
 
 set_version: ## Set version to $CURRENT_VERSION and tag
 	poetry version ${CURRENT_VERSION}

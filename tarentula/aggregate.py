@@ -1,6 +1,8 @@
 import json
 import sys
 
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from tarentula.command import Command
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
@@ -38,9 +40,9 @@ class Aggregate(Command):
                                                     datashare_project,
                                                     cookies,
                                                     apikey)
-        except (ConnectionRefusedError, ConnectionError):
+        except (ConnectionRefusedError, ConnectionError, RequestsConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
-            sys.exit()
+            sys.exit(1)
 
     @property
     def query_body_from_string(self):

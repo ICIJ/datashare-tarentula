@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [master]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'poetry'
+
+      - name: Install project dependencies
+        run: make install
+
+      - name: Run lint
+        run: make lint
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+    env:
+      DATASHARE_VERSION: 20.14.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'poetry'
+
+      - name: Download Datashare .deb
+        run: wget "https://github.com/ICIJ/datashare-installer/releases/download/${DATASHARE_VERSION}/datashare-${DATASHARE_VERSION}.deb"
+
+      - name: Install Datashare
+        run: |
+          sudo apt-get update || true
+          sudo apt-get install -y "./datashare-${DATASHARE_VERSION}.deb"
+
+      - name: Start Datashare in background
+        run: nohup datashare -p test-datashare -u test > datashare.log 2>&1 &
+
+      - name: Install project dependencies
+        run: make install
+
+      - name: Wait for Datashare to be up
+        run: wget --retry-connrefused --waitretry=5 --read-timeout=30 --timeout=30 -t 10 http://localhost:8080
+
+      - name: Run tests
+        env:
+          TEST_ELASTICSEARCH_URL: http://localhost:9200
+        run: make test

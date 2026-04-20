@@ -30,6 +30,8 @@ jobs:
   docker:
     name: Publish to Docker Hub
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 

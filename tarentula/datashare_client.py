@@ -41,8 +41,6 @@ class DatashareClient:
         self.cookies_string = cookies
         self.apikey = apikey
         self.elasticsearch_url = elasticsearch_url
-        # Create the datashare default index
-        self.create(datashare_project)
 
     @property
     def cookies(self):

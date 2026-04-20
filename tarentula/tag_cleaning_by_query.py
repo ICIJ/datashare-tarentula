@@ -18,7 +18,7 @@ class TagsCleanerByQuery:
         if query is None:
             self.query = {"query": {"match_all": {}}}
         elif query.startswith('@'):
-            with open(query[1:]) as f:
+            with open(query[1:], encoding='utf-8') as f:
                 self.query = json.loads(f.read())
         else:
             self.query = json.loads(query)

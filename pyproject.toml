@@ -21,6 +21,12 @@ pytest = "^7.2.0"
 matplotlib = "^3.8"
 pylint = "^3.0"
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning:pyparsing.*",
+    "ignore::DeprecationWarning:matplotlib.*",
+]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

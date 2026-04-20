@@ -20,7 +20,7 @@ class GraphRealTime:
         self.elasticsearch_endpoint = f'{elasticsearch_url}/{index}/_search?size=0'
         self.refresh_interval = refresh_interval
         self.xs = [] if xs_param is None else xs_param
-        self.ys = [] if xs_param is None else ys_param
+        self.ys = [] if ys_param is None else ys_param
 
         fig = plt.figure()
         self.ani = animation.FuncAnimation(fig, self.add_point, interval=self.refresh_interval * 1000)

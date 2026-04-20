@@ -144,7 +144,12 @@ class Tagger:
                         elif result.status_code == requests.codes.created:
                             logger.info('Added "%s" to document "%s"', tag, document_id)
                         self.sleep()
-                    except (HTTPError, ConnectionError):
-                        logger.warning('Unable to add "%s" to document "%s"', tag, document_id,
+                    except HTTPError as error:
+                        response = error.response
+                        logger.warning('Unable to add "%s" to document "%s" (HTTP %s): %s',
+                                       tag, document_id, response.status_code, response.text,
                                        exc_info=self.traceback)
+                    except ConnectionError as error:
+                        logger.warning('Unable to add "%s" to document "%s": %s',
+                                       tag, document_id, error, exc_info=self.traceback)
                     progress.advance(task)

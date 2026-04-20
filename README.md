@@ -54,6 +54,7 @@ Commands:
   - [1. Bump the version](#1-bump-the-version)
   - [2. Push the commit and tag](#2-push-the-commit-and-tag)
   - [3. Create a GitHub release](#3-create-a-github-release)
+  - [Manual fallback](#manual-fallback)
 
 <!-- /TOC -->
 ---
@@ -479,3 +480,19 @@ gh release create "$(git describe --tags --abbrev=0)" --generate-notes
 Alternatively, open the [new release page](https://github.com/ICIJ/datashare-tarentula/releases/new) and select the tag manually.
 
 Publishing the release triggers the [`Release` workflow](.github/workflows/release.yml), which builds and publishes the package to PyPI and the multi-arch Docker image to Docker Hub. Watch the workflow run on the [Actions tab](https://github.com/ICIJ/datashare-tarentula/actions/workflows/release.yml) to make sure both jobs succeed.
+
+### Manual fallback
+
+If the CI workflow is unavailable, you can publish from your machine. This requires being a maintainer of the PyPI project and a member of the ICIJ organization on Docker Hub, with credentials configured locally.
+
+Publish to PyPI:
+
+```
+make distribute
+```
+
+Build and push the multi-arch Docker image (run `make docker-setup-multiarch` once to configure buildx, see the [Docker documentation](https://docs.docker.com/build/building/multi-platform/)):
+
+```
+make docker-publish
+```

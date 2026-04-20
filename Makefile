@@ -4,7 +4,8 @@ CURRENT_VERSION ?= `poetry version -s`
 SEMVERS := major minor patch
 
 .PHONY: help install test lint clean tag_version set_version \
-        $(SEMVERS) distribute docker-setup-multiarch docker-publish docker-run
+        $(SEMVERS) bump-patch bump-minor bump-major _bump-success \
+        distribute docker-setup-multiarch docker-publish docker-run
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -34,6 +35,33 @@ set_version: ## Set version to $CURRENT_VERSION and tag
 $(SEMVERS): ## Bump major|minor|patch and tag
 	poetry version $@
 	$(MAKE) tag_version
+
+bump-patch: ## Bump patch version, commit and tag
+	@poetry version patch
+	@$(MAKE) --no-print-directory tag_version
+	@$(MAKE) --no-print-directory _bump-success
+
+bump-minor: ## Bump minor version, commit and tag
+	@poetry version minor
+	@$(MAKE) --no-print-directory tag_version
+	@$(MAKE) --no-print-directory _bump-success
+
+bump-major: ## Bump major version, commit and tag
+	@poetry version major
+	@$(MAKE) --no-print-directory tag_version
+	@$(MAKE) --no-print-directory _bump-success
+
+_bump-success:
+	@NEW_TAG=$$(git describe --tags --abbrev=0); \
+	echo ""; \
+	echo "Version bumped to $$NEW_TAG"; \
+	echo ""; \
+	echo "Next steps:"; \
+	echo "  1. Push the commit and tag:"; \
+	echo "       git push --follow-tags"; \
+	echo "  2. Create a GitHub release for $$NEW_TAG:"; \
+	echo "       gh release create $$NEW_TAG --generate-notes"; \
+	echo "     or open: https://github.com/ICIJ/datashare-tarentula/releases/new?tag=$$NEW_TAG"
 
 distribute: ## Build and publish to PyPI
 	poetry publish --build

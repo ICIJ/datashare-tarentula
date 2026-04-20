@@ -77,31 +77,21 @@ class DatashareClient:
     def index(self, index=DATASHARE_DEFAULT_PROJECT, document=None, id=None, routing=None):
         if document is None:
             document = {}
-        params = {'routing': routing}
-        # Clone the document to perform changes
         document = dict(document)
-        # Elasticsearch doesn't allow passing the _id as a property in the document
-        if '_id' in document:
-            document.pop('_id', None)
-        if '_routing' in document:
-            document.pop('_routing', None)
-        # When no id is provided, we use POST method (to create the resource)
+        document.pop('_id', None)
+        document.pop('_routing', None)
         if 'content' in document:
-            content_length = len(document.get('content', ''))
-            document.update({'contentLength': content_length})
-        now = datetime.now()
-        extraction_date = now.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-        document.update({'extractionDate': extraction_date})
+            document['contentLength'] = len(document['content'])
+        extraction_date = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+        document['extractionDate'] = extraction_date
+        params = {'refresh': 'true'}
+        if routing is not None:
+            params['routing'] = routing
         if id is None:
-            url = urljoin(self.elasticsearch_url, index, '/_doc?refresh')
+            url = urljoin(self.elasticsearch_url, index, '/_doc')
             result = requests.post(url, json=document, params=params, timeout=HTTP_REQUEST_TIMEOUT_SEC)
-        # When an id is provided, we use PUT method (to update the resource)
         else:
-            if routing is None:
-                query_params = '?refresh'
-            else:
-                query_params = '?refresh&routing=' + routing
-            url = urljoin(self.elasticsearch_url, index, '/_doc/', id, query_params)
+            url = urljoin(self.elasticsearch_url, index, '/_doc/', id)
             result = requests.put(url, json=document, params=params, timeout=HTTP_REQUEST_TIMEOUT_SEC)
         result.raise_for_status()
         return result.json().get('_id')

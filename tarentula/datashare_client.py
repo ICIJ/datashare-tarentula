@@ -248,7 +248,6 @@ class DatashareClient:
         finally:
             if delete and project is not None:
                 self.delete_index(project)
-        return project
 
     def scan_or_query_all(self, datashare_project, source_fields_names, sort_by, order_by, scroll, query_body, from_,
                           limit, size):

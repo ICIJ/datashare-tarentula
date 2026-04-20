@@ -51,10 +51,9 @@ Commands:
 - [Configuration File](#configuration-file)
 - [Testing](#testing)
 - [Releasing](#releasing)
-  - [1. Create a new release](#1-create-a-new-release)
-  - [2. Upload distributions on pypi](#2-upload-distributions-on-pypi)
-  - [3. Build and publish the Docker image](#3-build-and-publish-the-docker-image)
-  - [4. Push your changes on Github](#4-push-your-changes-on-github)
+  - [1. Bump the version](#1-bump-the-version)
+  - [2. Push the commit and tag](#2-push-the-commit-and-tag)
+  - [3. Create a GitHub release](#3-create-a-github-release)
 
 <!-- /TOC -->
 ---
@@ -445,40 +444,38 @@ make test
 
 ## Releasing
 
-The releasing process uses [bumpversion](https://pypi.org/project/bumpversion/) to manage versions of this package, [pypi](https://pypi.org/project/tarentula/) to publish the Python package and [Docker Hub](https://hub.docker.com/) for the Docker image.
+The releasing process uses [Poetry](https://python-poetry.org/) to manage versions, and a GitHub Actions workflow to publish both the Python package to [PyPI](https://pypi.org/project/tarentula/) and the multi-arch Docker image to [Docker Hub](https://hub.docker.com/repository/docker/icij/datashare-tarentula) whenever a GitHub release is published.
 
-### 1. Create a new release
+Each step below assumes you are on `master` with a clean working tree and that tests pass (`make test`).
 
-```
-make [patch|minor|major]
-```
+### 1. Bump the version
 
-### 2. Upload distributions on pypi
-
-_To be able to do this, you will need to be a maintainer of the [pypi](https://pypi.org/project/tarentula/) project._
+Pick the semver level that matches your changes and run the corresponding target. This bumps `pyproject.toml`, creates a commit, and tags the new version locally:
 
 ```
-make distribute
+make bump-patch   # backwards-compatible bug fixes
+make bump-minor   # backwards-compatible features
+make bump-major   # breaking changes
 ```
 
-### 3. Build and publish the Docker image
+On success, the target prints the next steps with the new tag filled in.
 
-To build and upload a new image on the [docker repository](https://hub.docker.com/repository/docker/icij/datashare-tarentula) :
-
-_To be able to do this, you will need to be part of the ICIJ organization on docker_
+### 2. Push the commit and tag
 
 ```
-make docker-publish
+git push --follow-tags
 ```
 
-**Note**: Datashare Tarentula is a multi-platform build. You might need to setup your environment for 
-multi-platform using the `make docker-setup-multiarch` command. Read more 
-[on Docker documentation](https://docs.docker.com/build/building/multi-platform/). 
+This pushes the release commit along with the newly created tag to GitHub.
 
-### 4. Push your changes on Github
+### 3. Create a GitHub release
 
-Git push release and tag :
+Use the [GitHub CLI](https://cli.github.com/) to create a release with auto-generated notes from the commit history:
 
 ```
-git push origin master --tags
+gh release create "$(git describe --tags --abbrev=0)" --generate-notes
 ```
+
+Alternatively, open the [new release page](https://github.com/ICIJ/datashare-tarentula/releases/new) and select the tag manually.
+
+Publishing the release triggers the [`Release` workflow](.github/workflows/release.yml), which builds and publishes the package to PyPI and the multi-arch Docker image to Docker Hub. Watch the workflow run on the [Actions tab](https://github.com/ICIJ/datashare-tarentula/actions/workflows/release.yml) to make sure both jobs succeed.

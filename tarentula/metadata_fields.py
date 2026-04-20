@@ -28,7 +28,7 @@ class MetadataFields:
 
         if filter_by and "=" in filter_by:
             filters = filter_by.split(",")
-            filter_pairs = [map(str.strip, part.split("=")) for part in filters if "=" in part]
+            filter_pairs = [map(str.strip, part.split("=", 1)) for part in filters if "=" in part]
             self.query_filters = [
                 {"term": {f"{k}": f"{v}"}} for k, v in filter_pairs
             ]

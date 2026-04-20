@@ -130,7 +130,7 @@ class Tagger:
                                               cookies={**csrf_cookies, **self.cookies},
                                               headers={**(self.headers or {}), **csrf_headers} or None,
                                               timeout=HTTP_REQUEST_TIMEOUT_SEC)
-                        if result.status_code == 403 and not csrf_cookies:
+                        if result.status_code == 403:
                             csrf_cookies, csrf_headers = self.csrf
                             if csrf_cookies:
                                 result = requests.put(endpoint_url,

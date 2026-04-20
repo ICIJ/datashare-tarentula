@@ -9,7 +9,10 @@ ENV PATH="$POETRY_HOME/bin:$PATH"
 # Fail the build if any command in a RUN pipeline fails (not just the last one).
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN curl -sSL https://install.python-poetry.org | python3 - -y --version $POETRY_VERSION
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -sSL https://install.python-poetry.org | python3 - -y --version "$POETRY_VERSION"
 
 # Python 3 surrogate unicode handling
 # @see https://click.palletsprojects.com/en/7.x/python3/

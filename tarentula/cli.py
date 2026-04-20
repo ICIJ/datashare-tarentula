@@ -264,8 +264,6 @@ def aggregate(**options):
         agg = DateHistogram(**options)
     elif agg_operation in ['sum', 'stats', 'string_stats', 'min', 'max', 'avg']:
         agg = GeneralStats(**options)
-    else:
-        raise click.UsageError(f"Unknown aggregation: {agg_operation}")
 
     agg.start()
 
@@ -280,4 +278,4 @@ cli.add_command(list_metadata)
 cli.add_command(aggregate)
 
 if __name__ == '__main__':
-    cli(None) # ctx from @cli.pass_context
+    cli()

@@ -1,4 +1,4 @@
-# Datashare Tarentula [![CircleCI](https://circleci.com/gh/ICIJ/datashare-tarentula.svg?style=svg)](https://circleci.com/gh/ICIJ/datashare-tarentula)
+# Datashare Tarentula [![CI](https://github.com/ICIJ/datashare-tarentula/actions/workflows/ci.yml/badge.svg)](https://github.com/ICIJ/datashare-tarentula/actions/workflows/ci.yml)
 
 Cli toolbelt for [Datashare](https://datashare.icij.org).
 

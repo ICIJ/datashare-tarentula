@@ -171,8 +171,7 @@ class DatashareClient:
     def scan_all(self, scroll='10m', **kwargs):
         response = self.query(scroll=scroll, **kwargs)
         while len(response['hits']['hits']) > 0:
-            for item in response['hits']['hits']:
-                yield item
+            yield from response['hits']['hits']
             if '_scroll_id' not in response:
                 break
             scroll_id = response['_scroll_id']
@@ -188,8 +187,7 @@ class DatashareClient:
         response = self.query(**kwargs)
         while len(response['hits']['hits']) > 0:
 
-            for item in response['hits']['hits']:
-                yield item
+            yield from response['hits']['hits']
 
             # update size window for next iteration
             num_yielded += len(response['hits']['hits'])

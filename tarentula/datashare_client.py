@@ -34,6 +34,37 @@ def fetch_datashare_csrf(datashare_url, headers=None, cookies=None):
     return {}, {}
 
 
+class CsrfState:
+    """Caches a Datashare CSRF token and refreshes it when a request returns 403."""
+
+    def __init__(self, datashare_url):
+        self.datashare_url = datashare_url
+        self.cookies = {}
+        self.headers = {}
+
+    def _merge(self, cookies, headers):
+        merged_cookies = {**self.cookies, **(cookies or {})}
+        merged_headers = {**(headers or {}), **self.headers} or None
+        return merged_cookies, merged_headers
+
+    def request(self, method, url, *, cookies=None, headers=None, **kwargs):
+        # pylint: disable=missing-timeout
+        # Timeout is forwarded by callers via **kwargs.
+        merged_cookies, merged_headers = self._merge(cookies, headers)
+        response = requests.request(method, url,
+                                    cookies=merged_cookies, headers=merged_headers, **kwargs)
+        if response.status_code == 403:
+            new_cookies, new_headers = fetch_datashare_csrf(
+                self.datashare_url, headers=headers, cookies=cookies)
+            if new_cookies:
+                self.cookies = new_cookies
+                self.headers = new_headers
+                merged_cookies, merged_headers = self._merge(cookies, headers)
+                response = requests.request(method, url,
+                                            cookies=merged_cookies, headers=merged_headers, **kwargs)
+        return response
+
+
 class DatashareClient:
     def __init__(self, datashare_url=DATASHARE_DEFAULT_URL, elasticsearch_url=ELASTICSEARCH_DEFAULT_URL,
                  datashare_project=DATASHARE_DEFAULT_PROJECT, cookies='', apikey=None):
@@ -42,6 +73,11 @@ class DatashareClient:
         self.cookies_string = cookies
         self.apikey = apikey
         self.elasticsearch_url = elasticsearch_url
+        self._csrf = CsrfState(datashare_url)
+
+    def _request(self, method, url, **kwargs):
+        return self._csrf.request(method, url,
+                                  cookies=self.cookies, headers=self.headers, **kwargs)
 
     @property
     def cookies(self):
@@ -67,13 +103,7 @@ class DatashareClient:
 
     def create(self, index=DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.datashare_url, '/api/index/', index)
-        csrf_cookies, csrf_headers = fetch_datashare_csrf(self.datashare_url,
-                                                          headers=self.headers,
-                                                          cookies=self.cookies)
-        merged_cookies = {**csrf_cookies, **self.cookies}
-        merged_headers = {**(self.headers or {}), **csrf_headers} or None
-        return requests.put(url, cookies=merged_cookies, headers=merged_headers,
-                            timeout=HTTP_REQUEST_TIMEOUT_SEC)
+        return self._request('put', url, timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def index(self, index=DATASHARE_DEFAULT_PROJECT, document=None, id=None, routing=None):
         if document is None:
@@ -141,19 +171,15 @@ class DatashareClient:
         if source is not None:
             local_query.update({'_source': source})
         url = urljoin(self.elasticsearch_host, index, '/_search')
-        response = requests.post(url, params={"q": q, "scroll": scroll},
-                                 json=local_query,
-                                 headers=self.headers,
-                                 cookies=self.cookies, timeout=HTTP_REQUEST_TIMEOUT_SEC)
+        response = self._request('post', url, params={"q": q, "scroll": scroll},
+                                 json=local_query, timeout=HTTP_REQUEST_TIMEOUT_SEC)
         response.raise_for_status()
         return response.json()
 
     def scroll(self, scroll_id, scroll=None):
         url = urljoin(self.elasticsearch_host, '/_search/scroll')
         body = {"scroll_id": scroll_id, "scroll": scroll}
-        response = requests.post(url, json=body,
-                                 cookies=self.cookies,
-                                 headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC)
+        response = self._request('post', url, json=body, timeout=HTTP_REQUEST_TIMEOUT_SEC)
         response.raise_for_status()
         return response.json()
 
@@ -171,9 +197,8 @@ class DatashareClient:
             if scroll_id is not None:
                 try:
                     url = urljoin(self.elasticsearch_host, '/_search/scroll')
-                    requests.delete(url, json={'scroll_id': scroll_id},
-                                    cookies=self.cookies, headers=self.headers,
-                                    timeout=HTTP_REQUEST_TIMEOUT_SEC)
+                    self._request('delete', url, json={'scroll_id': scroll_id},
+                                  timeout=HTTP_REQUEST_TIMEOUT_SEC)
                 except requests.RequestException:
                     pass
 
@@ -209,31 +234,26 @@ class DatashareClient:
 
     def mappings(self, index=DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.elasticsearch_host, index, '_mappings')
-        return requests.get(url,
-                            cookies=self.cookies,
-                            headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
+        return self._request('get', url, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
 
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):
         if query is None:
             query = {'query': {'match_all': {}}}
         body = {'query': query['query']}
         url = urljoin(self.elasticsearch_host, index, '_count')
-        return requests.post(url, json=body, cookies=self.cookies,
-                             headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
+        return self._request('post', url, json=body, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
 
     def document(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None, source=None):
         url = urljoin(self.elasticsearch_host, index, '/_doc/', id)
         params = {'routing': routing, '_source': source}
-        return requests.get(url, params=params,
-                            cookies=self.cookies,
-                            headers=self.headers, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
+        return self._request('get', url, params=params,
+                             timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
 
     def download(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None):
         routing = routing or id
         url = urljoin(self.datashare_url, 'api', index, '/documents/src', id)
-        return requests.get(url, params={'routing': routing},
-                            cookies=self.cookies, headers=self.headers,
-                            stream=True, timeout=(HTTP_REQUEST_TIMEOUT_SEC, None))
+        return self._request('get', url, params={'routing': routing},
+                             stream=True, timeout=(HTTP_REQUEST_TIMEOUT_SEC, None))
 
     def document_url(self, index=DATASHARE_DEFAULT_PROJECT, id='', routing=None):
         routing = id if routing is None else routing

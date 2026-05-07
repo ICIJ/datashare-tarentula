@@ -7,7 +7,7 @@ from rich.progress import Progress
 import requests
 from requests.exceptions import HTTPError, ConnectionError
 
-from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC, fetch_datashare_csrf
+from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC, CsrfState
 from tarentula.logger import logger
 
 DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/d/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
@@ -80,11 +80,9 @@ class Tagger:
             }
         return None
 
-    @property
-    def csrf(self):
-        return fetch_datashare_csrf(self.datashare_url,
-                                    headers=self.headers,
-                                    cookies=self.cookies)
+    @cached_property
+    def _csrf(self):
+        return CsrfState(self.datashare_url)
 
     @property
     def total_steps(self):
@@ -117,8 +115,6 @@ class Tagger:
         return summary
 
     def start(self):
-        csrf_cookies = {}
-        csrf_headers = {}
         with Progress(disable=self.no_progressbar) as progress:
             desc = self.summarize()
             task = progress.add_task(desc, total=self.total_steps)
@@ -126,19 +122,11 @@ class Tagger:
                 endpoint_url = self.leaf_tagging_endpoint(leaf)
                 for tag in leaf['tags']:
                     try:
-                        result = requests.put(endpoint_url,
-                                              json=[tag],
-                                              cookies={**csrf_cookies, **self.cookies},
-                                              headers={**(self.headers or {}), **csrf_headers} or None,
-                                              timeout=HTTP_REQUEST_TIMEOUT_SEC)
-                        if result.status_code == 403:
-                            csrf_cookies, csrf_headers = self.csrf
-                            if csrf_cookies:
-                                result = requests.put(endpoint_url,
-                                                      json=[tag],
-                                                      cookies={**csrf_cookies, **self.cookies},
-                                                      headers={**(self.headers or {}), **csrf_headers} or None,
-                                                      timeout=HTTP_REQUEST_TIMEOUT_SEC)
+                        result = self._csrf.request('put', endpoint_url,
+                                                    json=[tag],
+                                                    cookies=self.cookies,
+                                                    headers=self.headers,
+                                                    timeout=HTTP_REQUEST_TIMEOUT_SEC)
                         result.raise_for_status()
                         if result.status_code == requests.codes.ok:
                             logger.info('Tag "%s" already exists on document "%s"', tag, document_id)

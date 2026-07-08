@@ -24,20 +24,9 @@ class TestExportByQuery(TestAbstract):
                 csv_reader = csv.DictReader(csv_file)
 
                 # First row
-                row = next(csv_reader)
-                self.assertEqual(row['query'], 'Actinopodidae OR Antrodiaetidae')
-                self.assertEqual(row['documentUrl'],
-                                 'http://localhost:8080/#/d/test-datashare/l7VnZZEzg2fr960NWWEG/l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['documentId'], 'l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['rootId'], 'l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['contentType'], 'audio/mpeg')
-                self.assertEqual(row['contentLength'], '25')
-                self.assertEqual(row['path'], '/path/to/file.txt')
-                datetime_object = datetime.strptime(row['extractionDate'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                self.assertIsInstance(datetime_object, datetime)
-                self.assertEqual(row['documentNumber'], '0')
-
-                # Second row
+                # search_after pagination sorts by _score then breaks ties on _id
+                # ascending (DWLO... < l7Vn...), which is a deterministic ordering
+                # different from the previous scroll-based tie order.
                 row = next(csv_reader)
                 self.assertEqual(row['query'], 'Actinopodidae OR Antrodiaetidae')
                 self.assertEqual(row['documentUrl'],
@@ -47,6 +36,20 @@ class TestExportByQuery(TestAbstract):
                 self.assertEqual(row['contentType'], 'audio/vnd.wave')
                 self.assertEqual(row['contentLength'], '0')
                 self.assertEqual(row['path'], '')
+                datetime_object = datetime.strptime(row['extractionDate'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                self.assertIsInstance(datetime_object, datetime)
+                self.assertEqual(row['documentNumber'], '0')
+
+                # Second row
+                row = next(csv_reader)
+                self.assertEqual(row['query'], 'Actinopodidae OR Antrodiaetidae')
+                self.assertEqual(row['documentUrl'],
+                                 'http://localhost:8080/#/d/test-datashare/l7VnZZEzg2fr960NWWEG/l7VnZZEzg2fr960NWWEG')
+                self.assertEqual(row['documentId'], 'l7VnZZEzg2fr960NWWEG')
+                self.assertEqual(row['rootId'], 'l7VnZZEzg2fr960NWWEG')
+                self.assertEqual(row['contentType'], 'audio/mpeg')
+                self.assertEqual(row['contentLength'], '25')
+                self.assertEqual(row['path'], '/path/to/file.txt')
                 datetime_object = datetime.strptime(row['extractionDate'], '%Y-%m-%dT%H:%M:%S.%fZ')
                 self.assertIsInstance(datetime_object, datetime)
                 self.assertEqual(row['documentNumber'], '1')
@@ -95,6 +98,19 @@ class TestExportByQuery(TestAbstract):
             with open(output_file, newline='') as csv_file:
                 csv_reader = csv.DictReader(csv_file)
                 self.assertEqual(len(list(csv_reader)), 10)
+
+    def test_export_scroll_deprecated_and_exports_all(self):
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output = join(tmp, 'out.csv')
+            runner = CliRunner()
+            result = runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url,
+                                         '--elasticsearch-url', self.elasticsearch_url,
+                                         '--datashare-project', self.datashare_project,
+                                         '--query', 'name:*', '--output-file', output, '--scroll', '1m'])
+            self.assertIn('deprecated', result.output.lower())
+            with open(output) as handle:
+                rows = list(csv.reader(handle))
+            self.assertEqual(21, len(rows))  # header + 20 documents
 
     def test_csv_file_with_limit_4(self):
         with self.existing_species_documents(), TemporaryDirectory() as tmp:

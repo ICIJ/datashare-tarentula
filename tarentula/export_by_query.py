@@ -1,13 +1,13 @@
+import asyncio
 import csv
 import sys
-
 from collections import OrderedDict
 from contextlib import contextmanager
-from time import sleep
-from requests.exceptions import HTTPError
-from rich.progress import Progress
-from urllib3.exceptions import ProtocolError
 
+import click
+from rich.progress import Progress
+
+from tarentula.async_client import AsyncDatashareClient
 from tarentula.command import Command
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
@@ -93,9 +93,6 @@ class ExportByQuery(Command):
         field_default = field_params[1] if len(field_params) > 1 else ''
         return [field_name, field_default]
 
-    def sleep(self):
-        sleep(self.throttle / 1000)
-
     def count_matches(self):
         index = self.datashare_project
         total_matched = self.datashare_client \
@@ -152,25 +149,41 @@ class ExportByQuery(Command):
             yield writer
 
     def start(self):
+        if self.scroll is not None:
+            message = '--scroll is deprecated and ignored; pagination uses search_after.'
+            logger.warning(message)
+            # The stdout log handler defaults to ERROR level, which would swallow this
+            # WARNING-level message. Deprecation notices are user-facing regardless of
+            # the configured log verbosity, so also echo it directly to stderr (it is a
+            # diagnostic notice, not primary output).
+            click.echo(f'Warning: {message}', err=True)
+        asyncio.run(self._run())
+
+    async def _run(self):
         count = self.log_matches()
         desc = f'Exporting {count} document(s)'
-        try:
+        async with AsyncDatashareClient(self.datashare_client) as client:
             with Progress(disable=self.no_progressbar) as progress:
                 task = progress.add_task(desc, total=count)
-                documents = self.datashare_client.scan_or_query_all(self.datashare_project, self.source_fields_names,
-                                                                    self.sort_by,
-                                                                    self.order_by, self.scroll, self.query_body,
-                                                                    self.from_, self.limit, self.size)
                 with self.create_csv_file() as csvwriter:
-                    for index, document in enumerate(documents):
+                    number = 0
+                    async for document in client.search_after_scan(
+                            index=self.datashare_project, query=self.query_body,
+                            source=self.source_fields_names, sort_by=self.sort_by,
+                            order_by=self.order_by, size=self.size or 1000, limit=self.limit,
+                            from_=self.from_):
                         try:
-                            self.save_indexed_document(csvwriter, document, index)
+                            self.save_indexed_document(csvwriter, document, number)
                             logger.info('Saved document %s', document.get('_id', None))
-                        except HTTPError:
-                            logger.error('Unable to export document %s', document.get('_id', None),
-                                         exc_info=self.traceback)
+                        # Export makes no per-document HTTP call (unlike download's raw-file
+                        # fetch), so a narrow HTTPError catch would be dead code. Broadly
+                        # catch Exception (not BaseException) so a bad document logs and the
+                        # export continues; a search/producer error (e.g. RuntimeError from
+                        # search_after_scan) is raised by the async for itself, outside this
+                        # try, and correctly aborts the export.
+                        except Exception:
+                            logger.error('Unable to export document %s',
+                                         document.get('_id', None), exc_info=self.traceback)
+                        number += 1
                         progress.advance(task)
-                        self.sleep()
                 logger.info('Written documents metadata in %s', self.output_file)
-        except ProtocolError:
-            logger.error('Exception while exporting documents', exc_info=self.traceback)

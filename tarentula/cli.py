@@ -126,7 +126,8 @@ def clean_tags_by_query(**options):
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
                                 ' semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--path-format', help='Downloaded document path template', default='{id_2b}/{id_4b}/{id}')
-@click.option('--scroll', help='Scroll duration', default=None)
+@click.option('--scroll', help='[DEPRECATED] Ignored; pagination now uses search_after.', default=None)
+@click.option('--concurrency', help='Number of documents to download in parallel.', default=5, type=int)
 @click.option('--source', help='A comma-separated list of field to include in the downloaded document from the index',
               default=None)
 @click.option('--limit', '-l', type=int, help='Limit the total results to return', default=0)

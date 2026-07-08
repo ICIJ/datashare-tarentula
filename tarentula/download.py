@@ -31,6 +31,7 @@ class Download(Command):
                  size: int = 0,
                  sort_by: str = '_score',
                  order_by: str = 'desc',
+                 concurrency: int = 5,
                  once: bool = False,
                  traceback: bool = False,
                  progressbar: bool = True,
@@ -44,6 +45,7 @@ class Download(Command):
         self.cookies_string = cookies
         self.apikey = apikey
         self.path_format = path_format
+        self.concurrency = concurrency
         self.once = once
         self.traceback = traceback
         self.progressbar = progressbar

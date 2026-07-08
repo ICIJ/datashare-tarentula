@@ -171,7 +171,7 @@ class ExportByQuery(Command):
                             index=self.datashare_project, query=self.query_body,
                             source=self.source_fields_names, sort_by=self.sort_by,
                             order_by=self.order_by, size=self.size or 1000, limit=self.limit,
-                            from_=self.from_):
+                            from_=self.from_, use_pit=True):
                         try:
                             self.save_indexed_document(csvwriter, document, number)
                             logger.info('Saved document %s', document.get('_id', None))

@@ -14,6 +14,11 @@ class TestExportByQuery(TestAbstract):
         super().tearDown()
 
     def test_csv_file(self):
+        # These two documents tie on _score, so their relative order depends on the
+        # tiebreaker used by the underlying pagination (_id ascending on the plain
+        # search_after path, _shard_doc ascending under Point-in-Time). Both are valid
+        # orderings, so assert on the *set* of rows keyed by documentId rather than a
+        # specific physical row order, which is an implementation detail.
         with self.existing_species_documents(), TemporaryDirectory() as tmp:
             output_file = join(tmp, 'output.csv')
             runner = CliRunner()
@@ -22,37 +27,35 @@ class TestExportByQuery(TestAbstract):
                                 'Actinopodidae OR Antrodiaetidae', '--output-file', output_file])
             with open(output_file, newline='') as csv_file:
                 csv_reader = csv.DictReader(csv_file)
+                rows = list(csv_reader)
 
-                # First row
-                # search_after pagination sorts by _score then breaks ties on _id
-                # ascending (DWLO... < l7Vn...), which is a deterministic ordering
-                # different from the previous scroll-based tie order.
-                row = next(csv_reader)
-                self.assertEqual(row['query'], 'Actinopodidae OR Antrodiaetidae')
-                self.assertEqual(row['documentUrl'],
-                                 'http://localhost:8080/#/d/test-datashare/DWLOskax28jPQ2CjFrCo/l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['documentId'], 'DWLOskax28jPQ2CjFrCo')
-                self.assertEqual(row['rootId'], 'l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['contentType'], 'audio/vnd.wave')
-                self.assertEqual(row['contentLength'], '0')
-                self.assertEqual(row['path'], '')
-                datetime_object = datetime.strptime(row['extractionDate'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                self.assertIsInstance(datetime_object, datetime)
-                self.assertEqual(row['documentNumber'], '0')
+            self.assertEqual(len(rows), 2)
+            rows_by_id = {row['documentId']: row for row in rows}
+            self.assertEqual(set(rows_by_id.keys()),
+                             {'DWLOskax28jPQ2CjFrCo', 'l7VnZZEzg2fr960NWWEG'})
+            self.assertEqual({row['documentNumber'] for row in rows}, {'0', '1'})
 
-                # Second row
-                row = next(csv_reader)
-                self.assertEqual(row['query'], 'Actinopodidae OR Antrodiaetidae')
-                self.assertEqual(row['documentUrl'],
-                                 'http://localhost:8080/#/d/test-datashare/l7VnZZEzg2fr960NWWEG/l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['documentId'], 'l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['rootId'], 'l7VnZZEzg2fr960NWWEG')
-                self.assertEqual(row['contentType'], 'audio/mpeg')
-                self.assertEqual(row['contentLength'], '25')
-                self.assertEqual(row['path'], '/path/to/file.txt')
-                datetime_object = datetime.strptime(row['extractionDate'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                self.assertIsInstance(datetime_object, datetime)
-                self.assertEqual(row['documentNumber'], '1')
+            row = rows_by_id['DWLOskax28jPQ2CjFrCo']
+            self.assertEqual(row['query'], 'Actinopodidae OR Antrodiaetidae')
+            self.assertEqual(row['documentUrl'],
+                             'http://localhost:8080/#/d/test-datashare/DWLOskax28jPQ2CjFrCo/l7VnZZEzg2fr960NWWEG')
+            self.assertEqual(row['rootId'], 'l7VnZZEzg2fr960NWWEG')
+            self.assertEqual(row['contentType'], 'audio/vnd.wave')
+            self.assertEqual(row['contentLength'], '0')
+            self.assertEqual(row['path'], '')
+            datetime_object = datetime.strptime(row['extractionDate'], '%Y-%m-%dT%H:%M:%S.%fZ')
+            self.assertIsInstance(datetime_object, datetime)
+
+            row = rows_by_id['l7VnZZEzg2fr960NWWEG']
+            self.assertEqual(row['query'], 'Actinopodidae OR Antrodiaetidae')
+            self.assertEqual(row['documentUrl'],
+                             'http://localhost:8080/#/d/test-datashare/l7VnZZEzg2fr960NWWEG/l7VnZZEzg2fr960NWWEG')
+            self.assertEqual(row['rootId'], 'l7VnZZEzg2fr960NWWEG')
+            self.assertEqual(row['contentType'], 'audio/mpeg')
+            self.assertEqual(row['contentLength'], '25')
+            self.assertEqual(row['path'], '/path/to/file.txt')
+            datetime_object = datetime.strptime(row['extractionDate'], '%Y-%m-%dT%H:%M:%S.%fZ')
+            self.assertIsInstance(datetime_object, datetime)
 
     def test_csv_file_with_from(self):
         with self.existing_species_documents(), TemporaryDirectory() as tmp:

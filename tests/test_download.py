@@ -108,6 +108,15 @@ class TestDownload(TestAbstract):
                                 '--query', 'name:*', '--concurrency', '8'])
             self.assertEqual(20, len(get_document_files(tmp)))
 
+    def test_download_all_with_pit_direct_es(self):
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            runner = CliRunner()
+            runner.invoke(cli, ['download', '--datashare-url', self.datashare_url,
+                                '--elasticsearch-url', self.elasticsearch_url,
+                                '--datashare-project', self.datashare_project,
+                                '--no-raw-file', '--destination-directory', tmp, '--query', 'name:*'])
+            self.assertEqual(20, len(get_document_files(tmp)))
+
     def test_download_completes_when_all_downloads_fail(self):
         # Every raw-file download raises a non-ClientResponseError. Workers must log-and-continue
         # (except Exception) rather than dying; otherwise the producer would block forever on the

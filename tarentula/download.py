@@ -175,7 +175,8 @@ class Download(Command):
                     async for document in client.search_after_scan(
                             index=self.datashare_project, query=self.query_body,
                             source=source, sort_by=self.sort_by, order_by=self.order_by,
-                            size=self.size or 1000, limit=self.limit, from_=self.from_):
+                            size=self.size or 1000, limit=self.limit, from_=self.from_,
+                            use_pit=True):
                         await queue.put(document)
                     for _ in workers:
                         await queue.put(None)

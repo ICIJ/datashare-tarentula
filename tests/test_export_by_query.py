@@ -212,8 +212,29 @@ class TestExportByQuery(TestAbstract):
             output_file = join(tmp, 'output.csv')
             runner = CliRunner()
             runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
-                                self.elasticsearch_url, '--datashare-project', self.datashare_project, 
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project,
                                 '--size', 20, '--limit', 3, '--output-file', output_file])
             with open(output_file, newline='') as csv_file:
                 csv_reader = csv.DictReader(csv_file)
                 self.assertEqual(len(list(csv_reader)), 3)
+
+    def test_results_are_actually_ordered_by_sort_by_field(self):
+        # Regression coverage for the deleted test_query_sorting_by: it was the only test
+        # asserting results come back *actually* ordered by the requested sort field, not just
+        # that pagination completes. `contentType` is a true `keyword` field on the species
+        # fixture (unlike `name`, which is `text` and cannot be sorted on directly without
+        # fielddata), so it exercises --sort-by end-to-end against the live devenv without
+        # depending on tiebreaker internals.
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output_file = join(tmp, 'output.csv')
+            runner = CliRunner()
+            runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url,
+                                '--elasticsearch-url', self.elasticsearch_url,
+                                '--datashare-project', self.datashare_project,
+                                '--sort-by', 'contentType', '--order-by', 'asc',
+                                '--output-file', output_file])
+            with open(output_file, newline='') as csv_file:
+                rows = list(csv.DictReader(csv_file))
+            self.assertEqual(20, len(rows))
+            content_types = [row['contentType'] for row in rows]
+            self.assertEqual(content_types, sorted(content_types))

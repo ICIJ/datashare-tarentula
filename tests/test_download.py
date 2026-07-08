@@ -1,8 +1,11 @@
 import glob
 import json
+import threading
 from os.path import join
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
+import aiohttp
 from click.testing import CliRunner
 
 from .test_abstract import TestAbstract
@@ -104,6 +107,37 @@ class TestDownload(TestAbstract):
                                 '--no-raw-file', '--destination-directory', tmp,
                                 '--query', 'name:*', '--concurrency', '8'])
             self.assertEqual(20, len(get_document_files(tmp)))
+
+    def test_download_completes_when_all_downloads_fail(self):
+        # Every raw-file download raises a non-ClientResponseError. Workers must log-and-continue
+        # (except Exception) rather than dying; otherwise the producer would block forever on the
+        # bounded queue once more than concurrency*2 docs flow through. The 20-doc fixture with
+        # raw-file enabled and concurrency 4 exceeds that threshold.
+        #
+        # A regression re-introducing the deadlock leaves the download thread stuck inside
+        # asyncio.run forever. We run the CLI in a *daemon* thread and join with a timeout: on
+        # regression the join returns after the timeout, the assertFalse fails cleanly, and the
+        # daemon thread does not block the rest of the suite or interpreter exit. (A plain
+        # ThreadPoolExecutor context manager cannot be used here: its non-daemon worker plus
+        # shutdown(wait=True) on __exit__ would itself hang the suite on regression.)
+        async def boom(*a, **k):
+            raise aiohttp.ClientError('boom')
+        box = {}
+
+        def run(runner):
+            box['result'] = runner.invoke(cli, ['download',
+                '--datashare-url', self.datashare_url, '--elasticsearch-url', self.elasticsearch_url,
+                '--datashare-project', self.datashare_project, '--destination-directory', box['tmp'],
+                '--query', 'name:*', '--concurrency', '4'])
+
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            box['tmp'] = tmp
+            with patch('tarentula.async_client.AsyncDatashareClient.stream_download', boom):
+                worker = threading.Thread(target=run, args=(CliRunner(),), daemon=True)
+                worker.start()
+                worker.join(timeout=90)  # regression = deadlock = still alive after timeout
+                self.assertFalse(worker.is_alive(), 'download deadlocked: worker died without draining queue')
+        self.assertEqual(0, box['result'].exit_code)
 
 
 def get_document_files(folder: str, pattern: str = '*/*/*.json'):

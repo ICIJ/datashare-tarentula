@@ -5,7 +5,6 @@ from os import makedirs
 from os.path import join, dirname, basename, exists
 
 import click
-from aiohttp import ClientResponseError
 from requests.exceptions import ConnectionError
 from rich.progress import Progress
 
@@ -133,8 +132,9 @@ class Download(Command):
             logger.warning(message)
             # The stdout log handler defaults to ERROR level, which would swallow this
             # WARNING-level message. Deprecation notices are user-facing regardless of
-            # the configured log verbosity, so also echo it directly to stdout.
-            click.echo(f'Warning: {message}')
+            # the configured log verbosity, so also echo it directly to stderr (it is a
+            # diagnostic notice, not primary output).
+            click.echo(f'Warning: {message}', err=True)
         asyncio.run(self._run())
 
     async def _run(self):
@@ -157,7 +157,11 @@ class Download(Command):
                             await self._download_raw_file(client, document)
                             self.save_indexed_document(document)
                             logger.info('Processed document %s', document.get('_id'))
-                        except ClientResponseError:
+                        # Catch Exception (not BaseException) so any per-document failure logs and
+                        # continues without killing the worker: a dead worker would let the producer
+                        # block forever on the bounded queue. asyncio.CancelledError (a BaseException)
+                        # still propagates, so the producer-error cancellation path below keeps working.
+                        except Exception:
                             logger.error('Unable to download document %s',
                                          document.get('_id'), exc_info=self.traceback)
                         finally:

@@ -70,6 +70,18 @@ class AsyncDatashareClient:
                 await asyncio.sleep(BACKOFF_BASE_SEC * (2 ** attempt))
                 attempt += 1
 
+    async def stream_download(self, index, doc_id, routing, dest_path):
+        url = urljoin(self.sync.datashare_url, 'api', index, '/documents/src', doc_id)
+        timeout = aiohttp.ClientTimeout(total=None, sock_connect=HTTP_REQUEST_TIMEOUT_SEC)
+        async with self._session.get(
+                url, params={'routing': routing},
+                cookies=self._merged_cookies(), headers=self._merged_headers(),
+                timeout=timeout) as response:
+            response.raise_for_status()
+            with open(dest_path, 'wb') as handle:
+                async for chunk in response.content.iter_chunked(1 << 16):
+                    handle.write(chunk)
+
     async def search_after_scan(self, *, index, query, source=None,
                                 sort_by='_score', order_by='desc', size=1000, limit=0):
         url = urljoin(self.sync.elasticsearch_host, index, '/_search')

@@ -1,3 +1,5 @@
+from os.path import join
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
 import aiohttp
@@ -177,3 +179,17 @@ async def test_search_after_scan_honors_limit_mid_page():
         async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
             ids = [h['_id'] async for h in client.search_after_scan(index='idx', query={}, size=3, limit=2)]
     assert ids == ['id01', 'id02']
+
+
+async def test_stream_download_writes_body_to_file():
+    index = 'idx'
+    doc_id = 'abc'
+    url = f'{DATASHARE_URL}/api/{index}/documents/src/{doc_id}'
+    with TemporaryDirectory() as tmp:
+        dest = join(tmp, 'out.bin')
+        with aioresponses() as mocked:
+            mocked.get(f'{url}?routing={doc_id}', status=200, body=b'hello-bytes')
+            async with AsyncDatashareClient(make_sync_stub()) as client:
+                await client.stream_download(index, doc_id, doc_id, dest)
+        with open(dest, 'rb') as handle:
+            assert handle.read() == b'hello-bytes'

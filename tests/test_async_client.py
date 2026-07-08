@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import aiohttp
 import pytest
-from aioresponses import aioresponses
+from aioresponses import CallbackResult, aioresponses
 
 from tarentula.async_client import AsyncDatashareClient
 from tarentula.async_csrf import async_fetch_datashare_csrf
@@ -144,14 +144,29 @@ def _hit(n):
 async def test_search_after_scan_paginates_without_dupes():
     host = f'{DATASHARE_URL}/api/index/search'
     url = f'{host}/idx/_search'
+    captured = []
+
+    def make_cb(page):
+        def cb(url, **kwargs):
+            captured.append(kwargs.get('json'))
+            return CallbackResult(status=200, payload=page)
+        return cb
+
     with aioresponses() as mocked:
-        # size=2: two full pages then an empty page signals the end
-        mocked.post(url, status=200, payload={'hits': {'hits': [_hit(1), _hit(2)]}})
-        mocked.post(url, status=200, payload={'hits': {'hits': [_hit(3), _hit(4)]}})
-        mocked.post(url, status=200, payload={'hits': {'hits': []}})
+        mocked.post(url, callback=make_cb({'hits': {'hits': [_hit(1), _hit(2)]}}))
+        mocked.post(url, callback=make_cb({'hits': {'hits': [_hit(3), _hit(4)]}}))
+        mocked.post(url, callback=make_cb({'hits': {'hits': []}}))
         async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
             ids = [h['_id'] async for h in client.search_after_scan(index='idx', query={}, size=2)]
+
     assert ids == ['id01', 'id02', 'id03', 'id04']
+    # First page must NOT send search_after; later pages must carry the previous page's last hit sort.
+    assert 'search_after' not in captured[0]
+    assert captured[1]['search_after'] == ['n2', 'id02']
+    assert captured[2]['search_after'] == ['n4', 'id04']
+    # Tiebreaker present on every page.
+    for body in captured:
+        assert body['sort'] == [{'_score': 'desc'}, {'_id': 'asc'}]
 
 
 async def test_search_after_scan_honors_limit_mid_page():

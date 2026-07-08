@@ -1,4 +1,4 @@
-from os.path import join
+from os.path import exists, join
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
@@ -276,3 +276,42 @@ async def test_stream_download_writes_body_to_file():
                 await client.stream_download(index, doc_id, doc_id, dest)
         with open(dest, 'rb') as handle:
             assert handle.read() == b'hello-bytes'
+
+
+async def test_stream_download_retries_once_after_403_with_new_csrf():
+    # stream_download must go through the same CSRF-refresh-once machinery as request():
+    # a single 403 triggers a CSRF handshake and the download is retried and succeeds.
+    index = 'idx'
+    doc_id = 'abc'
+    url = f'{DATASHARE_URL}/api/{index}/documents/src/{doc_id}?routing={doc_id}'
+    with TemporaryDirectory() as tmp:
+        dest = join(tmp, 'out.bin')
+        with aioresponses() as mocked:
+            mocked.get(url, status=403, body='{}')
+            mocked.get(
+                f'{DATASHARE_URL}/api/users/me',
+                status=200,
+                body='{}',
+                headers={'Set-Cookie': f'{DATASHARE_CSRF_COOKIE_NAME}={CSRF_TOKEN}; Path=/'},
+            )
+            mocked.get(url, status=200, body=b'hello-bytes')
+            async with AsyncDatashareClient(make_sync_stub()) as client:
+                await client.stream_download(index, doc_id, doc_id, dest)
+        with open(dest, 'rb') as handle:
+            assert handle.read() == b'hello-bytes'
+
+
+async def test_stream_download_non_2xx_raises_and_leaves_no_partial_file():
+    # A terminal non-2xx status (not retried, since 404 is not a transient status) must raise
+    # aiohttp.ClientResponseError and must not leave a partial file on disk.
+    index = 'idx'
+    doc_id = 'abc'
+    url = f'{DATASHARE_URL}/api/{index}/documents/src/{doc_id}?routing={doc_id}'
+    with TemporaryDirectory() as tmp:
+        dest = join(tmp, 'out.bin')
+        with aioresponses() as mocked:
+            mocked.get(url, status=404, body='{}')
+            async with AsyncDatashareClient(make_sync_stub()) as client:
+                with pytest.raises(aiohttp.ClientResponseError):
+                    await client.stream_download(index, doc_id, doc_id, dest)
+        assert not exists(dest)

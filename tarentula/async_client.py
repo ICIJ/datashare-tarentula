@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 import aiohttp
 
@@ -44,7 +45,39 @@ class AsyncDatashareClient:
         return False
 
     async def request(self, method, url, *, params=None, json=None):
-        timeout = aiohttp.ClientTimeout(total=HTTP_REQUEST_TIMEOUT_SEC)
+        return await self._send(method, url, params=params, json=json)
+
+    async def stream_download(self, index, doc_id, routing, dest_path):
+        url = urljoin(self.sync.datashare_url, 'api', index, '/documents/src', doc_id)
+        await self._send('get', url, params={'routing': routing}, stream_to=dest_path)
+
+    @staticmethod
+    async def _parse_json(response):
+        return await response.json(content_type=None)
+
+    @staticmethod
+    async def _stream_to_file(response, dest_path):
+        try:
+            with open(dest_path, 'wb') as handle:
+                async for chunk in response.content.iter_chunked(1 << 16):
+                    handle.write(chunk)
+        except BaseException:
+            try:
+                os.remove(dest_path)
+            except OSError:
+                pass
+            raise
+
+    async def _send(self, method, url, *, params=None, json=None, stream_to=None):
+        """One-attempt-with-retries request. Applies the CSRF-403-refresh-once and transient
+        (429/502/503/504 + connection/timeout) backoff-retry logic shared by both plain JSON
+        requests and file downloads. Once a terminal (non-retried) response is reached, either
+        parses it as JSON (`stream_to is None`) or streams its body to `stream_to`, returning
+        `(status, payload)` or `(status, None)` respectively."""
+        if stream_to is not None:
+            timeout = aiohttp.ClientTimeout(total=None, sock_connect=HTTP_REQUEST_TIMEOUT_SEC)
+        else:
+            timeout = aiohttp.ClientTimeout(total=HTTP_REQUEST_TIMEOUT_SEC)
         attempt = 0
         refreshed = False
         while True:
@@ -61,26 +94,22 @@ class AsyncDatashareClient:
                         await asyncio.sleep(BACKOFF_BASE_SEC * (2 ** attempt))
                         attempt += 1
                         continue
-                    payload = await response.json(content_type=None)
+                    if stream_to is not None:
+                        response.raise_for_status()
+                        await self._stream_to_file(response, stream_to)
+                        return response.status, None
+                    payload = await self._parse_json(response)
                     return response.status, payload
+            except aiohttp.ClientResponseError:
+                # Raised by raise_for_status() above for a terminal non-2xx status: this is not
+                # a transient/connection failure, so it must not be retried.
+                raise
             except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
                 if attempt >= self.max_retries:
                     raise
                 logger.debug('Transient async request error (%s), retrying', exc)
                 await asyncio.sleep(BACKOFF_BASE_SEC * (2 ** attempt))
                 attempt += 1
-
-    async def stream_download(self, index, doc_id, routing, dest_path):
-        url = urljoin(self.sync.datashare_url, 'api', index, '/documents/src', doc_id)
-        timeout = aiohttp.ClientTimeout(total=None, sock_connect=HTTP_REQUEST_TIMEOUT_SEC)
-        async with self._session.get(
-                url, params={'routing': routing},
-                cookies=self._merged_cookies(), headers=self._merged_headers(),
-                timeout=timeout) as response:
-            response.raise_for_status()
-            with open(dest_path, 'wb') as handle:
-                async for chunk in response.content.iter_chunked(1 << 16):
-                    handle.write(chunk)
 
     async def open_pit(self, index, keep_alive='1m'):
         url = urljoin(self.sync.elasticsearch_host, index, '/_pit')

@@ -4,6 +4,7 @@ import sys
 from os import makedirs
 from os.path import join, dirname, basename, exists
 
+import aiohttp
 import click
 from requests.exceptions import ConnectionError
 from rich.progress import Progress
@@ -135,7 +136,15 @@ class Download(Command):
             # the configured log verbosity, so also echo it directly to stderr (it is a
             # diagnostic notice, not primary output).
             click.echo(f'Warning: {message}', err=True)
-        asyncio.run(self._run())
+        try:
+            asyncio.run(self._run())
+        # KeyboardInterrupt/SystemExit are BaseException, not Exception, so they are never
+        # caught here and always propagate. RuntimeError is raised by search_after_scan on a
+        # non-2xx status; aiohttp.ClientError covers connection/timeout failures that exhaust
+        # their retries. Either way, log cleanly instead of letting a raw traceback escape.
+        except (RuntimeError, aiohttp.ClientError) as exc:
+            logger.error('Download failed: %s', exc, exc_info=self.traceback)
+            sys.exit(1)
 
     async def _run(self):
         count = self.log_matches()

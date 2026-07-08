@@ -4,6 +4,7 @@ from click.testing import CliRunner
 from datetime import datetime
 from os.path import join
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from tarentula.cli import cli
 from .test_abstract import TestAbstract
@@ -12,6 +13,30 @@ from .test_abstract import TestAbstract
 class TestExportByQuery(TestAbstract):
     def tearDown(self):
         super().tearDown()
+
+    def test_export_reports_producer_error_cleanly(self):
+        # A producer/search error (e.g. search_after_scan raising RuntimeError on a non-2xx
+        # status) must be caught at the CLI boundary and logged cleanly, not let a raw
+        # traceback escape start() uncaught.
+        async def boom(*a, **k):
+            raise RuntimeError('boom-search')
+            yield  # pragma: no cover - makes this an async generator function
+
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output_file = join(tmp, 'output.csv')
+            with patch('tarentula.async_client.AsyncDatashareClient.search_after_scan', boom):
+                runner = CliRunner()
+                result = runner.invoke(cli, ['export-by-query',
+                    '--datashare-url', self.datashare_url,
+                    '--elasticsearch-url', self.elasticsearch_url,
+                    '--datashare-project', self.datashare_project,
+                    '--query', 'name:*', '--output-file', output_file])
+        self.assertEqual(1, result.exit_code)
+        # A clean sys.exit(1) surfaces as SystemExit here (Click's own error-handling
+        # convention), not the raw RuntimeError escaping uncaught.
+        self.assertIsInstance(result.exception, SystemExit)
+        self.assertIn('Export failed', result.output)
+        self.assertNotIn('Traceback', result.output)
 
     def test_csv_file(self):
         # These two documents tie on _score, so their relative order depends on the

@@ -148,6 +148,29 @@ class TestDownload(TestAbstract):
                 self.assertFalse(worker.is_alive(), 'download deadlocked: worker died without draining queue')
         self.assertEqual(0, box['result'].exit_code)
 
+    def test_download_reports_producer_error_cleanly(self):
+        # A producer/search error (e.g. search_after_scan raising RuntimeError on a non-2xx
+        # status) must be caught at the CLI boundary and logged cleanly, not let a raw
+        # traceback escape start() uncaught.
+        async def boom(*a, **k):
+            raise RuntimeError('boom-search')
+            yield  # pragma: no cover - makes this an async generator function
+
+        with self.existing_species_documents():
+            with patch('tarentula.async_client.AsyncDatashareClient.search_after_scan', boom):
+                runner = CliRunner()
+                result = runner.invoke(cli, ['download',
+                    '--datashare-url', self.datashare_url,
+                    '--elasticsearch-url', self.elasticsearch_url,
+                    '--datashare-project', self.datashare_project,
+                    '--no-raw-file', '--query', 'name:*'])
+        self.assertEqual(1, result.exit_code)
+        # A clean sys.exit(1) surfaces as SystemExit here (Click's own error-handling
+        # convention), not the raw RuntimeError escaping uncaught.
+        self.assertIsInstance(result.exception, SystemExit)
+        self.assertIn('Download failed', result.output)
+        self.assertNotIn('Traceback', result.output)
+
 
 def get_document_files(folder: str, pattern: str = '*/*/*.json'):
     return glob.glob(join(folder, pattern))

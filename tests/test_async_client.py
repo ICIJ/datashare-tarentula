@@ -11,6 +11,7 @@ from tarentula.async_csrf import async_fetch_datashare_csrf
 from tarentula.datashare_client import (
     DATASHARE_CSRF_COOKIE_NAME,
     DATASHARE_CSRF_HEADER_NAME,
+    HTTP_REQUEST_TIMEOUT_SEC,
 )
 
 DATASHARE_URL = 'http://datashare.test'
@@ -319,6 +320,32 @@ async def test_stream_download_retries_once_after_403_with_new_csrf():
                 await client.stream_download(index, doc_id, doc_id, dest)
         with open(dest, 'rb') as handle:
             assert handle.read() == b'hello-bytes'
+
+
+async def test_stream_download_bounds_inactivity_between_chunks():
+    # A server that stalls mid-body (stops sending chunks without closing the connection) must
+    # not hang the download forever: `total=None` keeps large-but-healthy transfers uncapped,
+    # but `sock_read` bounds the inactivity gap between chunks so a stalled stream still times
+    # out and lets the retry/backoff machinery (or a clean failure) take over.
+    index = 'idx'
+    doc_id = 'abc'
+    url = f'{DATASHARE_URL}/api/{index}/documents/src/{doc_id}'
+    captured = {}
+
+    def cb(url, **kwargs):
+        captured.update(kwargs)
+        return CallbackResult(status=200, body=b'hello-bytes')
+
+    with TemporaryDirectory() as tmp:
+        dest = join(tmp, 'out.bin')
+        with aioresponses() as mocked:
+            mocked.get(f'{url}?routing={doc_id}', callback=cb)
+            async with AsyncDatashareClient(make_sync_stub()) as client:
+                await client.stream_download(index, doc_id, doc_id, dest)
+
+    timeout = captured['timeout']
+    assert timeout.total is None
+    assert timeout.sock_read == HTTP_REQUEST_TIMEOUT_SEC
 
 
 async def test_stream_download_non_2xx_raises_and_leaves_no_partial_file():

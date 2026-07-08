@@ -83,7 +83,11 @@ class AsyncDatashareClient:
         parses it as JSON (`stream_to is None`) or streams its body to `stream_to`, returning
         `(status, payload)` or `(status, None)` respectively."""
         if stream_to is not None:
-            timeout = aiohttp.ClientTimeout(total=None, sock_connect=HTTP_REQUEST_TIMEOUT_SEC)
+            # total=None so legitimately large files are never capped by an overall deadline;
+            # sock_read bounds inactivity between chunks so a server that stalls mid-body (stops
+            # sending data without closing the connection) cannot hang iter_chunked() forever.
+            timeout = aiohttp.ClientTimeout(total=None, sock_connect=HTTP_REQUEST_TIMEOUT_SEC,
+                                            sock_read=HTTP_REQUEST_TIMEOUT_SEC)
         else:
             timeout = aiohttp.ClientTimeout(total=HTTP_REQUEST_TIMEOUT_SEC)
         attempt = 0

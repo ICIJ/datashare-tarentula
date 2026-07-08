@@ -142,13 +142,15 @@ class AsyncDatashareClient:
                 yield hit
             return
 
+        # ES may hand back a refreshed pit_id mid-scan; track it so the finally
+        # closes the context that is actually still open, not the stale original.
+        current_pit_id = pit_id
         try:
             url = urljoin(self.sync.elasticsearch_host, '/_search')
             sort = [{sort_by: order_by}, {'_shard_doc': 'asc'}]
             body = {**(query or {}), 'sort': sort, 'size': size}
             if source is not None:
                 body['_source'] = source
-            current_pit_id = pit_id
 
             def refresh_pit(payload):
                 nonlocal current_pit_id
@@ -162,4 +164,4 @@ class AsyncDatashareClient:
                     on_payload=refresh_pit):
                 yield hit
         finally:
-            await self.close_pit(pit_id)
+            await self.close_pit(current_pit_id)

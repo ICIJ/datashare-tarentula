@@ -238,12 +238,18 @@ async def test_scan_uses_pit_when_available():
             return CallbackResult(status=200, payload=page)
         return cb
 
+    deleted = {}
+
+    def delete_cb(url, **kwargs):
+        deleted['id'] = (kwargs.get('json') or {}).get('id')
+        return CallbackResult(status=200, payload={'succeeded': True, 'num_freed': 1})
+
     with aioresponses() as mocked:
         mocked.post(f'{host}/idx/_pit?keep_alive=1m', status=200, payload={'id': 'PIT1'})
         mocked.post(f'{host}/_search', callback=make_cb(
             {'hits': {'hits': [_hit(1)]}, 'pit_id': 'PIT2'}))
         mocked.post(f'{host}/_search', callback=make_cb({'hits': {'hits': []}, 'pit_id': 'PIT2'}))
-        mocked.delete(f'{host}/_pit', status=200, payload={'succeeded': True})
+        mocked.delete(f'{host}/_pit', callback=delete_cb)
         async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
             ids = [h['_id'] async for h in client.search_after_scan(
                 index='idx', query={}, size=1, use_pit=True)]
@@ -254,6 +260,8 @@ async def test_scan_uses_pit_when_available():
     assert captured[1]['pit']['id'] == 'PIT2'
     delete_calls = [key for key in mocked.requests if key[0].upper() == 'DELETE']
     assert delete_calls, 'expected the PIT to be closed via DELETE /_pit'
+    # The PIT that is actually left open is the refreshed one, so that is what must be released.
+    assert deleted['id'] == 'PIT2'
 
 
 async def test_stream_download_writes_body_to_file():

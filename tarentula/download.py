@@ -126,8 +126,13 @@ class Download(Command):
 
     def save_indexed_document(self, indexed_document):
         file_path = self.indexed_document_path(indexed_document)
+        # `sort` is the search_after pagination tiebreaker (under PIT it carries the internal
+        # _shard_doc ordinal), not document data: strip it from a shallow copy rather than the
+        # caller's dict, which may still be in use (e.g. to log the document id) after this call.
+        doc = dict(indexed_document)
+        doc.pop('sort', None)
         with open(file_path, 'w') as file:
-            json.dump(indexed_document, file)
+            json.dump(doc, file)
 
     def start(self):
         if self.scroll is not None:

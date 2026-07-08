@@ -23,6 +23,23 @@ class TestDownload(TestAbstract):
     def tearDown(self):
         super().tearDown()
 
+    def test_save_indexed_document_strips_sort_without_mutating_input(self):
+        # `sort` is the search_after tiebreaker (under PIT, it carries the internal
+        # _shard_doc ordinal): pagination plumbing, not document data. It must not leak into
+        # the saved JSON, and the passed-in dict (which the caller may still be using, e.g. to
+        # log the document id) must not be mutated as a side effect.
+        from tarentula.download import Download
+        with TemporaryDirectory() as tmp:
+            downl = Download(datashare_url=self.datashare_url,
+                             elasticsearch_url=self.elasticsearch_url,
+                             datashare_project=self.datashare_project,
+                             destination_directory=tmp)
+            document = {'_id': 'abc123', '_source': {'path': ''}, 'sort': ['x', 'abc123']}
+            downl.save_indexed_document(document)
+            saved = load_json_file(downl.indexed_document_path(document, parents=False))
+            self.assertNotIn('sort', saved)
+            self.assertIn('sort', document)  # the caller's dict must be untouched
+
     def test_summary(self):
         with self.existing_species_documents():
             runner = CliRunner()
@@ -72,6 +89,10 @@ class TestDownload(TestAbstract):
             self.assertIn('_id', json_file)
             self.assertIn('_source', json_file)
             self.assertNotIn('name', json_file['_source'])
+            # The `sort` tiebreaker array (under PIT this carries the internal _shard_doc
+            # ordinal) is pagination plumbing, not document data, and must not leak into the
+            # saved per-document JSON.
+            self.assertNotIn('sort', json_file)
 
     def test_meta_is_downloaded_for_idiopidae_with_extra_properties(self):
         with self.existing_species_documents(), TemporaryDirectory() as tmp:

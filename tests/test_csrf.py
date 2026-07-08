@@ -69,19 +69,6 @@ class TestCsrfRetry(TestCase):
         self._assert_csrf_sent(responses.calls[2].request)
 
     @responses.activate
-    def test_scroll_retries_with_csrf_on_403(self):
-        endpoint = f'{DATASHARE_URL}/api/index/search/_search/scroll'
-        responses.add(responses.POST, endpoint, status=403, body='Forbidden')
-        add_csrf_handshake(responses)
-        responses.add(responses.POST, endpoint, status=200,
-                      json={'hits': {'hits': []}})
-
-        self._make_client().scroll('scroll-id')
-
-        self.assertEqual(len(responses.calls), 3)
-        self._assert_csrf_sent(responses.calls[2].request)
-
-    @responses.activate
     def test_create_retries_with_csrf_on_403(self):
         endpoint = f'{DATASHARE_URL}/api/index/{PROJECT}'
         responses.add(responses.PUT, endpoint, status=403, body='Forbidden')

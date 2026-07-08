@@ -163,7 +163,7 @@ class DatashareClient:
         # Return the dest name
         return dest if result.status_code == requests.codes.ok else None
 
-    def query(self, index=DATASHARE_DEFAULT_PROJECT, query=None, q=None, source=None, scroll=None, **kwargs):
+    def query(self, index=DATASHARE_DEFAULT_PROJECT, query=None, q=None, source=None, **kwargs):
         if query is None:
             query = {}
         local_query = {**query, **kwargs}
@@ -171,66 +171,10 @@ class DatashareClient:
         if source is not None:
             local_query.update({'_source': source})
         url = urljoin(self.elasticsearch_host, index, '/_search')
-        response = self._request('post', url, params={"q": q, "scroll": scroll},
+        response = self._request('post', url, params={"q": q},
                                  json=local_query, timeout=HTTP_REQUEST_TIMEOUT_SEC)
         response.raise_for_status()
         return response.json()
-
-    def scroll(self, scroll_id, scroll=None):
-        url = urljoin(self.elasticsearch_host, '/_search/scroll')
-        body = {"scroll_id": scroll_id, "scroll": scroll}
-        response = self._request('post', url, json=body, timeout=HTTP_REQUEST_TIMEOUT_SEC)
-        response.raise_for_status()
-        return response.json()
-
-    def scan_all(self, scroll='10m', **kwargs):
-        response = self.query(scroll=scroll, **kwargs)
-        scroll_id = response.get('_scroll_id')
-        try:
-            while len(response['hits']['hits']) > 0:
-                yield from response['hits']['hits']
-                if '_scroll_id' not in response:
-                    break
-                scroll_id = response['_scroll_id']
-                response = self.scroll(scroll_id, scroll)
-        finally:
-            if scroll_id is not None:
-                try:
-                    url = urljoin(self.elasticsearch_host, '/_search/scroll')
-                    self._request('delete', url, json={'scroll_id': scroll_id},
-                                  timeout=HTTP_REQUEST_TIMEOUT_SEC)
-                except requests.RequestException:
-                    pass
-
-    def query_all(self, **kwargs):
-        # for low limit value cases
-        limit = kwargs.pop('limit', 0)
-        if (limit != 0) and (kwargs['size'] > limit):
-            kwargs['size'] = limit
-
-        num_yielded = 0
-        response = self.query(**kwargs)
-        while len(response['hits']['hits']) > 0:
-
-            yield from response['hits']['hits']
-
-            # update size window for next iteration
-            num_yielded += len(response['hits']['hits'])
-            if (limit != 0) and (kwargs['size'] + num_yielded > limit):
-                kwargs['size'] = limit - num_yielded
-            if kwargs['size'] == 0:
-                break
-
-            last_item = response['hits']['hits'][-1]
-            if 'sort' in last_item:
-                search_after = last_item['sort']
-                search_after_args = {k: v for k, v in kwargs.items() if k != 'from'}
-                response = self.query(search_after=search_after, **search_after_args)
-            else:
-                if 'from' not in kwargs:
-                    kwargs['from'] = 0
-                kwargs['from'] += kwargs['size']
-                response = self.query(**kwargs)
 
     def mappings(self, index=DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.elasticsearch_host, index, '_mappings')
@@ -268,20 +212,3 @@ class DatashareClient:
         finally:
             if delete and project is not None:
                 self.delete_index(project)
-
-    def scan_or_query_all(self, datashare_project, source_fields_names, sort_by, order_by, scroll, query_body, from_,
-                          limit, size):
-        index = datashare_project
-        source = source_fields_names
-        sort = {sort_by: order_by}
-        if scroll is None:
-            logger.info('Searching document(s) metadata in %s', index)
-            return self.query_all(
-                **{'index': index, 'query': query_body, 'source': source, 'sort': sort, 'from': from_, 'limit': limit,
-                   'size': size})
-
-        logger.info('Scrolling over document(s) metadata in %s', index)
-        if from_ > 0:
-            logger.warning('"from" will not be used when scrolling documents')
-        scroll_after_args = {'size': size, 'from': from_, 'limit': limit, 'sort': sort}
-        return self.scan_all(index=index, query=query_body, source=source, scroll=scroll, **scroll_after_args)

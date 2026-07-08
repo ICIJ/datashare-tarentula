@@ -164,7 +164,7 @@ def download(**options):
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
                                 ' semicolons: key1=val1;key2=val2;...', default='')
-@click.option('--scroll', help='Scroll duration', default=None)
+@click.option('--scroll', help='[DEPRECATED] Ignored; pagination now uses search_after.', default=None)
 @click.option('--source', help='A comma-separated list of field to include in the export',
               default='contentType,contentLength:0,extractionDate,path')
 @click.option('--sort-by', help='Field to use to sort results', default='_score')

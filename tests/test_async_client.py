@@ -171,6 +171,32 @@ async def test_search_after_scan_paginates_without_dupes():
         assert body['sort'] == [{'_score': 'desc'}, {'_id': 'asc'}]
 
 
+async def test_search_after_scan_first_page_only_honors_from():
+    host = f'{DATASHARE_URL}/api/index/search'
+    url = f'{host}/idx/_search'
+    captured = []
+
+    def make_cb(page):
+        def cb(url, **kwargs):
+            captured.append(kwargs.get('json'))
+            return CallbackResult(status=200, payload=page)
+        return cb
+
+    with aioresponses() as mocked:
+        mocked.post(url, callback=make_cb({'hits': {'hits': [_hit(1), _hit(2)]}}))
+        mocked.post(url, callback=make_cb({'hits': {'hits': [_hit(3)]}}))
+        async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
+            ids = [h['_id'] async for h in
+                   client.search_after_scan(index='idx', query={}, size=2, from_=5)]
+
+    assert ids == ['id01', 'id02', 'id03']
+    # First page carries `from`; once search_after is set, `from` must never be sent again.
+    assert captured[0]['from'] == 5
+    assert 'search_after' not in captured[0]
+    assert 'from' not in captured[1]
+    assert captured[1]['search_after'] == ['n2', 'id02']
+
+
 async def test_search_after_scan_honors_limit_mid_page():
     host = f'{DATASHARE_URL}/api/index/search'
     url = f'{host}/idx/_search'

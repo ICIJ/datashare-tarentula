@@ -83,7 +83,7 @@ class AsyncDatashareClient:
                     handle.write(chunk)
 
     async def search_after_scan(self, *, index, query, source=None,
-                                sort_by='_score', order_by='desc', size=1000, limit=0):
+                                sort_by='_score', order_by='desc', size=1000, limit=0, from_=0):
         url = urljoin(self.sync.elasticsearch_host, index, '/_search')
         sort = [{sort_by: order_by}, {'_id': 'asc'}]
         body = {**(query or {}), 'sort': sort, 'size': size}
@@ -95,6 +95,8 @@ class AsyncDatashareClient:
             page_body = dict(body)
             if search_after is not None:
                 page_body['search_after'] = search_after
+            elif from_:
+                page_body['from'] = from_
             status, payload = await self.request('post', url, json=page_body)
             if status >= 400:
                 raise RuntimeError(f'Search failed with status {status}: {payload}')

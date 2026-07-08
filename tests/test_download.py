@@ -80,10 +80,30 @@ class TestDownload(TestAbstract):
     def test_summary_with_from(self):
         with self.existing_species_documents(), TemporaryDirectory() as tmp:
             runner = CliRunner()
-            
+
             result = runner.invoke(cli, ['download', '--datashare-url', self.datashare_url, '--elasticsearch-url', self.elasticsearch_url, '--datashare-project', self.datashare_project, '--no-raw-file', '--destination-directory', tmp, '--from', 5, '--query', 'name:*'])
             self.assertIn('Downloading 15 document(s)', result.output)
             self.assertEqual(15, len(get_document_files(tmp)))
+
+    def test_scroll_flag_is_deprecated_but_downloads(self):
+        with self.existing_species_documents():
+            runner = CliRunner()
+            result = runner.invoke(cli, ['download', '--datashare-url', self.datashare_url,
+                                         '--elasticsearch-url', self.elasticsearch_url,
+                                         '--datashare-project', self.datashare_project,
+                                         '--no-raw-file', '--query', 'name:*', '--scroll', '1m'])
+            self.assertIn('Downloading 20 document(s)', result.output)
+            self.assertIn('deprecated', result.output.lower())
+
+    def test_all_documents_downloaded_with_concurrency(self):
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            runner = CliRunner()
+            runner.invoke(cli, ['download', '--datashare-url', self.datashare_url,
+                                '--elasticsearch-url', self.elasticsearch_url,
+                                '--datashare-project', self.datashare_project,
+                                '--no-raw-file', '--destination-directory', tmp,
+                                '--query', 'name:*', '--concurrency', '8'])
+            self.assertEqual(20, len(get_document_files(tmp)))
 
 
 def get_document_files(folder: str, pattern: str = '*/*/*.json'):

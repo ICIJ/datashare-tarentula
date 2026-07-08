@@ -1,13 +1,15 @@
+import asyncio
 import json
-import shutil
 import sys
 from os import makedirs
 from os.path import join, dirname, basename, exists
-from time import sleep
-from requests.exceptions import HTTPError, ConnectionError
-from rich.progress import Progress
-from urllib3.exceptions import ProtocolError
 
+import click
+from aiohttp import ClientResponseError
+from requests.exceptions import ConnectionError
+from rich.progress import Progress
+
+from tarentula.async_client import AsyncDatashareClient
 from tarentula.command import Command
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
@@ -71,9 +73,6 @@ class Download(Command):
     def no_progressbar(self):
         return not self.progressbar
 
-    def sleep(self):
-        sleep(self.throttle / 1000)
-
     def document_file_options(self, document):
         return {
             "id": document.get('_id'),
@@ -119,35 +118,9 @@ class Download(Command):
         logger.info('%s matching document(s) in %s', count, index)
         return count
 
-    def download_raw_file(self, document):
-        id = document.get('_id')
-        routing = document.get('_routing', id)
-        # Skip raw file
-        if not self.raw_file:
-            return None
-        # Skip existing
-        if self.once and self.raw_file_exists(document):
-            logger.info('Skipping existing document %s', document.get('_id'))
-            return None
-        # Skip non-downloadable file
-        if document.get('_source', {}).get('type', None) != self.type:
-            logger.warning('Not a raw document. Skipping %s', id)
-            return None
-        logger.info('Downloading raw file %s', id)
-        document_file_stream = self.datashare_client.download(self.datashare_project, id, routing)
-        document_file_stream.raw.decode_content = True
-        document_file_stream.raise_for_status()
-        self.save_raw_file(document, document_file_stream)
-        return None
-
     def raw_file_exists(self, document):
         raw_file_path = self.raw_file_path(document)
         return exists(raw_file_path)
-
-    def save_raw_file(self, document, document_file_stream):
-        file_path = self.raw_file_path(document)
-        with open(file_path, 'wb') as file:
-            shutil.copyfileobj(document_file_stream.raw, file)
 
     def save_indexed_document(self, indexed_document):
         file_path = self.indexed_document_path(indexed_document)
@@ -155,23 +128,71 @@ class Download(Command):
             json.dump(indexed_document, file)
 
     def start(self):
+        if self.scroll is not None:
+            message = '--scroll is deprecated and ignored; pagination uses search_after.'
+            logger.warning(message)
+            # The stdout log handler defaults to ERROR level, which would swallow this
+            # WARNING-level message. Deprecation notices are user-facing regardless of
+            # the configured log verbosity, so also echo it directly to stdout.
+            click.echo(f'Warning: {message}')
+        asyncio.run(self._run())
+
+    async def _run(self):
         count = self.log_matches()
         desc = f'Downloading {count} document(s)'
         extra = self.source.split(',') if self.source else []
         source = ["path", "parentDocument", "type"] + extra
-        try:
+        queue = asyncio.Queue(maxsize=self.concurrency * 2)
+        async with AsyncDatashareClient(self.datashare_client, concurrency=self.concurrency) as client:
             with Progress(disable=self.no_progressbar) as progress:
                 task = progress.add_task(desc, total=count)
-                for document in self.datashare_client.scan_or_query_all(self.datashare_project, source, self.sort_by,
-                                                                        self.order_by, self.scroll, self.query_body,
-                                                                        self.from_, self.limit, self.size):
-                    try:
-                        self.download_raw_file(document)
-                        self.save_indexed_document(document)
-                        logger.info('Processed document %s', document.get('_id'))
-                    except HTTPError:
-                        logger.error('Unable to download document %s', document.get('_id'), exc_info=self.traceback)
-                    progress.advance(task)
-                    self.sleep()
-        except ProtocolError:
-            logger.error('Exception while downloading documents', exc_info=self.traceback)
+
+                async def worker():
+                    while True:
+                        document = await queue.get()
+                        if document is None:
+                            queue.task_done()
+                            return
+                        try:
+                            await self._download_raw_file(client, document)
+                            self.save_indexed_document(document)
+                            logger.info('Processed document %s', document.get('_id'))
+                        except ClientResponseError:
+                            logger.error('Unable to download document %s',
+                                         document.get('_id'), exc_info=self.traceback)
+                        finally:
+                            progress.advance(task)
+                            if self.throttle:
+                                await asyncio.sleep(self.throttle / 1000)
+                            queue.task_done()
+
+                workers = [asyncio.create_task(worker()) for _ in range(self.concurrency)]
+                try:
+                    async for document in client.search_after_scan(
+                            index=self.datashare_project, query=self.query_body,
+                            source=source, sort_by=self.sort_by, order_by=self.order_by,
+                            size=self.size or 1000, limit=self.limit, from_=self.from_):
+                        await queue.put(document)
+                    for _ in workers:
+                        await queue.put(None)
+                    await asyncio.gather(*workers)
+                except BaseException:
+                    for w in workers:
+                        w.cancel()
+                    await asyncio.gather(*workers, return_exceptions=True)
+                    raise
+
+    async def _download_raw_file(self, client, document):
+        doc_id = document.get('_id')
+        routing = document.get('_routing', doc_id)
+        if not self.raw_file:
+            return
+        if self.once and self.raw_file_exists(document):
+            logger.info('Skipping existing document %s', doc_id)
+            return
+        if document.get('_source', {}).get('type', None) != self.type:
+            logger.warning('Not a raw document. Skipping %s', doc_id)
+            return
+        logger.info('Downloading raw file %s', doc_id)
+        dest_path = self.raw_file_path(document)
+        await client.stream_download(self.datashare_project, doc_id, routing, dest_path)

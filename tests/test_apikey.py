@@ -2,6 +2,7 @@ import json
 import re
 import responses
 
+from aioresponses import aioresponses
 from click.testing import CliRunner
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
@@ -28,12 +29,24 @@ class TestApikey(TestAbstract):
 
     @contextmanager
     def mock_download_endpoint(self):
-        with responses.RequestsMock() as resp:
-            tagging_endpoint_re = r"^%s\/api/%s/documents/src" % (self.datashare_url, self.datashare_project)
-            resp.add(responses.GET, re.compile(tagging_endpoint_re), body='', status=201)
-            resp.add_passthru(self.datashare_url)
-            resp.add_passthru(self.elasticsearch_url)
+        # Raw file downloads go through AsyncDatashareClient.stream_download (aiohttp), not the
+        # `requests`-based sync client, so they must be intercepted with aioresponses instead of
+        # `responses`. Unmatched calls (e.g. search_after_scan's ES queries) pass through to the
+        # real devenv Elasticsearch instance, but they still get recorded in `resp.requests`
+        # alongside the download call, so callers must filter by URL (see
+        # `downloaded_request_headers`).
+        self.download_endpoint_re = re.compile(
+            r"^%s/api/%s/documents/src/" % (re.escape(self.datashare_url), re.escape(self.datashare_project)))
+        with aioresponses(passthrough_unmatched=True) as resp:
+            resp.get(self.download_endpoint_re, body='', status=201)
             yield resp
+
+    def downloaded_request_headers(self, resp):
+        calls = [call for (method, url), calls in resp.requests.items()
+                 if method.lower() == 'get' and self.download_endpoint_re.match(str(url))
+                 for call in calls]
+        self.assertEqual(1, len(calls))
+        return calls[0].kwargs.get('headers') or {}
 
     def test_apikey_header_is_NOT_sent_while_tagging_with_cli(self):
         with NamedTemporaryFile() as file:
@@ -111,7 +124,8 @@ class TestApikey(TestAbstract):
             runner.invoke(cli, ['download', '--elasticsearch-url', self.elasticsearch_url, '--datashare-url',
                                 self.datashare_url, '--datashare-project',
                                 self.datashare_project, '--query', '*'])
-            self.assertIsNone(resp.calls[0].request.headers.get('Authorization'))
+            headers = self.downloaded_request_headers(resp)
+            self.assertIsNone(headers.get('Authorization'))
 
     def test_apikey_header_is_sent_while_downloading_with_cli(self):
         self.datashare_client.index(index=self.datashare_project, document={'type': 'Document', 'content': 'content',
@@ -121,4 +135,5 @@ class TestApikey(TestAbstract):
             runner.invoke(cli, ['download', '--elasticsearch-url', self.elasticsearch_url, '--datashare-url',
                                 self.datashare_url, '--datashare-project',
                                 self.datashare_project, '--apikey', 'my_api_key', '--query', '*'])
-            self.assertEqual(resp.calls[0].request.headers['Authorization'], 'bearer my_api_key')
+            headers = self.downloaded_request_headers(resp)
+            self.assertEqual(headers.get('Authorization'), 'bearer my_api_key')

@@ -263,6 +263,16 @@ async def test_open_pit_returns_none_when_unavailable():
     assert pit is None
 
 
+async def test_close_pit_swallows_runtime_error_on_closed_session():
+    # On Ctrl-C the aiohttp session may already be closed by the time the `finally` in
+    # search_after_scan runs close_pit(): self.request(...) then raises RuntimeError('Session is
+    # closed'), not aiohttp.ClientError/asyncio.TimeoutError. close_pit() is best-effort, so this
+    # must be swallowed too instead of escaping and masking the original cancellation.
+    async with AsyncDatashareClient(make_sync_stub()) as client:
+        await client._session.close()
+        await client.close_pit('some-pit-id')  # must not raise
+
+
 async def test_scan_falls_back_to_search_after_without_pit():
     host = f'{DATASHARE_URL}/api/index/search'
     with aioresponses() as mocked:

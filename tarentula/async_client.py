@@ -134,7 +134,11 @@ class AsyncDatashareClient:
         url = urljoin(self.sync.elasticsearch_host, '/_pit')
         try:
             await self.request('delete', url, json={'id': pit_id})
-        except (aiohttp.ClientError, asyncio.TimeoutError):
+        # Best-effort close: on Ctrl-C the session may already be closed by the time this runs,
+        # in which case self.request() raises RuntimeError('Session is closed') rather than an
+        # aiohttp.ClientError/asyncio.TimeoutError. Swallow that too instead of letting it mask
+        # the original cancellation.
+        except (aiohttp.ClientError, asyncio.TimeoutError, RuntimeError):
             pass
 
     async def _paginate_search_after(self, *, url, body, size, limit, from_, on_payload=None):

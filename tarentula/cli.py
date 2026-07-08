@@ -127,7 +127,8 @@ def clean_tags_by_query(**options):
                                 ' semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--path-format', help='Downloaded document path template', default='{id_2b}/{id_4b}/{id}')
 @click.option('--scroll', help='[DEPRECATED] Ignored; pagination now uses search_after.', default=None)
-@click.option('--concurrency', help='Number of documents to download in parallel.', default=5, type=int)
+@click.option('--concurrency', help='Number of documents to download in parallel.', default=5,
+              type=click.IntRange(min=1))
 @click.option('--source', help='A comma-separated list of field to include in the downloaded document from the index',
               default=None)
 @click.option('--limit', '-l', type=int, help='Limit the total results to return', default=0)

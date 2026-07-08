@@ -171,6 +171,18 @@ class TestDownload(TestAbstract):
         self.assertIn('Download failed', result.output)
         self.assertNotIn('Traceback', result.output)
 
+    def test_concurrency_must_be_positive(self):
+        # --concurrency 0 used to yield zero workers with an *unbounded*
+        # asyncio.Queue(maxsize=0): the producer fills the queue and nothing ever consumes it,
+        # so the command silently exits 0 having downloaded nothing. Reject it up front.
+        runner = CliRunner()
+        result = runner.invoke(cli, ['download', '--datashare-url', self.datashare_url,
+                                     '--elasticsearch-url', self.elasticsearch_url,
+                                     '--datashare-project', self.datashare_project,
+                                     '--concurrency', '0'])
+        self.assertNotEqual(0, result.exit_code)
+        self.assertIsInstance(result.exception, SystemExit)
+
 
 def get_document_files(folder: str, pattern: str = '*/*/*.json'):
     return glob.glob(join(folder, pattern))

@@ -208,6 +208,48 @@ async def test_search_after_scan_honors_limit_mid_page():
     assert ids == ['id01', 'id02']
 
 
+async def test_search_after_scan_sort_by_id_has_no_duplicate_tiebreaker():
+    # When --sort-by is already the tiebreaker field (_id on the plain search_after path), the
+    # sort list must not carry {'_id': ...} twice: ES rejects/mishandles a duplicated sort key.
+    host = f'{DATASHARE_URL}/api/index/search'
+    url = f'{host}/idx/_search'
+    captured = []
+
+    def cb(url, **kwargs):
+        captured.append(kwargs.get('json'))
+        return CallbackResult(status=200, payload={'hits': {'hits': []}})
+
+    with aioresponses() as mocked:
+        mocked.post(url, callback=cb)
+        async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
+            [h async for h in client.search_after_scan(
+                index='idx', query={}, sort_by='_id', order_by='asc')]
+
+    assert captured[0]['sort'] == [{'_id': 'asc'}]
+
+
+async def test_scan_uses_pit_sort_by_shard_doc_has_no_duplicate_tiebreaker():
+    # Same duplicate-tiebreaker guard, but on the PIT path where the tiebreaker is _shard_doc.
+    host = f'{DATASHARE_URL}/api/index/search'
+    captured = []
+
+    def make_cb(page):
+        def cb(url, **kwargs):
+            captured.append(kwargs.get('json'))
+            return CallbackResult(status=200, payload=page)
+        return cb
+
+    with aioresponses() as mocked:
+        mocked.post(f'{host}/idx/_pit?keep_alive=1m', status=200, payload={'id': 'PIT1'})
+        mocked.post(f'{host}/_search', callback=make_cb({'hits': {'hits': []}}))
+        mocked.delete(f'{host}/_pit', status=200, payload={'succeeded': True})
+        async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
+            [h async for h in client.search_after_scan(
+                index='idx', query={}, sort_by='_shard_doc', order_by='asc', use_pit=True)]
+
+    assert captured[0]['sort'] == [{'_shard_doc': 'asc'}]
+
+
 async def test_open_pit_returns_none_when_unavailable():
     # A proxy/unmapped route can return a non-JSON error body (e.g. an HTML 404/405 page).
     # open_pit() must tolerate this and fall back to returning None instead of letting the
@@ -283,6 +325,34 @@ async def test_scan_uses_pit_when_available():
     assert delete_calls, 'expected the PIT to be closed via DELETE /_pit'
     # The PIT that is actually left open is the refreshed one, so that is what must be released.
     assert deleted['id'] == 'PIT2'
+
+
+async def test_scan_uses_pit_with_custom_keep_alive():
+    # A configurable keep_alive must reach both the initial /_pit open request and the
+    # `pit.keep_alive` field of every /_search body (including after a mid-scan pit refresh),
+    # so that a slow multi-page download does not outlive a too-short PIT window.
+    host = f'{DATASHARE_URL}/api/index/search'
+    captured = []
+
+    def make_cb(page):
+        def cb(url, **kwargs):
+            captured.append(kwargs.get('json'))
+            return CallbackResult(status=200, payload=page)
+        return cb
+
+    with aioresponses() as mocked:
+        mocked.post(f'{host}/idx/_pit?keep_alive=10m', status=200, payload={'id': 'PIT1'})
+        mocked.post(f'{host}/_search', callback=make_cb(
+            {'hits': {'hits': [_hit(1)]}, 'pit_id': 'PIT2'}))
+        mocked.post(f'{host}/_search', callback=make_cb({'hits': {'hits': []}, 'pit_id': 'PIT2'}))
+        mocked.delete(f'{host}/_pit', status=200, payload={'succeeded': True})
+        async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
+            ids = [h['_id'] async for h in client.search_after_scan(
+                index='idx', query={}, size=1, use_pit=True, keep_alive='10m')]
+
+    assert ids == ['id01']
+    assert captured[0]['pit']['keep_alive'] == '10m'
+    assert captured[1]['pit']['keep_alive'] == '10m'
 
 
 async def test_stream_download_writes_body_to_file():

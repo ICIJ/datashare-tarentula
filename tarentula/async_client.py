@@ -170,11 +170,13 @@ class AsyncDatashareClient:
 
     async def search_after_scan(self, *, index, query, source=None,
                                 sort_by='_score', order_by='desc', size=1000, limit=0,
-                                from_=0, use_pit=False):
-        pit_id = await self.open_pit(index) if use_pit else None
+                                from_=0, use_pit=False, keep_alive='1m'):
+        pit_id = await self.open_pit(index, keep_alive) if use_pit else None
         if pit_id is None:
             url = urljoin(self.sync.elasticsearch_host, index, '/_search')
-            sort = [{sort_by: order_by}, {'_id': 'asc'}]
+            sort = [{sort_by: order_by}]
+            if sort_by != '_id':
+                sort.append({'_id': 'asc'})
             body = {**(query or {}), 'sort': sort, 'size': size}
             if source is not None:
                 body['_source'] = source
@@ -188,7 +190,9 @@ class AsyncDatashareClient:
         current_pit_id = pit_id
         try:
             url = urljoin(self.sync.elasticsearch_host, '/_search')
-            sort = [{sort_by: order_by}, {'_shard_doc': 'asc'}]
+            sort = [{sort_by: order_by}]
+            if sort_by != '_shard_doc':
+                sort.append({'_shard_doc': 'asc'})
             body = {**(query or {}), 'sort': sort, 'size': size}
             if source is not None:
                 body['_source'] = source
@@ -197,7 +201,7 @@ class AsyncDatashareClient:
                 nonlocal current_pit_id
                 if payload.get('pit_id'):
                     current_pit_id = payload['pit_id']
-                body['pit'] = {'id': current_pit_id, 'keep_alive': '1m'}
+                body['pit'] = {'id': current_pit_id, 'keep_alive': keep_alive}
 
             refresh_pit({})
             async for hit in self._paginate_search_after(

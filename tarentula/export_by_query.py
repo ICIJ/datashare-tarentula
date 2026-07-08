@@ -31,6 +31,7 @@ class ExportByQuery(Command):
                  limit: int = 0,
                  sort_by: str = '_score',
                  order_by: str = 'desc',
+                 pit_keep_alive: str = '10m',
                  traceback: bool = False,
                  progressbar: bool = True,
                  type: str = 'Document',
@@ -51,6 +52,7 @@ class ExportByQuery(Command):
         self.limit = limit
         self.sort_by = sort_by
         self.order_by = order_by
+        self.pit_keep_alive = pit_keep_alive
         self.query_field = query_field
         try:
             self.datashare_client = DatashareClient(datashare_url,
@@ -180,7 +182,7 @@ class ExportByQuery(Command):
                             index=self.datashare_project, query=self.query_body,
                             source=self.source_fields_names, sort_by=self.sort_by,
                             order_by=self.order_by, size=self.size or 1000, limit=self.limit,
-                            from_=self.from_, use_pit=True):
+                            from_=self.from_, use_pit=True, keep_alive=self.pit_keep_alive):
                         try:
                             self.save_indexed_document(csvwriter, document, number)
                             logger.info('Saved document %s', document.get('_id', None))

@@ -34,6 +34,7 @@ class Download(Command):
                  sort_by: str = '_score',
                  order_by: str = 'desc',
                  concurrency: int = 5,
+                 pit_keep_alive: str = '10m',
                  once: bool = False,
                  traceback: bool = False,
                  progressbar: bool = True,
@@ -59,6 +60,7 @@ class Download(Command):
         self.size = size
         self.sort_by = sort_by
         self.order_by = order_by
+        self.pit_keep_alive = pit_keep_alive
         try:
             self.datashare_client = DatashareClient(datashare_url,
                                                     elasticsearch_url,
@@ -185,7 +187,7 @@ class Download(Command):
                             index=self.datashare_project, query=self.query_body,
                             source=source, sort_by=self.sort_by, order_by=self.order_by,
                             size=self.size or 1000, limit=self.limit, from_=self.from_,
-                            use_pit=True):
+                            use_pit=True, keep_alive=self.pit_keep_alive):
                         await queue.put(document)
                     for _ in workers:
                         await queue.put(None)

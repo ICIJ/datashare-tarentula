@@ -9,6 +9,7 @@ import aiohttp
 from click.testing import CliRunner
 
 from .test_abstract import TestAbstract
+from tarentula.async_client import AsyncDatashareClient
 from tarentula.cli import cli
 
 
@@ -116,6 +117,43 @@ class TestDownload(TestAbstract):
                                 '--datashare-project', self.datashare_project,
                                 '--no-raw-file', '--destination-directory', tmp, '--query', 'name:*'])
             self.assertEqual(20, len(get_document_files(tmp)))
+
+    def test_pit_keep_alive_option_is_passed_through(self):
+        # --pit-keep-alive must reach search_after_scan's keep_alive kwarg (default '10m' when
+        # not given, so a slow multi-page download does not outlive a too-short PIT window).
+        captured = {}
+        original = AsyncDatashareClient.search_after_scan
+
+        def spy(self, *args, **kwargs):
+            captured.update(kwargs)
+            return original(self, *args, **kwargs)
+
+        with self.existing_species_documents():
+            with patch('tarentula.async_client.AsyncDatashareClient.search_after_scan', spy):
+                runner = CliRunner()
+                runner.invoke(cli, ['download', '--datashare-url', self.datashare_url,
+                                    '--elasticsearch-url', self.elasticsearch_url,
+                                    '--datashare-project', self.datashare_project,
+                                    '--no-raw-file', '--query', 'name:*',
+                                    '--pit-keep-alive', '5m'])
+        self.assertEqual('5m', captured.get('keep_alive'))
+
+    def test_pit_keep_alive_defaults_to_10m(self):
+        captured = {}
+        original = AsyncDatashareClient.search_after_scan
+
+        def spy(self, *args, **kwargs):
+            captured.update(kwargs)
+            return original(self, *args, **kwargs)
+
+        with self.existing_species_documents():
+            with patch('tarentula.async_client.AsyncDatashareClient.search_after_scan', spy):
+                runner = CliRunner()
+                runner.invoke(cli, ['download', '--datashare-url', self.datashare_url,
+                                    '--elasticsearch-url', self.elasticsearch_url,
+                                    '--datashare-project', self.datashare_project,
+                                    '--no-raw-file', '--query', 'name:*'])
+        self.assertEqual('10m', captured.get('keep_alive'))
 
     def test_download_completes_when_all_downloads_fail(self):
         # Every raw-file download raises a non-ClientResponseError. Workers must log-and-continue

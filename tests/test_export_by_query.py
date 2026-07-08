@@ -1,11 +1,13 @@
+import asyncio
 import csv
 
 from click.testing import CliRunner
 from datetime import datetime
 from os.path import join
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
+from tarentula.async_client import AsyncDatashareClient
 from tarentula.cli import cli
 from .test_abstract import TestAbstract
 
@@ -13,6 +15,28 @@ from .test_abstract import TestAbstract
 class TestExportByQuery(TestAbstract):
     def tearDown(self):
         super().tearDown()
+
+    def test_pit_keep_alive_option_is_passed_through(self):
+        # --pit-keep-alive must reach search_after_scan's keep_alive kwarg (default '10m' when
+        # not given, so a slow multi-page export does not outlive a too-short PIT window).
+        captured = {}
+        original = AsyncDatashareClient.search_after_scan
+
+        def spy(self, *args, **kwargs):
+            captured.update(kwargs)
+            return original(self, *args, **kwargs)
+
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output_file = join(tmp, 'output.csv')
+            with patch('tarentula.async_client.AsyncDatashareClient.search_after_scan', spy):
+                runner = CliRunner()
+                runner.invoke(cli, ['export-by-query',
+                    '--datashare-url', self.datashare_url,
+                    '--elasticsearch-url', self.elasticsearch_url,
+                    '--datashare-project', self.datashare_project,
+                    '--query', 'name:*', '--output-file', output_file,
+                    '--pit-keep-alive', '5m'])
+        self.assertEqual('5m', captured.get('keep_alive'))
 
     def test_export_reports_producer_error_cleanly(self):
         # A producer/search error (e.g. search_after_scan raising RuntimeError on a non-2xx

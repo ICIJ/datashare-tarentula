@@ -138,6 +138,9 @@ def clean_tags_by_query(**options):
 @click.option('--sort-by', help='Field to use to sort results', default='_score')
 @click.option('--order-by', help='Order to use to sort results', default='desc',
               type=click.Choice(['asc', 'desc']))
+@click.option('--pit-keep-alive', help='Point-in-Time keep-alive window (e.g. 1m, 10m). Larger'
+                                       ' values tolerate slower downloads.',
+              default=ConfigFileReader('pit_keep_alive', '10m'))
 @click.option('--once/--not-once', help='Download file only once', default=False)
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
@@ -171,6 +174,9 @@ def download(**options):
 @click.option('--sort-by', help='Field to use to sort results', default='_score')
 @click.option('--order-by', help='Order to use to sort results', default='desc',
               type=click.Choice(['asc', 'desc']))
+@click.option('--pit-keep-alive', help='Point-in-Time keep-alive window (e.g. 1m, 10m). Larger'
+                                       ' values tolerate slower downloads.',
+              default=ConfigFileReader('pit_keep_alive', '10m'))
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
               callback=validate_progressbar)

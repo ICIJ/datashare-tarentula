@@ -1,3 +1,4 @@
+import asyncio
 import glob
 import json
 import threading
@@ -205,6 +206,27 @@ class TestDownload(TestAbstract):
         self.assertEqual(1, result.exit_code)
         # A clean sys.exit(1) surfaces as SystemExit here (Click's own error-handling
         # convention), not the raw RuntimeError escaping uncaught.
+        self.assertIsInstance(result.exception, SystemExit)
+        self.assertIn('Download failed', result.output)
+        self.assertNotIn('Traceback', result.output)
+
+    def test_download_reports_timeout_error_cleanly(self):
+        # _send() re-raises a bare asyncio.TimeoutError (not an aiohttp.ClientError subclass)
+        # once its retries are exhausted. start() must catch it too, not let it escape as a raw
+        # traceback.
+        async def boom(*a, **k):
+            raise asyncio.TimeoutError('boom-timeout')
+            yield  # pragma: no cover - makes this an async generator function
+
+        with self.existing_species_documents():
+            with patch('tarentula.async_client.AsyncDatashareClient.search_after_scan', boom):
+                runner = CliRunner()
+                result = runner.invoke(cli, ['download',
+                    '--datashare-url', self.datashare_url,
+                    '--elasticsearch-url', self.elasticsearch_url,
+                    '--datashare-project', self.datashare_project,
+                    '--no-raw-file', '--query', 'name:*'])
+        self.assertEqual(1, result.exit_code)
         self.assertIsInstance(result.exception, SystemExit)
         self.assertIn('Download failed', result.output)
         self.assertNotIn('Traceback', result.output)

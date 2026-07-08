@@ -62,6 +62,49 @@ class TestExportByQuery(TestAbstract):
         self.assertIn('Export failed', result.output)
         self.assertNotIn('Traceback', result.output)
 
+    def test_throttle_sleeps_between_rows_and_still_exports_everything(self):
+        # --throttle used to be silently ignored by export-by-query (unlike download, which
+        # honors it per-item). Honor it here too: after writing each CSV row, sleep
+        # throttle/1000 seconds. Assert the sleep is invoked (a timing assertion would be
+        # flaky) and that the export still produces correct/complete output.
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output_file = join(tmp, 'output.csv')
+            with patch('tarentula.export_by_query.asyncio.sleep',
+                      new_callable=AsyncMock) as mock_sleep:
+                runner = CliRunner()
+                runner.invoke(cli, ['export-by-query',
+                    '--datashare-url', self.datashare_url,
+                    '--elasticsearch-url', self.elasticsearch_url,
+                    '--datashare-project', self.datashare_project,
+                    '--query', 'name:*', '--output-file', output_file,
+                    '--throttle', '50'])
+            with open(output_file, newline='') as csv_file:
+                rows = list(csv.DictReader(csv_file))
+            self.assertEqual(20, len(rows))
+            mock_sleep.assert_called_with(0.05)
+
+    def test_export_reports_timeout_error_cleanly(self):
+        # _send() re-raises a bare asyncio.TimeoutError (not an aiohttp.ClientError subclass)
+        # once its retries are exhausted. start() must catch it too, not let it escape as a raw
+        # traceback.
+        async def boom(*a, **k):
+            raise asyncio.TimeoutError('boom-timeout')
+            yield  # pragma: no cover - makes this an async generator function
+
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output_file = join(tmp, 'output.csv')
+            with patch('tarentula.async_client.AsyncDatashareClient.search_after_scan', boom):
+                runner = CliRunner()
+                result = runner.invoke(cli, ['export-by-query',
+                    '--datashare-url', self.datashare_url,
+                    '--elasticsearch-url', self.elasticsearch_url,
+                    '--datashare-project', self.datashare_project,
+                    '--query', 'name:*', '--output-file', output_file])
+        self.assertEqual(1, result.exit_code)
+        self.assertIsInstance(result.exception, SystemExit)
+        self.assertIn('Export failed', result.output)
+        self.assertNotIn('Traceback', result.output)
+
     def test_csv_file(self):
         # These two documents tie on _score, so their relative order depends on the
         # tiebreaker used by the underlying pagination (_id ascending on the plain

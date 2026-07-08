@@ -143,8 +143,10 @@ class Download(Command):
         # KeyboardInterrupt/SystemExit are BaseException, not Exception, so they are never
         # caught here and always propagate. RuntimeError is raised by search_after_scan on a
         # non-2xx status; aiohttp.ClientError covers connection/timeout failures that exhaust
-        # their retries. Either way, log cleanly instead of letting a raw traceback escape.
-        except (RuntimeError, aiohttp.ClientError) as exc:
+        # their retries; asyncio.TimeoutError is re-raised directly by _send() on total-timeout
+        # exhaustion (it is not an aiohttp.ClientError subclass). Either way, log cleanly instead
+        # of letting a raw traceback escape.
+        except (RuntimeError, aiohttp.ClientError, asyncio.TimeoutError) as exc:
             logger.error('Download failed: %s', exc, exc_info=self.traceback)
             sys.exit(1)
 

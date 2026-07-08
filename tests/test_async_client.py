@@ -208,9 +208,13 @@ async def test_search_after_scan_honors_limit_mid_page():
 
 
 async def test_open_pit_returns_none_when_unavailable():
+    # A proxy/unmapped route can return a non-JSON error body (e.g. an HTML 404/405 page).
+    # open_pit() must tolerate this and fall back to returning None instead of letting the
+    # JSONDecodeError escape.
     host = f'{DATASHARE_URL}/api/index/search'
     with aioresponses() as mocked:
-        mocked.post(f'{host}/idx/_pit?keep_alive=1m', status=405, body='{}')
+        mocked.post(f'{host}/idx/_pit?keep_alive=1m', status=405,
+                    body='<html>Not Found</html>', content_type='text/html')
         async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
             pit = await client.open_pit('idx')
     assert pit is None
@@ -220,6 +224,22 @@ async def test_scan_falls_back_to_search_after_without_pit():
     host = f'{DATASHARE_URL}/api/index/search'
     with aioresponses() as mocked:
         mocked.post(f'{host}/idx/_pit?keep_alive=1m', status=405, body='{}')
+        mocked.post(f'{host}/idx/_search', status=200, payload={'hits': {'hits': [_hit(1)]}})
+        mocked.post(f'{host}/idx/_search', status=200, payload={'hits': {'hits': []}})
+        async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
+            ids = [h['_id'] async for h in client.search_after_scan(
+                index='idx', query={}, size=2, use_pit=True)]
+    assert ids == ['id01']
+
+
+async def test_scan_falls_back_to_search_after_when_pit_returns_non_json():
+    # Same fallback, but the /_pit error body is non-JSON (e.g. an HTML error page from a
+    # proxy in front of an unmapped route), which used to raise JSONDecodeError and crash the
+    # whole scan instead of gracefully falling back to plain search_after pagination.
+    host = f'{DATASHARE_URL}/api/index/search'
+    with aioresponses() as mocked:
+        mocked.post(f'{host}/idx/_pit?keep_alive=1m', status=405,
+                    body='<html>Not Found</html>', content_type='text/html')
         mocked.post(f'{host}/idx/_search', status=200, payload={'hits': {'hits': [_hit(1)]}})
         mocked.post(f'{host}/idx/_search', status=200, payload={'hits': {'hits': []}})
         async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:

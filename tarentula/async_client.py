@@ -1,5 +1,6 @@
 import asyncio
 import os
+from json import JSONDecodeError
 
 import aiohttp
 
@@ -53,7 +54,14 @@ class AsyncDatashareClient:
 
     @staticmethod
     async def _parse_json(response):
-        return await response.json(content_type=None)
+        try:
+            return await response.json(content_type=None)
+        except (JSONDecodeError, ValueError, aiohttp.ContentTypeError):
+            # A proxy (or an unmapped route) can hand back a non-JSON error body (e.g. an
+            # HTML 404/405 page). Treat it as an empty payload rather than letting the parse
+            # error escape and crash the caller (this is what lets open_pit() gracefully
+            # fall back to plain search_after pagination).
+            return {}
 
     @staticmethod
     async def _stream_to_file(response, dest_path):

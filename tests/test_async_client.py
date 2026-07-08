@@ -135,3 +135,30 @@ async def test_request_exception_exhausts_retries_and_raises():
         async with AsyncDatashareClient(make_sync_stub(), max_retries=1) as client:
             with pytest.raises(aiohttp.ClientError):
                 await client.request('post', url, json={})
+
+
+def _hit(n):
+    return {'_id': f'id{n:02d}', '_source': {'name': f'n{n}'}, 'sort': ['n%d' % n, f'id{n:02d}']}
+
+
+async def test_search_after_scan_paginates_without_dupes():
+    host = f'{DATASHARE_URL}/api/index/search'
+    url = f'{host}/idx/_search'
+    with aioresponses() as mocked:
+        # size=2: two full pages then an empty page signals the end
+        mocked.post(url, status=200, payload={'hits': {'hits': [_hit(1), _hit(2)]}})
+        mocked.post(url, status=200, payload={'hits': {'hits': [_hit(3), _hit(4)]}})
+        mocked.post(url, status=200, payload={'hits': {'hits': []}})
+        async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
+            ids = [h['_id'] async for h in client.search_after_scan(index='idx', query={}, size=2)]
+    assert ids == ['id01', 'id02', 'id03', 'id04']
+
+
+async def test_search_after_scan_honors_limit_mid_page():
+    host = f'{DATASHARE_URL}/api/index/search'
+    url = f'{host}/idx/_search'
+    with aioresponses() as mocked:
+        mocked.post(url, status=200, payload={'hits': {'hits': [_hit(1), _hit(2), _hit(3)]}})
+        async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
+            ids = [h['_id'] async for h in client.search_after_scan(index='idx', query={}, size=3, limit=2)]
+    assert ids == ['id01', 'id02']

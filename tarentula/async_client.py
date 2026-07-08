@@ -3,7 +3,7 @@ import asyncio
 import aiohttp
 
 from tarentula.async_csrf import async_fetch_datashare_csrf
-from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC
+from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC, urljoin
 from tarentula.logger import logger
 
 TRANSIENT_STATUSES = {429, 502, 503, 504}
@@ -69,3 +69,33 @@ class AsyncDatashareClient:
                 logger.debug('Transient async request error (%s), retrying', exc)
                 await asyncio.sleep(BACKOFF_BASE_SEC * (2 ** attempt))
                 attempt += 1
+
+    async def search_after_scan(self, *, index, query, source=None,
+                                sort_by='_score', order_by='desc', size=1000, limit=0):
+        url = urljoin(self.sync.elasticsearch_host, index, '/_search')
+        sort = [{sort_by: order_by}, {'_id': 'asc'}]
+        body = {**(query or {}), 'sort': sort, 'size': size}
+        if source is not None:
+            body['_source'] = source
+        search_after = None
+        yielded = 0
+        while True:
+            page_body = dict(body)
+            if search_after is not None:
+                page_body['search_after'] = search_after
+            status, payload = await self.request('post', url, json=page_body)
+            if status >= 400:
+                raise RuntimeError(f'Search failed with status {status}: {payload}')
+            hits = payload.get('hits', {}).get('hits', [])
+            if not hits:
+                return
+            for hit in hits:
+                yield hit
+                yielded += 1
+                if limit and yielded >= limit:
+                    return
+            if len(hits) < size:
+                return
+            search_after = hits[-1].get('sort')
+            if search_after is None:
+                return

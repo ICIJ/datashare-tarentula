@@ -1,3 +1,5 @@
+import asyncio
+
 import aiohttp
 
 from tarentula.datashare_client import (
@@ -21,6 +23,6 @@ async def async_fetch_datashare_csrf(session, datashare_url, headers=None, cooki
             if token:
                 return ({DATASHARE_CSRF_COOKIE_NAME: token},
                         {DATASHARE_CSRF_HEADER_NAME: token})
-    except aiohttp.ClientError as exc:
+    except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
         logger.debug('Async CSRF token fetch failed: %s', exc)
     return {}, {}

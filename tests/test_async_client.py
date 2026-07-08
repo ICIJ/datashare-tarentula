@@ -32,3 +32,25 @@ async def test_async_fetch_datashare_csrf_no_token_returns_empty():
             cookies, headers = await async_fetch_datashare_csrf(session, DATASHARE_URL)
     assert cookies == {}
     assert headers == {}
+
+
+async def test_async_fetch_datashare_csrf_swallows_errors():
+    with aioresponses() as mocked:
+        mocked.get(f'{DATASHARE_URL}/api/users/me',
+                   exception=aiohttp.ClientConnectionError('boom'))
+        async with aiohttp.ClientSession() as session:
+            cookies, headers = await async_fetch_datashare_csrf(session, DATASHARE_URL)
+    assert cookies == {}
+    assert headers == {}
+
+
+async def test_async_fetch_datashare_csrf_swallows_timeouts():
+    import asyncio
+
+    with aioresponses() as mocked:
+        mocked.get(f'{DATASHARE_URL}/api/users/me',
+                   exception=asyncio.TimeoutError())
+        async with aiohttp.ClientSession() as session:
+            cookies, headers = await async_fetch_datashare_csrf(session, DATASHARE_URL)
+    assert cookies == {}
+    assert headers == {}

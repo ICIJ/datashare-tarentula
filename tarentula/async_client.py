@@ -82,13 +82,24 @@ class AsyncDatashareClient:
                 async for chunk in response.content.iter_chunked(1 << 16):
                     handle.write(chunk)
 
-    async def search_after_scan(self, *, index, query, source=None,
-                                sort_by='_score', order_by='desc', size=1000, limit=0, from_=0):
-        url = urljoin(self.sync.elasticsearch_host, index, '/_search')
-        sort = [{sort_by: order_by}, {'_id': 'asc'}]
-        body = {**(query or {}), 'sort': sort, 'size': size}
-        if source is not None:
-            body['_source'] = source
+    async def open_pit(self, index, keep_alive='1m'):
+        url = urljoin(self.sync.elasticsearch_host, index, '/_pit')
+        status, payload = await self.request('post', url, params={'keep_alive': keep_alive})
+        if status < 400 and payload.get('id'):
+            return payload['id']
+        return None
+
+    async def close_pit(self, pit_id):
+        url = urljoin(self.sync.elasticsearch_host, '/_pit')
+        try:
+            await self.request('delete', url, json={'id': pit_id})
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            pass
+
+    async def _paginate_search_after(self, *, url, body, size, limit, from_, on_payload=None):
+        """Shared search_after page loop, used by both the index-based and the
+        PIT-based scan. `body` already carries the tiebreaker sort (and, for the
+        PIT path, the caller keeps its `pit` entry current via `on_payload`)."""
         search_after = None
         yielded = 0
         while True:
@@ -100,6 +111,8 @@ class AsyncDatashareClient:
             status, payload = await self.request('post', url, json=page_body)
             if status >= 400:
                 raise RuntimeError(f'Search failed with status {status}: {payload}')
+            if on_payload is not None:
+                on_payload(payload)
             hits = payload.get('hits', {}).get('hits', [])
             if not hits:
                 return
@@ -113,3 +126,40 @@ class AsyncDatashareClient:
             search_after = hits[-1].get('sort')
             if search_after is None:
                 return
+
+    async def search_after_scan(self, *, index, query, source=None,
+                                sort_by='_score', order_by='desc', size=1000, limit=0,
+                                from_=0, use_pit=False):
+        pit_id = await self.open_pit(index) if use_pit else None
+        if pit_id is None:
+            url = urljoin(self.sync.elasticsearch_host, index, '/_search')
+            sort = [{sort_by: order_by}, {'_id': 'asc'}]
+            body = {**(query or {}), 'sort': sort, 'size': size}
+            if source is not None:
+                body['_source'] = source
+            async for hit in self._paginate_search_after(
+                    url=url, body=body, size=size, limit=limit, from_=from_):
+                yield hit
+            return
+
+        try:
+            url = urljoin(self.sync.elasticsearch_host, '/_search')
+            sort = [{sort_by: order_by}, {'_shard_doc': 'asc'}]
+            body = {**(query or {}), 'sort': sort, 'size': size}
+            if source is not None:
+                body['_source'] = source
+            current_pit_id = pit_id
+
+            def refresh_pit(payload):
+                nonlocal current_pit_id
+                if payload.get('pit_id'):
+                    current_pit_id = payload['pit_id']
+                body['pit'] = {'id': current_pit_id, 'keep_alive': '1m'}
+
+            refresh_pit({})
+            async for hit in self._paginate_search_after(
+                    url=url, body=body, size=size, limit=limit, from_=from_,
+                    on_payload=refresh_pit):
+                yield hit
+        finally:
+            await self.close_pit(pit_id)

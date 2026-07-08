@@ -207,6 +207,55 @@ async def test_search_after_scan_honors_limit_mid_page():
     assert ids == ['id01', 'id02']
 
 
+async def test_open_pit_returns_none_when_unavailable():
+    host = f'{DATASHARE_URL}/api/index/search'
+    with aioresponses() as mocked:
+        mocked.post(f'{host}/idx/_pit?keep_alive=1m', status=405, body='{}')
+        async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
+            pit = await client.open_pit('idx')
+    assert pit is None
+
+
+async def test_scan_falls_back_to_search_after_without_pit():
+    host = f'{DATASHARE_URL}/api/index/search'
+    with aioresponses() as mocked:
+        mocked.post(f'{host}/idx/_pit?keep_alive=1m', status=405, body='{}')
+        mocked.post(f'{host}/idx/_search', status=200, payload={'hits': {'hits': [_hit(1)]}})
+        mocked.post(f'{host}/idx/_search', status=200, payload={'hits': {'hits': []}})
+        async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
+            ids = [h['_id'] async for h in client.search_after_scan(
+                index='idx', query={}, size=2, use_pit=True)]
+    assert ids == ['id01']
+
+
+async def test_scan_uses_pit_when_available():
+    host = f'{DATASHARE_URL}/api/index/search'
+    captured = []
+
+    def make_cb(page):
+        def cb(url, **kwargs):
+            captured.append(kwargs.get('json'))
+            return CallbackResult(status=200, payload=page)
+        return cb
+
+    with aioresponses() as mocked:
+        mocked.post(f'{host}/idx/_pit?keep_alive=1m', status=200, payload={'id': 'PIT1'})
+        mocked.post(f'{host}/_search', callback=make_cb(
+            {'hits': {'hits': [_hit(1)]}, 'pit_id': 'PIT2'}))
+        mocked.post(f'{host}/_search', callback=make_cb({'hits': {'hits': []}, 'pit_id': 'PIT2'}))
+        mocked.delete(f'{host}/_pit', status=200, payload={'succeeded': True})
+        async with AsyncDatashareClient(make_sync_stub(elasticsearch_host=host)) as client:
+            ids = [h['_id'] async for h in client.search_after_scan(
+                index='idx', query={}, size=1, use_pit=True)]
+
+    assert ids == ['id01']
+    assert captured[0]['pit']['id'] == 'PIT1'
+    assert captured[0]['sort'] == [{'_score': 'desc'}, {'_shard_doc': 'asc'}]
+    assert captured[1]['pit']['id'] == 'PIT2'
+    delete_calls = [key for key in mocked.requests if key[0].upper() == 'DELETE']
+    assert delete_calls, 'expected the PIT to be closed via DELETE /_pit'
+
+
 async def test_stream_download_writes_body_to_file():
     index = 'idx'
     doc_id = 'abc'

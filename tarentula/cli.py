@@ -207,6 +207,18 @@ def export_by_query(**options):
               type=click.Choice(['asc', 'desc']))
 @click.option('--type', help='Type of indexed documents to download', default='Document',
               type=click.Choice(['Document', 'NamedEntity', 'Duplicate'], case_sensitive=True))
+@click.option('--max-query-terms', type=int, default=30,
+              help='more_like_this: max number of query terms to select from the liked docs')
+@click.option('--min-term-freq', type=int, default=1,
+              help='more_like_this: ignore terms with a lower frequency in the source doc')
+@click.option('--min-doc-freq', type=int, default=10,
+              help='more_like_this: ignore terms appearing in fewer documents (lower it on small indexes)')
+@click.option('--min-word-length', type=int, default=4,
+              help='more_like_this: ignore words shorter than this')
+@click.option('--minimum-should-match', default='30%',
+              help='more_like_this: fraction of query terms a doc must contain to match; '
+                   'raise it (e.g. 60%%) for stricter, narrower results')
+@click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 def similar_docs(**options):
     # Instantiate an ExportByQuery class with all the options
     proc = SimilarDocs(**options)

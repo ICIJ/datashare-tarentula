@@ -1,13 +1,14 @@
 import re
 import json
+import sys
 import inquirer
 
-from collections import OrderedDict
-from contextlib import contextmanager
+from requests.exceptions import HTTPError
+from urllib3.exceptions import ProtocolError
 
+from tarentula.command import Command
 from tarentula.datashare_client import DatashareClient
 from tarentula.logger import logger
-from .aggregate import AggCount, NumUnique, DateHistogram
 
 DEFAULT_SOURCE = 'extractionLevel,language,contentType,contentLength:0,extractionDate,path,metadata.tika_metadata_resourcename,metadata.tika_metadata_file_size'
 DEFAULT_SORT_BY = '_id'
@@ -17,8 +18,19 @@ DEFAULT_LIMIT = 10
 DEFAULT_SIZE = 100
 MIN_COMMONALITIES_TO_OFFER = 2
 
+# File-size buckets used to let the user narrow results by contentLength.
+# Each entry is (label, gte, lt) in bytes; None means unbounded. `from` is
+# inclusive and `to` exclusive, matching Elasticsearch range semantics.
+SIZE_RANGES = [
+    ('< 10 KB', None, 10_000),
+    ('10 KB - 100 KB', 10_000, 100_000),
+    ('100 KB - 1 MB', 100_000, 1_000_000),
+    ('> 1 MB', 1_000_000, None),
+]
+SIZE_RANGE_BY_LABEL = {label: (gte, lt) for (label, gte, lt) in SIZE_RANGES}
 
-class SimilarDocs:
+
+class SimilarDocs(Command):
     def __init__(self,
                  datashare_url: str = 'http://localhost:8080',
                  datashare_project: str = 'local-datashare',
@@ -31,38 +43,28 @@ class SimilarDocs:
                  sort_by: str = DEFAULT_SORT_BY,
                  order_by: str = DEFAULT_ORDER_BY,
                  type: str = 'Document',
-                 query_field: bool = True):
+                 traceback: bool = False,
+                 max_query_terms: int = 30,
+                 min_term_freq: int = 1,
+                 min_doc_freq: int = 10,
+                 min_word_length: int = 4,
+                 minimum_should_match: str = '30%'):
+        super().__init__(query, type)
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
-        self.query = query
         self.output_file = output_file
         self.cookies_string = cookies
         self.apikey = apikey
         self.source = source
         self.sort_by = sort_by
         self.order_by = order_by
-        self.type = type
-        self.query_field = query_field
+        self.traceback = traceback
+        self.max_query_terms = max_query_terms
+        self.min_term_freq = min_term_freq
+        self.min_doc_freq = min_doc_freq
+        self.min_word_length = min_word_length
+        self.minimum_should_match = minimum_should_match
 
-        self.scroll = None
-        self.size = DEFAULT_SIZE
-        self.from_ = DEFAULT_FROM
-        self.limit = DEFAULT_LIMIT
-
-        self.agg_options = {
-            'datashare_url': datashare_url,
-            'datashare_project': datashare_project,
-            'query': query,
-            'cookies': cookies,
-            'apikey': apikey,
-            'elasticsearch_url': elasticsearch_url,
-            'traceback': False,
-            'type': 'Document',
-            'group_by': 'contentType',
-            # 'operation_field': 'contentType',
-            # 'run': 'count',
-        }
-        
         try:
             self.datashare_client = DatashareClient(datashare_url,
                                                     elasticsearch_url,
@@ -71,95 +73,27 @@ class SimilarDocs:
                                                     apikey)
         except (ConnectionRefusedError, ConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
-            exit()
+            sys.exit()
 
-    @property
-    def query_body(self):
-        if self.query.startswith('@'):
-            return self.query_body_from_file
-        else:
-            return self.query_body_from_string
-
-    @property
-    def query_body_from_string(self):
-        return {
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "match": {
-                                "type": self.type
-                            }
-                        },
-                        {
-                            "query_string": {
-                                "query": self.query
-                            }
-                        }
-                    ]
-                }
-            }
-        }
-
-    @property
-    def query_body_from_file(self):
-        with open(self.query[1:]) as json_file:
-            query_body = json.load(json_file)
-        return query_body
-
-    def build_query_multiple_terms(self, terms):
-        q = {
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "match": {
-                                "type": self.type
-                            }
-                        }
-                    ],
-                    "should": [
-                        {
-                            "match_phrase": {
-                                "content": term
-                            }
-                        }
-                        for term in terms
-                    ],
-                    "minimum_should_match": 1
-                }
-            }
-        }
-        return q
-
-    def build_mlt_query(self, 
-            sel_docs, 
-            liked_terms, 
-            unliked_terms=[], 
-            max_query_terms=30,
-            min_term_freq=1, 
-            min_doc_freq=10,
-            min_word_length=4,
-        ):
-        like_query_section = [
-            {
-                "_index": self.datashare_project,
-                "_id": doc_id
-            }
-            for doc_id in sel_docs
-        ]
-        like_query_section += [term for term in liked_terms]
+    def build_mlt_query(self, sel_docs, liked_terms, unliked_docs=None, unliked_terms=None):
+        def doc_ref(doc_id):
+            return {"_index": self.datashare_project, "_id": doc_id}
+        like_query_section = [doc_ref(doc_id) for doc_id in sel_docs]
+        like_query_section += list(liked_terms)
 
         q = {
             "query": {
                 "more_like_this": {
                     "like": like_query_section,
-                    "unlike": [uterm for uterm in unliked_terms],
+                    "unlike": [doc_ref(doc_id) for doc_id in (unliked_docs or [])] + list(unliked_terms or []),
+                    # keep the seed docs in the results: the saved query must retrieve them too
+                    "include": True,
                     "fields": [ "content" ],
-                    "min_term_freq": min_term_freq,
-                    "max_query_terms": max_query_terms,
-                    "min_doc_freq": min_doc_freq,
-                    "min_word_length": min_word_length,
+                    "min_term_freq": self.min_term_freq,
+                    "max_query_terms": self.max_query_terms,
+                    "min_doc_freq": self.min_doc_freq,
+                    "min_word_length": self.min_word_length,
+                    "minimum_should_match": self.minimum_should_match,
                 }
             }
         }
@@ -178,7 +112,7 @@ class SimilarDocs:
             }
         }
 
-        resp = self.datashare_client.query(index, query=query, source=source)
+        resp = self.datashare_client.query(index, query=query, source=source, size=len(doc_ids))
         return resp['hits']['hits']
     
     def query_all(self, query_body=None, 
@@ -223,12 +157,6 @@ class SimilarDocs:
         index = self.datashare_project
         return self.datashare_client.count(index=index, query=query_body).get('count')
 
-    # function pretty prints to console the content of a doc
-    def print_doc_content(self, doc):
-        text = doc['_source']['content'].lower()
-        text = re.sub(r'\s+', ' ', text).strip()
-        print(text.splitlines())
-
     def get_doc_ngrams(self, doc, n=3):
         text = doc['_source']['content'].lower()
         text = re.sub(r'\s+', ' ', text).strip()
@@ -253,7 +181,7 @@ class SimilarDocs:
         return common_lines
     
     def common_ngrams(self, docs, n=3):
-        common_ngrams = set(self.get_doc_ngrams(docs[0]))
+        common_ngrams = set(self.get_doc_ngrams(docs[0], n=n))
         for doc in docs[1:]:
             common_ngrams = common_ngrams & set(self.get_doc_ngrams(doc, n=n))
 
@@ -262,9 +190,31 @@ class SimilarDocs:
 
         return common_ngrams
 
+    @staticmethod
+    def doc_name(doc):
+        return doc['_source'].get('path', '').rsplit('/', 1)[-1] or doc['_id']
+
     def build_choices_from_docs(self, docs):
-        return [f"{doc['_id'][:6]} - {doc['_source']['path']}" for doc in docs]
-    
+        return [f"{doc['_id'][:6]} - {self.doc_name(doc)}" for doc in docs]
+
+    def print_docs_table(self, docs):
+        """Metadata table + a blurb of each doc's text, so text docs are tellable apart.
+
+        ponytail: fetches full content for the shown page (~10 docs) just to cut a
+        blurb; switch to ES highlights if pages ever get big.
+        """
+        contents = {d['_id']: d['_source'].get('content') or ''
+                    for d in self.query_doc_content([doc['_id'] for doc in docs])}
+        print(f"{'id':<6}  {'type':<28.28}  {'lang':<8.8}  {'size':>8}  {'name':<40.40}  blurb")
+        for doc in docs:
+            src = doc['_source']
+            size_kb = f"{(int(src.get('contentLength') or 0)) // 1024} KB"
+            blurb = re.sub(r'\s+', ' ', contents.get(doc['_id'], '')).strip()[:80]
+            print(f"{doc['_id'][:6]}  {src.get('contentType', '?'):<28.28}  "
+                  f"{src.get('language', '?'):<8.8}  {size_kb:>8}  "
+                  f"{self.doc_name(doc):<40.40}  {blurb}")
+
+
     def ask_user_to_select(self, name, question, choices):
     
         questions = [
@@ -275,11 +225,12 @@ class SimilarDocs:
         ]
         answers = inquirer.prompt(questions)
 
-        return answers
+        # ponytail: Ctrl-C makes prompt() return None; treat it as "nothing selected"
+        return answers or {name: []}
 
-    
     def ask_user_to_select_docs(self, name, question, documents):
 
+        self.print_docs_table(documents)
         choices = self.build_choices_from_docs(documents)
         answers = self.ask_user_to_select(name, question, choices)
         sliced_ids = [answer.split(' - ')[0] for answer in answers[name]]
@@ -297,31 +248,156 @@ class SimilarDocs:
             ),
         ]
 
-        return inquirer.prompt(questions)
+        # ponytail: Ctrl-C makes prompt() return None; treat it as the last choice ("give it up")
+        return inquirer.prompt(questions) or {name: choices[-1]}
 
-    def print_aggs_by_query(self, query_body=None):
-        if not query_body:
-            query_body = self.query
+    @staticmethod
+    def facet_choice(value, count):
+        # Display label for a facet option; parsed back by the two-space marker.
+        return f"{value}  ({count})"
 
-        self.agg_options.update({'query': query_body, 'operation_field': 'contentType'})
+    @staticmethod
+    def build_facet_filter_query(query_body, content_types=None, languages=None, size_ranges=None):
+        """Wrap the original query, keeping it in `must`, and AND facet filters onto it.
 
-        NumUnique(**self.agg_options).start()
-        AggCount(**self.agg_options).start()
+        `size_ranges` is a list of (gte, lt) byte bounds (None = unbounded); the
+        selected ranges are OR-ed together. Returns `query_body` unchanged when no
+        facet is selected.
+        """
+        filters = []
+        if content_types:
+            filters.append({'terms': {'contentType': list(content_types)}})
+        if languages:
+            filters.append({'terms': {'language': list(languages)}})
+        if size_ranges:
+            shoulds = []
+            for (gte, lt) in size_ranges:
+                bounds = {}
+                if gte is not None:
+                    bounds['gte'] = gte
+                if lt is not None:
+                    bounds['lt'] = lt
+                shoulds.append({'range': {'contentLength': bounds}})
+            filters.append({'bool': {'should': shoulds, 'minimum_should_match': 1}})
+        if not filters:
+            return query_body
+        return {'query': {'bool': {'must': [query_body.get('query', {})], 'filter': filters}}}
+
+    def facet_aggregations(self, query_body):
+        """Run terms + range aggregations over the current result set."""
+        keyed_ranges = []
+        for (label, gte, lt) in SIZE_RANGES:
+            bucket = {'key': label}
+            if gte is not None:
+                bucket['from'] = gte
+            if lt is not None:
+                bucket['to'] = lt
+            keyed_ranges.append(bucket)
+        resp = self.datashare_client.query(
+            index=self.datashare_project,
+            query=dict(query_body),
+            size=0,
+            aggs={
+                'content_types': {'terms': {'field': 'contentType', 'size': 50}},
+                'languages': {'terms': {'field': 'language', 'size': 50}},
+                'sizes': {'range': {'field': 'contentLength', 'keyed': True, 'ranges': keyed_ranges}},
+            })
+        aggs = resp['aggregations']
+        size_buckets = aggs['sizes']['buckets']
+        return {
+            'content_types': [(b['key'], b['doc_count']) for b in aggs['content_types']['buckets']],
+            'languages': [(b['key'], b['doc_count']) for b in aggs['languages']['buckets']],
+            'sizes': [(label, size_buckets.get(label, {}).get('doc_count', 0)) for (label, _, _) in SIZE_RANGES],
+        }
+
+    def ask_facet(self, name, question, buckets):
+        """Prompt one checkbox for a facet. Returns the selected values (empty = keep all)."""
+        buckets = [(v, c) for (v, c) in buckets if c > 0]
+        if len(buckets) < 2:
+            # Nothing to narrow: a single (or no) value already covers the whole set.
+            return []
+        choices = [self.facet_choice(v, c) for (v, c) in buckets]
+        answers = self.ask_user_to_select(name, question, choices)
+        if not answers or not answers.get(name):
+            return []
+        chosen = set(answers[name])
+        return [v for (v, c) in buckets if self.facet_choice(v, c) in chosen]
+
+    def filter_by_facets(self, query_body):
+        """Let the user narrow a heterogeneous result set by facets, in two steps.
+
+        Step 1: content type, then language. Step 2: file size. After each
+        selection the aggregations are recomputed over the narrowed set, so
+        every prompt shows counts that reflect the previous choices.
+        """
+        print("Step 1/2: narrow by content type and language")
+        aggs = self.facet_aggregations(query_body)
+        content_types = self.ask_facet('content_types',
+                                       'Filter by content type? (check to keep, none = keep all)',
+                                       aggs['content_types'])
+        if content_types:
+            query_body = self.build_facet_filter_query(query_body, content_types=content_types)
+            aggs = self.facet_aggregations(query_body)
+        languages = self.ask_facet('languages',
+                                   'Filter by language? (check to keep, none = keep all)',
+                                   aggs['languages'])
+        if languages:
+            query_body = self.build_facet_filter_query(query_body, languages=languages)
+            aggs = self.facet_aggregations(query_body)
+        print("Step 2/2: narrow by file size")
+        size_labels = self.ask_facet('sizes',
+                                     'Filter by file size? (check to keep, none = keep all)',
+                                     aggs['sizes'])
+        size_ranges = [SIZE_RANGE_BY_LABEL[label] for label in size_labels]
+        return self.build_facet_filter_query(query_body, size_ranges=size_ranges)
+
+    def top_terms(self, doc_ids, size=15):
+        """Most salient terms of these docs vs the whole index (significant_text)."""
+        resp = self.datashare_client.query(
+            index=self.datashare_project,
+            query={'query': {'terms': {'_id': doc_ids}}},
+            size=0,
+            aggs={'keywords': {'significant_text': {
+                'field': 'content', 'size': size, 'filter_duplicate_text': True,
+                # a term counts if it appears in >=2 of the picked docs (default 3
+                # returns nothing for short docs like emails/posts)
+                'min_doc_count': 2}}})
+        return [(b['key'], b['doc_count']) for b in resp['aggregations']['keywords']['buckets']]
+
+    def print_status(self, query_body):
+        """Where the search stands: the query itself, hit count and facet breakdown."""
+        print("\nCurrent query:")
+        print(json.dumps(query_body, indent=2))
+        print("Matches:", self.count_matches(query_body=query_body))
+        aggs = self.facet_aggregations(query_body)
+        for facet, buckets in aggs.items():
+            print(f"  {facet}: " + ', '.join(f"{v} ({c})" for v, c in buckets if c > 0))
+        print()
+
+    def narrow_and_fetch(self, query_body):
+        """Facet-filter the current query, then fetch and report the narrowed result set."""
+        query_body = self.filter_by_facets(query_body)
+        documents = self.query_all(query_body=query_body)
+        print("Num of matches after filtering:", self.count_matches(query_body=query_body))
+        return query_body, documents
 
     def start(self):
 
-        documents = self.query_all()        
+        # start from a broad query: a couple of words already cuts the noise a lot
+        if self.query in (None, '', '*'):
+            answers = inquirer.prompt([inquirer.Text(
+                'query', message='Start with a broad query (2-3 words; empty = all docs)')])
+            if answers and answers['query'].strip():
+                self.query = answers['query'].strip()
+
         print("Num of matches:", self.count_matches())
 
-        # TODO
-        # print("Current query results overview :\n"),
-        # self.print_aggs_by_query()
-        
+        # Narrow the (often heterogeneous) first batch by facets before hand-picking.
+        query, documents = self.narrow_and_fetch(self.query_body)
+
         loop_from = DEFAULT_FROM
         loop_limit = DEFAULT_LIMIT
         num_docs_to_show = 10
-
-        query = self.query_body
 
         # Enter interactive loop
         chat_choices = [
@@ -330,79 +406,134 @@ class SimilarDocs:
             'No, give it up',
         ]
         chat_answers = {'user_chat': 'No, keep going'}
+        unliked_ids = []
+        liked_terms, unliked_terms = [], []
 
         while chat_answers['user_chat'] == 'No, keep going':
+            try:
 
-            # 1 select interesting docs
-            selected_docs = self.ask_user_to_select_docs('first_docs', 'Which docs are you interested in?', documents)
+                # 1 select interesting docs
+                selected_docs = self.ask_user_to_select_docs('first_docs', 'Which docs are you interested in?', documents)
 
-            while len(selected_docs) < 2:
-                print("You need to select at least 2 documents to find commonalities, current selection: %s" % len(selected_docs))
+                while len(selected_docs) < 2:
+                    print("You need to select at least 2 documents to find commonalities, current selection: %s" % len(selected_docs))
 
-                # increase search page
-                loop_from += num_docs_to_show
+                    action = self.ask_user_to_choose(
+                        'more', 'What now?', ['Show more results', 'Exit'])['more']
+                    if action == 'Exit':
+                        print("Ok, exiting. Bye!")
+                        return
 
-                # show next page of results of query
-                logger.debug("Querying next page of results at from=%s, limit=%s" % (loop_from, loop_limit))
-                if isinstance(query, str):
-                    # query = self.build_mlt_query(selected_docs, [query])
-                    query = self.build_query_multiple_terms([query])
-                
-                next_docs = self.query_all(query_body=query, from_=loop_from, limit=loop_limit)
+                    # increase search page
+                    loop_from += num_docs_to_show
 
-                selected_docs += self.ask_user_to_select_docs('next_docs', 'Which docs are you interested in?', next_docs)
+                    # show next page of results of query
+                    logger.debug("Querying next page of results at from=%s, limit=%s" % (loop_from, loop_limit))
+                    next_docs = self.query_all(query_body=query, from_=loop_from, limit=loop_limit)
+                    if not next_docs:
+                        print("No more results for the current query; wrapping to the first page.")
+                        loop_from = DEFAULT_FROM
+                        next_docs = self.query_all(query_body=query, from_=loop_from, limit=loop_limit)
+                    if not next_docs:
+                        continue  # query has no results at all: back to "What now?"
 
-            # 2 find commonalities between them
-            full_docs = self.query_doc_content([doc['_id'] for doc in selected_docs])
-            
-            # OPTIONAL
-            # # get selected docs metadata
-            # # TODO ask user for operation with docs
-            # print(full_docs)
+                    selected_docs += self.ask_user_to_select_docs('next_docs', 'Which docs are you interested in?', next_docs)
 
-            # find common lines between the docs
-            commonalities = self.common_lines(full_docs)
+                # 2 find commonalities between them
+                full_docs = self.query_doc_content([doc['_id'] for doc in selected_docs])
 
-            if len(commonalities) < MIN_COMMONALITIES_TO_OFFER:
-                print(f"No common lines found between the selected documents. Trying with ngrams")
-                
                 # find common lines between the docs
-                n_grams_choices = reversed(range(1, 4))
-                for n in n_grams_choices:
-                    print(f"Trying with ngrams of size {n}")
-                    commonalities += self.common_ngrams(full_docs, n=n)
-                    if len(commonalities) > MIN_COMMONALITIES_TO_OFFER:
-                        break
-            
-            if len(commonalities) > 0:
-                # interact to select few commonalities to search docs
-                answers = self.ask_user_to_select(
-                    'commonalities', 
-                    'Which common terms found would you like to use to search again?', 
-                    commonalities)
-            else:
-                answers = {'commonalities': []}
+                commonalities = self.common_lines(full_docs)
 
-            # 3 search for commonalities
+                if len(commonalities) < MIN_COMMONALITIES_TO_OFFER:
+                    print(f"No common lines found between the selected documents. Trying with ngrams")
                 
-            # run query for the selected commonalities
-            # query = self.build_query_multiple_terms(answers['commonalities'])
-            query = self.build_mlt_query(
-                [doc['_id'] for doc in selected_docs],
-                answers['commonalities']
-            )
-            print(f"Query for commonalities: {query}")
+                    # find common lines between the docs
+                    n_grams_choices = reversed(range(1, 4))
+                    for n in n_grams_choices:
+                        print(f"Trying with ngrams of size {n}")
+                        commonalities += self.common_ngrams(full_docs, n=n)
+                        if len(commonalities) > MIN_COMMONALITIES_TO_OFFER:
+                            break
+            
+                if len(commonalities) > 0:
+                    # annotate each candidate with how many docs in the whole index
+                    # contain it: high counts = boilerplate that will broaden the query
+                    if len(commonalities) > 30:
+                        print(f"Showing the 30 longest of {len(commonalities)} commonalities found")
+                        commonalities = commonalities[:30]
+                    labeled = {}
+                    for term in commonalities:
+                        n = self.count_matches(
+                            query_body={'query': {'match_phrase': {'content': term}}})
+                        labeled[f"{term}  [in {n} docs of the whole index]"] = term
+                    answers = self.ask_user_to_select(
+                        'commonalities',
+                        'Common terms of your picks: use some to search again? '
+                        '(high doc counts = boilerplate, they will broaden the query)',
+                        list(labeled))
+                    answers['commonalities'] = [labeled[l] for l in answers['commonalities']]
+                else:
+                    answers = {'commonalities': []}
 
-            documents = self.query_all(query_body=query)
-            print("Last result documents: \n%s" % json.dumps(documents, indent=4))
-            print("Num of matches:", self.count_matches(query_body=query))
+                # 3 search for commonalities
 
-            # TODO fix it
-            # print("Current query results overview :\n"),
-            # self.print_aggs_by_query(query_body=query)
- 
-            # reask to the user if he wants to keep going
-            chat_answers = self.ask_user_to_choose('user_chat', 'Is your search good enough for you?', chat_choices, default_idx=0)
+                # offer the salient terms of the picked docs as extra query terms
+                selected_ids = [doc['_id'] for doc in selected_docs]
+                candidates = {f"{t}  [in {c} of {len(selected_ids)} picks]": t
+                              for t, c in self.top_terms(selected_ids) if t not in liked_terms}
+                if candidates:
+                    picked = self.ask_user_to_select(
+                        'liked_terms',
+                        'Salient terms: frequent in your picks but rare in the rest of '
+                        'the index. Add some to the query? (none = skip)',
+                        list(candidates))
+                    liked_terms += [candidates[l] for l in picked['liked_terms']]
+
+                # run query for the selected commonalities
+                query = self.build_mlt_query(
+                    selected_ids,
+                    answers['commonalities'] + liked_terms,
+                    unliked_docs=unliked_ids,
+                    unliked_terms=unliked_terms,
+                )
+
+                # The MLT results are heterogeneous again: offer another facet-narrowing pass.
+                query, documents = self.narrow_and_fetch(query)
+
+                # precision proxy: how many of the docs the user picked still match?
+                still_matching = self.count_matches(query_body={'query': {'bool': {
+                    'must': [query['query'], {'terms': {'_id': selected_ids}}]}}})
+                print(f"{still_matching}/{len(selected_ids)} of your selected docs still match")
+
+                # false positives feed the next round's MLT `unlike`
+                false_positives = self.ask_user_to_select_docs(
+                    'false_positives',
+                    'Mark false positives (excluded as "unlike" next round, none = skip)',
+                    documents)
+                unliked_ids += [doc['_id'] for doc in false_positives if doc['_id'] not in unliked_ids]
+
+                # offer the salient terms of the false positives as exclusions
+                if false_positives:
+                    fp_ids = [d['_id'] for d in false_positives]
+                    candidates = {f"{t}  [in {c} of {len(fp_ids)} false positives]": t
+                                  for t, c in self.top_terms(fp_ids) if t not in unliked_terms}
+                    if candidates:
+                        picked = self.ask_user_to_select(
+                            'unliked_terms',
+                            'Salient terms of the false positives (frequent there, rare '
+                            'elsewhere). Exclude some from the query? (none = skip)',
+                            list(candidates))
+                        unliked_terms += [candidates[l] for l in picked['unliked_terms']]
+
+                # show where the search stands before asking to continue or stop
+                self.print_status(query)
+
+                # reask to the user if he wants to keep going
+                chat_answers = self.ask_user_to_choose('user_chat', 'Is your search good enough for you?', chat_choices, default_idx=0)
+            except (HTTPError, ProtocolError):
+                logger.error('Request failed mid-round', exc_info=self.traceback)
+                print("A request to the server failed; keeping your selections, let's retry.")
 
         print(chat_answers['user_chat'])
         

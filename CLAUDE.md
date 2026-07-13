@@ -79,6 +79,10 @@ datashare --mode CLI --stages SCAN,INDEX \
 poetry run tarentula similar-docs --datashare-project research --elasticsearch-url http://localhost:9200
 ```
 
+For a richer corpus, `scripts/seed_test_corpus.sh` downloads 20 Newsgroups (labeled
+topics → measurable query precision) + Govdocs1 zips (format diversity) and indexes
+them into a `test-corpus` project on the same embedded ES.
+
 `similar_docs` is interactive (`inquirer`), so it can't be driven headlessly — exercise its query methods directly (`SimilarDocs(...).query_all()` / `.count_matches()`) for automated checks.
 
 ## Tests

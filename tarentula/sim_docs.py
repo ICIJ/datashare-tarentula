@@ -18,6 +18,8 @@ DEFAULT_FROM = 0
 DEFAULT_LIMIT = 10
 DEFAULT_SIZE = 100
 MIN_COMMONALITIES_TO_OFFER = 2
+ANSI_RED = '\033[31m'
+ANSI_RESET = '\033[0m'
 
 # File-size buckets used to let the user narrow results by contentLength.
 # Each entry is (label, gte, lt) in bytes; None means unbounded. `from` is
@@ -589,7 +591,7 @@ class SimilarDocs(Command):
                 # false positives feed the next round's MLT `unlike`
                 false_positives = self.ask_user_to_select_docs(
                     'false_positives',
-                    'Mark false positives (excluded as "unlike" next round, none = skip)',
+                    f'{ANSI_RED}Mark false positives (excluded as "unlike" next round, none = skip){ANSI_RESET}',
                     documents)
                 unliked_ids += [doc['_id'] for doc in false_positives if doc['_id'] not in unliked_ids]
 

@@ -1,5 +1,5 @@
 """Pure unit tests for the doc-picker row/header formatting (no live Datashare needed)."""
-from tarentula.sim_docs import SimilarDocs
+from tarentula.sim_docs import SimilarDocs, CHECKBOX_PREFIX_WIDTH
 
 DOC = {
     '_id': '0123456789abcdef',
@@ -20,9 +20,12 @@ def test_column_widths_fixed_cols_stay_constant_and_blurb_grows():
     assert wide['blurb'] > narrow['blurb']
 
 
-def test_column_widths_blurb_floors_at_minimum_on_narrow_terminal():
-    widths = SimilarDocs.column_widths(10)  # way too narrow to fit the fixed columns
-    assert widths['blurb'] == 20  # BLURB_MIN_WIDTH
+def test_column_widths_blurb_shrinks_to_zero_rather_than_overflow():
+    # way too narrow to fit the fixed columns: blurb must give up its width
+    # entirely rather than push the row past the terminal (that wrap breaks
+    # inquirer's cursor-repaint math -- see CHECKBOX_PREFIX_WIDTH)
+    widths = SimilarDocs.column_widths(10)
+    assert widths['blurb'] == 0
 
 
 def test_format_header_row_lists_all_columns_in_order():
@@ -52,10 +55,37 @@ def test_build_doc_choices_maps_each_row_back_to_its_doc():
     assert 'second content' in rows_by_id[docs[1]['_id']]
 
 
+def test_rows_leave_room_for_inquirer_checkbox_prefix():
+    # inquirer prints "  [ ] "/"> [ ] " (7 visible chars) before every choice
+    # (inquirer/render/console/__init__.py's print_line + _checkbox.py's
+    # get_options: " " + selector(1) + " " + "[ ]"/"[X]"(3) + " " = 7). If a
+    # row's content fills the terminal width exactly, that prefix pushes the
+    # printed line past the terminal, wraps it, and breaks inquirer's
+    # cursor-repaint math (it moves the cursor up by choice count, not actual
+    # physical line count) -- producing stacked/duplicated prompt frames.
+    for terminal_width in (80, 100, 120, 200):
+        content_width = SimilarDocs.content_width_for_checkbox(terminal_width)
+        widths = SimilarDocs.column_widths(content_width)
+        row = SimilarDocs.format_doc_row(DOC, 'x' * 200, widths)
+        assert len(row) + CHECKBOX_PREFIX_WIDTH <= terminal_width
+
+
+def test_header_row_also_stays_within_terminal_width():
+    # printed with a CHECKBOX_PREFIX_WIDTH indent so it lines up visually
+    # above the checkboxes; must not itself overflow the terminal
+    for terminal_width in (80, 100, 120, 200):
+        content_width = SimilarDocs.content_width_for_checkbox(terminal_width)
+        widths = SimilarDocs.column_widths(content_width)
+        header = SimilarDocs.format_header_row(widths)
+        assert len(header) + CHECKBOX_PREFIX_WIDTH <= terminal_width
+
+
 if __name__ == '__main__':
     test_column_widths_fixed_cols_stay_constant_and_blurb_grows()
-    test_column_widths_blurb_floors_at_minimum_on_narrow_terminal()
+    test_column_widths_blurb_shrinks_to_zero_rather_than_overflow()
     test_format_header_row_lists_all_columns_in_order()
     test_format_doc_row_truncates_long_fields_and_right_aligns_size()
     test_build_doc_choices_maps_each_row_back_to_its_doc()
+    test_rows_leave_room_for_inquirer_checkbox_prefix()
+    test_header_row_also_stays_within_terminal_width()
     print('ok')

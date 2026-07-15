@@ -32,15 +32,25 @@ SIZE_RANGE_BY_LABEL = {label: (gte, lt) for (label, gte, lt) in SIZE_RANGES}
 
 # Doc-picker row layout: every column except `blurb` is a fixed width, so the
 # table stays predictable regardless of terminal size. `blurb` absorbs
-# whatever width is left, floored at BLURB_MIN_WIDTH on narrow terminals.
+# whatever width is left -- down to 0 on a narrow terminal -- so the row
+# never exceeds the available width (overflowing wraps the printed line,
+# which breaks inquirer's cursor-repaint math, see CHECKBOX_PREFIX_WIDTH).
 COL_SEP = '  '
 ID_WIDTH = 6
-TYPE_WIDTH = 18
+TYPE_WIDTH = 16
 LANG_WIDTH = 10
 SIZE_WIDTH = 8
 NAME_WIDTH = 22
-BLURB_MIN_WIDTH = 20
 FALLBACK_TERMINAL_WIDTH = 80
+
+# inquirer prints "  [ ] " / "> [ ] " (7 visible chars: leading space +
+# 1-char selector + space + "[ ]"/"[X]" + space) before every checkbox
+# choice line (see inquirer.render.console._checkbox.get_options and
+# console.__init__.print_line). Row content must leave room for it, or the
+# printed line wraps past the terminal width and breaks inquirer's
+# cursor-repaint math (it moves the cursor up by choice count, not actual
+# physical line count) -- producing stacked/duplicated prompt frames.
+CHECKBOX_PREFIX_WIDTH = 7
 
 
 class SimilarDocs(Command):
@@ -208,11 +218,17 @@ class SimilarDocs(Command):
         return doc['_source'].get('path', '').rsplit('/', 1)[-1] or doc['_id']
 
     @staticmethod
+    def content_width_for_checkbox(terminal_width):
+        """Terminal width available for row content once inquirer's checkbox
+        marker prefix (see CHECKBOX_PREFIX_WIDTH) is reserved."""
+        return max(1, terminal_width - CHECKBOX_PREFIX_WIDTH)
+
+    @staticmethod
     def column_widths(total_width):
         """Fixed per-column widths; only `blurb` grows with the terminal."""
         fixed_width = (ID_WIDTH + TYPE_WIDTH + LANG_WIDTH + SIZE_WIDTH + NAME_WIDTH
                        + 5 * len(COL_SEP))
-        blurb_width = max(BLURB_MIN_WIDTH, total_width - fixed_width)
+        blurb_width = max(0, total_width - fixed_width)
         return {'id': ID_WIDTH, 'type': TYPE_WIDTH, 'lang': LANG_WIDTH,
                 'size': SIZE_WIDTH, 'name': NAME_WIDTH, 'blurb': blurb_width}
 
@@ -224,7 +240,7 @@ class SimilarDocs(Command):
             f"{'lang':<{widths['lang']}}",
             f"{'size':>{widths['size']}}",
             f"{'name':<{widths['name']}}",
-            'blurb',
+            'blurb'[:widths['blurb']],
         ])
 
     @staticmethod
@@ -269,10 +285,10 @@ class SimilarDocs(Command):
 
         contents = {d['_id']: d['_source'].get('content') or ''
                     for d in self.query_doc_content([doc['_id'] for doc in documents])}
-        widths = self.column_widths(
-            shutil.get_terminal_size(fallback=(FALLBACK_TERMINAL_WIDTH, 24)).columns)
+        terminal_width = shutil.get_terminal_size(fallback=(FALLBACK_TERMINAL_WIDTH, 24)).columns
+        widths = self.column_widths(self.content_width_for_checkbox(terminal_width))
 
-        print(self.format_header_row(widths))
+        print(' ' * CHECKBOX_PREFIX_WIDTH + self.format_header_row(widths))
         choice_pairs = self.build_doc_choices(documents, contents, widths)
         rows_to_docs = dict(choice_pairs)
         answers = self.ask_user_to_select(name, question, [row for row, _ in choice_pairs])
@@ -297,10 +313,10 @@ class SimilarDocs(Command):
 
             contents = {d['_id']: d['_source'].get('content') or ''
                         for d in self.query_doc_content([doc['_id'] for doc in page_docs])}
-            widths = self.column_widths(
-                shutil.get_terminal_size(fallback=(FALLBACK_TERMINAL_WIDTH, 24)).columns)
+            terminal_width = shutil.get_terminal_size(fallback=(FALLBACK_TERMINAL_WIDTH, 24)).columns
+            widths = self.column_widths(self.content_width_for_checkbox(terminal_width))
 
-            print(self.format_header_row(widths))
+            print(' ' * CHECKBOX_PREFIX_WIDTH + self.format_header_row(widths))
             choice_pairs = self.build_doc_choices(page_docs, contents, widths)
             rows_to_docs = dict(choice_pairs)
             row_choices = [row for row, _ in choice_pairs] + [self.NEXT_PAGE_CHOICE]

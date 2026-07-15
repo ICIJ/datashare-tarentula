@@ -45,18 +45,18 @@ Three layers, and understanding the split matters before touching anything:
 
 ### `sim_docs.py` (branch `feat_sim_docs`)
 
-The `similar_docs` command is an **interactive** (uses `inquirer` prompts) session that: queries docs, lets the user pick 2+, finds common lines/ngrams between their content, builds an ES `more_like_this` query from the selection, and loops until the user saves the resulting query to a JSON file. It reuses aggregate classes for overviews. This is the newest/least-settled code — several `TODO`s and commented blocks remain.
+The `similar_docs` command is an **interactive** (uses `inquirer` prompts) session that: queries docs, lets the user narrow by facet aggregations, pick 2+, finds common lines/ngrams and salient terms between their content, builds an ES `more_like_this` query from the selection, and loops (facet-narrow → precision check → false-positive marking) until the user saves the resulting query to a JSON file. See `COOKBOOK_similar_docs.md` for the full walkthrough.
 
 **Goal of this branch (`feat_sim_docs`) — work in progress, far from finished:**
 
 Build a command that helps a user converge on a query retrieving *similar* documents. Target workflow:
 
 1. Start from an initial query. Its results are typically heterogeneous (very different kinds of docs).
-2. Interactively narrow the batch. The user can either hand-pick specific docs from the first results, **or** quickly filter by checking options the CLI prompts from **aggregations on the current results** — at minimum by file extension / content type, language, and file-size ranges.
-3. On submit, use Elasticsearch features (e.g. `more_like_this`, term/aggregation analysis) to derive the query — or set of queries — that best captures what the user targeted: **maximize the targeted docs returned while minimizing false positives.**
-4. Save the resulting query.
+2. Interactively narrow the batch. The user can either hand-pick specific docs from the first results, **or** quickly filter by checking options the CLI prompts from **aggregations on the current results** — at minimum by file extension / content type, language, and file-size ranges. **Done**: `facet_aggregations`/`filter_by_facets` run before hand-picking and again after each `more_like_this` round.
+3. On submit, use Elasticsearch features (e.g. `more_like_this`, term/aggregation analysis) to derive the query — or set of queries — that best captures what the user targeted: **maximize the targeted docs returned while minimizing false positives.** **Done**: `build_mlt_query` + salient-term (`significant_text`) suggestions + a precision proxy (how many seed docs still match) + false-positive marking that feeds `unlike` docs/terms into the next round.
+4. Save the resulting query. **Done**.
 
-The aggregation-driven filtering step (2) is the main missing piece; current code only does hand-pick + common-line/ngram + `more_like_this`.
+Remaining: cookbook screenshot captures (`docs/captures/simdocs-0{1..4}...png`, tracked as a late TODO — the flow will still change). Query-builder functions are unit-tested (`tests/test_sim_docs_facets.py`); live-ES paths (`facet_aggregations`, `query_all`, `count_matches`) are covered in `tests/test_sim_docs_live.py`.
 
 ## Local dev testing (against a real Datashare)
 

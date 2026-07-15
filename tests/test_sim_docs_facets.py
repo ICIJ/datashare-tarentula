@@ -47,10 +47,19 @@ def test_common_ngrams_uses_requested_n_for_all_docs():
     assert s.common_ngrams(docs, n=3) == []
 
 
+def test_common_lines_and_ngrams_dont_crash_on_missing_content():
+    # e.g. images indexed with OCR off: _source has no 'content' key at all
+    s = SimilarDocs.__new__(SimilarDocs)
+    docs = [{'_source': {}}, {'_source': {}}]
+    assert s.common_lines(docs) == []
+    assert s.common_ngrams(docs, n=2) == []
+
+
 if __name__ == '__main__':
     test_no_facets_returns_query_unchanged()
     test_content_type_and_language_become_terms_filters()
     test_size_ranges_are_or_ed_and_respect_bounds()
     test_mlt_query_likes_docs_and_terms_and_unlikes_docs()
     test_common_ngrams_uses_requested_n_for_all_docs()
+    test_common_lines_and_ngrams_dont_crash_on_missing_content()
     print('ok')

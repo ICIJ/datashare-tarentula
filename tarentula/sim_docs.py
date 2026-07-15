@@ -171,7 +171,7 @@ class SimilarDocs(Command):
         return self.datashare_client.count(index=index, query=query_body).get('count')
 
     def get_doc_ngrams(self, doc, n=3):
-        text = doc['_source']['content'].lower()
+        text = (doc['_source'].get('content') or '').lower()
         text = re.sub(r'\s+', ' ', text).strip()
         words = text.split(" ")
         ngrams = []
@@ -180,7 +180,7 @@ class SimilarDocs(Command):
         return ngrams
     
     def get_doc_lines(self, doc):
-        text = doc['_source']['content']
+        text = doc['_source'].get('content') or ''
         return [line.strip() for line in text.split('\n') if line.strip()]
     
     def common_lines(self, docs):

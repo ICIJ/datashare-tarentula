@@ -59,7 +59,7 @@ class ExportByQuery(Command):
                                                     apikey)
         except (ConnectionRefusedError, ConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
-            sys.exit()
+            sys.exit(1)
 
     @property
     def no_progressbar(self):
@@ -147,7 +147,7 @@ class ExportByQuery(Command):
         with open(self.output_file, 'w', newline='') as csv_file:
             writer = csv.DictWriter(csv_file,
                                     fieldnames=self.csv_fields_names,
-                                    escapechar='\\')
+                                    quoting=csv.QUOTE_ALL)
             writer.writeheader()
             yield writer
 

@@ -35,10 +35,18 @@ class TestAbstract(TestCase):
         response = requests.get(self.elasticsearch_url)
         response.raise_for_status()
         return response.json().get('version').get('number')
-    
+
     @property
     def elasticsearch_version_info(self):
         return tuple(map(int, self.elasticsearch_version.split('.')))
+
+    @property
+    def elasticsearch_build_flavor(self):
+        # Datashare's embedded Elasticsearch reports "unknown" and does not bundle the analytics
+        # module, so X-Pack aggregations such as string_stats are unavailable even on 7.11+.
+        response = requests.get(self.elasticsearch_url)
+        response.raise_for_status()
+        return response.json().get('version').get('build_flavor')
 
     def index_documents(self, documents=None):
         if documents is None:

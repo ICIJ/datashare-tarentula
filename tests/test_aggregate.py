@@ -81,6 +81,8 @@ class TestAggregate(TestAbstract):
     def test_aggregate_string_stats(self):
         if self.elasticsearch_version_info < (7, 11):
             return pytest.skip("requires ElasticSearch 7.11+")
+        if self.elasticsearch_build_flavor != 'default':
+            return pytest.skip("string_stats requires the default Elasticsearch distribution")
 
         self.index_documents([{"name": "foo", "type": "Document", "language": "FRENCH",
                                "_id": "id1"},

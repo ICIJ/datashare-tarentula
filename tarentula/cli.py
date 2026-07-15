@@ -61,7 +61,7 @@ def cli(ctx, **options):
               default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
-                                'semicolons: key1=val1;key2=val2;...', default='')
+                                ' semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
               callback=validate_progressbar)
@@ -81,12 +81,12 @@ def tagging(**options):
               default='http://localhost:9200')
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
-                                'semicolons: key1=val1;key2=val2;...', default='')
+                                ' semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--progressbar/--no-progressbar', help='Display a progressbar', default=None,
               callback=validate_progressbar)
 @click.option('--wait-for-completion/--no-wait-for-completion', help='Create a Elasticsearch task to perform the update'
-                                                                     'asynchronously', default=True)
+                                                                     ' asynchronously', default=True)
 @click.option('--scroll-size', help='Size of the scroll request that powers the operation.', default=1000)
 @click.argument('json-path', type=click.Path(exists=True))
 def tagging_by_query(**options):
@@ -102,11 +102,11 @@ def tagging_by_query(**options):
 @click.option('--elasticsearch-url', help='Elasticsearch URL which is used to perform update by query',
               default='http://localhost:9200')
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
-                                'semicolons: key1=val1;key2=val2;...', default='')
+                                ' semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--wait-for-completion/--no-wait-for-completion', help='Create a Elasticsearch task to perform the update'
-                                                                     'asynchronously', default=True)
+                                                                     ' asynchronously', default=True)
 @click.option('--query', help='Give a JSON query to filter documents that will have their tags cleaned. It can be a'
-                              'file with @path/to/file. Default to all.', default=None)
+                              ' file with @path/to/file. Default to all.', default=None)
 def clean_tags_by_query(**options):
     tagger = TagsCleanerByQuery(**options)
     tagger.start()
@@ -119,13 +119,13 @@ def clean_tags_by_query(**options):
 @click.option('--datashare-project', help='Datashare project',
               default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
-                                          'capabilities of Elasticsearch (useful when dealing with a lot of results)',
+                                          ' capabilities of Elasticsearch (useful when dealing with a lot of results)',
               default=None)
 @click.option('--query', help='The query string to filter documents', default='*')
 @click.option('--destination-directory', help='Directory documents will be downloaded', default='./tmp')
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
-                                'semicolons: key1=val1;key2=val2;...', default='')
+                                ' semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--path-format', help='Downloaded document path template', default='{id_2b}/{id_4b}/{id}')
 @click.option('--scroll', help='Scroll duration', default=None)
 @click.option('--source', help='A comma-separated list of field to include in the downloaded document from the index',
@@ -157,13 +157,13 @@ def download(**options):
 @click.option('--datashare-project', help='Datashare project',
               default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
-                                          'capabilities of Elasticsearch (useful when dealing with a lot of results)',
+                                          ' capabilities of Elasticsearch (useful when dealing with a lot of results)',
               default=None)
 @click.option('--query', help='The query string to filter documents', default='*')
 @click.option('--output-file', help='Path to the CSV file', default='tarentula_documents.csv')
 @click.option('--throttle', help='Request throttling (in ms)', default=0)
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
-                                'semicolons: key1=val1;key2=val2;...', default='')
+                                ' semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--scroll', help='Scroll duration', default=None)
 @click.option('--source', help='A comma-separated list of field to include in the export',
               default='contentType,contentLength:0,extractionDate,path')
@@ -232,11 +232,11 @@ def similar_docs(**options):
 @click.option('--datashare-project', help='Datashare project',
               default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
-                                          'capabilities of Elasticsearch (useful when dealing with a lot of results)',
+                                          ' capabilities of Elasticsearch (useful when dealing with a lot of results)',
               default=None)
 @click.option('--query', help='The query string to filter documents', default='*')
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
-                                'semicolons: key1=val1;key2=val2;...', default='')
+                                ' semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--type', help='Type of indexed documents to download', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
@@ -252,17 +252,17 @@ def count(**options):
 @click.option('--datashare-project', help='Datashare project',
               default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
-                                          'capabilities of Elasticsearch (useful when dealing with a lot of results)',
+                                          ' capabilities of Elasticsearch (useful when dealing with a lot of results)',
               default=None)
 @click.option('--apikey', help='Datashare authentication apikey', default=ConfigFileReader('apikey'))
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
-                                'semicolons: key1=val1;key2=val2;...', default='')
+                                ' semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--type', help='Type of indexed documents to get metadata', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
-@click.option('--filter_by',
+@click.option('--filter-by', '--filter_by', 'filter_by',
               help='Filter documents by pairs concatenated by coma of field names and values separated by =.'
-                   'Example "contentType=message/rfc822,contentType=message/rfc822"', default='')
+                   ' Example "contentType=message/rfc822,contentType=message/rfc822"', default='')
 @click.option('--count/--no-count', help='Count or not the number of docs for each property found', default=False)
 def list_metadata(**options):
     metadata = MetadataFields(**options)
@@ -276,34 +276,31 @@ def list_metadata(**options):
 @click.option('--datashare-project', help='Datashare project',
               default=ConfigFileReader('datashare_project', 'local-datashare'))
 @click.option('--elasticsearch-url', help='You can additionally pass the Elasticsearch URL in order to use scrolling'
-                                          'capabilities of Elasticsearch (useful when dealing with a lot of results)',
+                                          ' capabilities of Elasticsearch (useful when dealing with a lot of results)',
               default=None)
 @click.option('--query', help='The query string to filter documents', default='*')
 @click.option('--cookies', help='Key/value pair to add a cookie to each request to the API. You can separate'
-                                'semicolons: key1=val1;key2=val2;...', default='')
+                                ' semicolons: key1=val1;key2=val2;...', default='')
 @click.option('--traceback/--no-traceback', help='Display a traceback in case of error', default=False)
 @click.option('--type', help='Type of indexed documents to download', default='Document',
               type=click.Choice(['Document', 'NamedEntity'], case_sensitive=True))
-@click.option('--group_by', help='Field to use to aggregate results', default=None)
-@click.option('--operation_field', help='Field to run the operation on', default=None)
+@click.option('--group-by', '--group_by', 'group_by', help='Field to use to aggregate results', default=None)
+@click.option('--operation-field', '--operation_field', 'operation_field',
+              help='Field to run the operation on', default=None)
 @click.option('--run', help='Operation to run ', default='count',
               type=click.Choice(
                   ['count', 'nunique', 'date_histogram', 'sum', 'stats', 'string_stats', 'min', 'max', 'avg']))
-@click.option('--calendar_interval', help='Calendar interval for date histogram aggregation', default='year',
+@click.option('--calendar-interval', '--calendar_interval', 'calendar_interval',
+              help='Calendar interval for date histogram aggregation', default='year',
               type=click.Choice(['year', 'month']))
 def aggregate(**options):
-    agg_operation = options['run']
-
-    if agg_operation == 'count':
-        agg = AggCount(**options)
-    elif agg_operation == 'nunique':
-        agg = NumUnique(**options)
-    elif agg_operation == 'date_histogram':
-        agg = DateHistogram(**options)
-    elif agg_operation in ['sum', 'stats', 'string_stats', 'min', 'max', 'avg']:
-        agg = GeneralStats(**options)
-
-    agg.start()
+    aggregators = {
+        'count': AggCount,
+        'nunique': NumUnique,
+        'date_histogram': DateHistogram,
+    }
+    agg_cls = aggregators.get(options['run'], GeneralStats)
+    agg_cls(**options).start()
 
 
 cli.add_command(tagging)
@@ -317,4 +314,4 @@ cli.add_command(aggregate)
 cli.add_command(similar_docs)
 
 if __name__ == '__main__':
-    cli(None) # ctx from @cli.pass_context
+    cli()  # pylint: disable=no-value-for-parameter

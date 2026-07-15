@@ -63,7 +63,7 @@ class Download(Command):
                                                     apikey)
         except (ConnectionRefusedError, ConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
-            sys.exit()
+            sys.exit(1)
 
     @property
     def no_progressbar(self):
@@ -128,7 +128,7 @@ class Download(Command):
             logger.info('Skipping existing document %s', document.get('_id'))
             return None
         # Skip non-downloadable file
-        if document.get('_source', {}).get('type', None) != 'Document':
+        if document.get('_source', {}).get('type', None) != self.type:
             logger.warning('Not a raw document. Skipping %s', id)
             return None
         logger.info('Downloading raw file %s', id)
@@ -155,7 +155,8 @@ class Download(Command):
     def start(self):
         count = self.log_matches()
         desc = f'Downloading {count} document(s)'
-        source = ["path", "parentDocument", "type"] + str(self.source).split(',')
+        extra = self.source.split(',') if self.source else []
+        source = ["path", "parentDocument", "type"] + extra
         try:
             with Progress(disable=self.no_progressbar) as progress:
                 task = progress.add_task(desc, total=count)

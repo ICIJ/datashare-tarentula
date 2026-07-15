@@ -1,12 +1,13 @@
 import csv
 import re
+from functools import cached_property
 from time import sleep
 from http.cookies import SimpleCookie
 from rich.progress import Progress
 import requests
 from requests.exceptions import HTTPError, ConnectionError
 
-from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC
+from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC, CsrfState
 from tarentula.logger import logger
 
 DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/d/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
@@ -35,10 +36,10 @@ class Tagger:
     def no_progressbar(self):
         return not self.progressbar
 
-    @property
+    @cached_property
     def csv_rows(self):
         with open(self.csv_path, newline='', encoding='utf-8-sig') as csv_file:
-            return list(self.sanitize_row(row) for row in csv.DictReader(csv_file))
+            return [self.sanitize_row(row) for row in csv.DictReader(csv_file)]
 
     @property
     def tags(self):
@@ -79,6 +80,10 @@ class Tagger:
             }
         return None
 
+    @cached_property
+    def _csrf(self):
+        return CsrfState(self.datashare_url)
+
     @property
     def total_steps(self):
         return sum(len(leaf['tags']) for _, leaf in self.tree.items())
@@ -117,18 +122,23 @@ class Tagger:
                 endpoint_url = self.leaf_tagging_endpoint(leaf)
                 for tag in leaf['tags']:
                     try:
-                        result = requests.put(endpoint_url,
-                                              json=[tag],
-                                              cookies=self.cookies,
-                                              headers=self.headers,
-                                              timeout=HTTP_REQUEST_TIMEOUT_SEC)
+                        result = self._csrf.request('put', endpoint_url,
+                                                    json=[tag],
+                                                    cookies=self.cookies,
+                                                    headers=self.headers,
+                                                    timeout=HTTP_REQUEST_TIMEOUT_SEC)
                         result.raise_for_status()
                         if result.status_code == requests.codes.ok:
                             logger.info('Tag "%s" already exists on document "%s"', tag, document_id)
                         elif result.status_code == requests.codes.created:
                             logger.info('Added "%s" to document "%s"', tag, document_id)
                         self.sleep()
-                    except (HTTPError, ConnectionError):
-                        logger.warning('Unable to add "%s" to document "%s"', tag, document_id,
+                    except HTTPError as error:
+                        response = error.response
+                        logger.warning('Unable to add "%s" to document "%s" (HTTP %s): %s',
+                                       tag, document_id, response.status_code, response.text,
                                        exc_info=self.traceback)
+                    except ConnectionError as error:
+                        logger.warning('Unable to add "%s" to document "%s": %s',
+                                       tag, document_id, error, exc_info=self.traceback)
                     progress.advance(task)

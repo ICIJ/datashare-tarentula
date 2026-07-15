@@ -1,3 +1,4 @@
+from functools import cached_property
 from typing import Optional
 from pathlib import Path
 from os.path import join, isfile
@@ -17,7 +18,7 @@ class ConfigFileReader:
             return self.config[self.section].get(self.name, self.default_value)
         return self.default_value
 
-    @property
+    @cached_property
     def config(self):
         config = configparser.ConfigParser()
         if self.config_path is not None:
@@ -61,4 +62,4 @@ class ConfigFileReader:
 
     @property
     def system_directory_path(self) -> str:
-        return '/etc/tarentua/tarentua.ini'
+        return '/etc/tarentula/tarentula.ini'

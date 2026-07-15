@@ -1,6 +1,8 @@
 import sys
 from json import dumps
 
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from tarentula.datashare_client import DatashareClient, DATASHARE_DEFAULT_PROJECT, DATASHARE_DEFAULT_URL, \
     ELASTICSEARCH_DEFAULT_URL
 from tarentula.logger import logger
@@ -28,7 +30,7 @@ class MetadataFields:
 
         if filter_by and "=" in filter_by:
             filters = filter_by.split(",")
-            filter_pairs = [map(str.strip, part.split("=")) for part in filters if "=" in part]
+            filter_pairs = [map(str.strip, part.split("=", 1)) for part in filters if "=" in part]
             self.query_filters = [
                 {"term": {f"{k}": f"{v}"}} for k, v in filter_pairs
             ]
@@ -41,9 +43,9 @@ class MetadataFields:
                                                     datashare_project,
                                                     cookies,
                                                     apikey)
-        except (ConnectionRefusedError, ConnectionError):
+        except (ConnectionRefusedError, ConnectionError, RequestsConnectionError):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
-            sys.exit()
+            sys.exit(1)
 
     def query_mappings(self):
         return self.datashare_client.mappings(self.datashare_project)

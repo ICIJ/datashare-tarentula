@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from json import loads
 
 from click.testing import CliRunner
@@ -30,7 +30,7 @@ class TestMetadataFields(TestAbstract):
     def test_basic_metadata_field_list_with_tika_metadata(self):
         self.index_documents([{"name": "Antrodiaetidae", "type": "Document", "contentType": "audio/vnd.wave",
                                "_id": "id1",
-                               "metadata": {"tika_metadata_dcterms_created": datetime.utcnow().isoformat()}}
+                               "metadata": {"tika_metadata_dcterms_created": datetime.now(timezone.utc).isoformat()}}
                               ])
         runner = CliRunner()
         result = runner.invoke(cli, ['list-metadata', 

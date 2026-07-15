@@ -80,6 +80,19 @@ def test_header_row_also_stays_within_terminal_width():
         assert len(header) + CHECKBOX_PREFIX_WIDTH <= terminal_width
 
 
+def test_format_facet_lines_skips_zero_buckets_and_aligns_columns():
+    lines = SimilarDocs.format_facet_lines(
+        'content_types', [('message/rfc822', 10467), ('text/plain', 145), ('empty', 0)])
+    assert lines[0] == 'content_types:'
+    assert len(lines) == 3  # header + 2 non-zero buckets, 'empty' dropped
+    # value/count columns padded to a shared width -> every bucket line is the same length
+    assert len({len(line) for line in lines[1:]}) == 1
+
+
+def test_format_facet_lines_returns_empty_when_all_buckets_are_zero():
+    assert SimilarDocs.format_facet_lines('languages', [('ENGLISH', 0)]) == []
+
+
 if __name__ == '__main__':
     test_column_widths_fixed_cols_stay_constant_and_blurb_grows()
     test_column_widths_blurb_shrinks_to_zero_rather_than_overflow()
@@ -88,4 +101,6 @@ if __name__ == '__main__':
     test_build_doc_choices_maps_each_row_back_to_its_doc()
     test_rows_leave_room_for_inquirer_checkbox_prefix()
     test_header_row_also_stays_within_terminal_width()
+    test_format_facet_lines_skips_zero_buckets_and_aligns_columns()
+    test_format_facet_lines_returns_empty_when_all_buckets_are_zero()
     print('ok')

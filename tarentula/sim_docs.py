@@ -459,6 +459,18 @@ class SimilarDocs(Command):
                 'min_doc_count': 2}}})
         return [(b['key'], b['doc_count']) for b in resp['aggregations']['keywords']['buckets']]
 
+    @staticmethod
+    def format_facet_lines(facet, buckets):
+        """One line per non-zero bucket: value left-aligned, count right-aligned
+        under a "facet:" header -- instead of one long comma-joined line that
+        wraps mid-value on anything but a huge terminal."""
+        shown = [(v, c) for (v, c) in buckets if c > 0]
+        if not shown:
+            return []
+        value_width = max(len(v) for v, _ in shown)
+        count_width = max(len(str(c)) for _, c in shown)
+        return [f"{facet}:"] + [f"  {v:<{value_width}}  {c:>{count_width}}" for v, c in shown]
+
     def print_status(self, query_body):
         """Where the search stands: the query itself, hit count and facet breakdown."""
         print("\nCurrent query:")
@@ -466,7 +478,10 @@ class SimilarDocs(Command):
         print("Matches:", self.count_matches(query_body=query_body))
         aggs = self.facet_aggregations(query_body)
         for facet, buckets in aggs.items():
-            print(f"  {facet}: " + ', '.join(f"{v} ({c})" for v, c in buckets if c > 0))
+            lines = self.format_facet_lines(facet, buckets)
+            if lines:
+                print()
+                print('\n'.join(lines))
         print()
 
     def narrow_and_fetch(self, query_body):

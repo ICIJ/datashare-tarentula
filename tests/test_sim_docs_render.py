@@ -93,6 +93,23 @@ def test_format_facet_lines_returns_empty_when_all_buckets_are_zero():
     assert SimilarDocs.format_facet_lines('languages', [('ENGLISH', 0)]) == []
 
 
+def test_format_reuse_query_examples_includes_download_and_export_by_query():
+    text = SimilarDocs.format_reuse_query_examples(
+        'my-project', 'http://localhost:8080', 'http://localhost:9200', 'query.json')
+    assert 'tarentula download' in text
+    assert 'tarentula export-by-query' in text
+    assert text.count('--query @query.json') == 2
+    assert '--datashare-project my-project' in text
+    assert '--datashare-url http://localhost:8080' in text
+    assert '--elasticsearch-url http://localhost:9200' in text
+
+
+def test_format_reuse_query_examples_omits_elasticsearch_url_when_unset():
+    text = SimilarDocs.format_reuse_query_examples(
+        'my-project', 'http://localhost:8080', None, 'query.json')
+    assert '--elasticsearch-url' not in text
+
+
 if __name__ == '__main__':
     test_column_widths_fixed_cols_stay_constant_and_blurb_grows()
     test_column_widths_blurb_shrinks_to_zero_rather_than_overflow()
@@ -103,4 +120,6 @@ if __name__ == '__main__':
     test_header_row_also_stays_within_terminal_width()
     test_format_facet_lines_skips_zero_buckets_and_aligns_columns()
     test_format_facet_lines_returns_empty_when_all_buckets_are_zero()
+    test_format_reuse_query_examples_includes_download_and_export_by_query()
+    test_format_reuse_query_examples_omits_elasticsearch_url_when_unset()
     print('ok')

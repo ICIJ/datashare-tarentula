@@ -460,6 +460,19 @@ class SimilarDocs(Command):
         return [(b['key'], b['doc_count']) for b in resp['aggregations']['keywords']['buckets']]
 
     @staticmethod
+    def format_reuse_query_examples(datashare_project, datashare_url, elasticsearch_url, output_file):
+        """Example commands showing how to reuse the saved query file with
+        other tarentula commands, using this session's own connection options."""
+        conn_opts = f"--datashare-project {datashare_project} --datashare-url {datashare_url}"
+        if elasticsearch_url:
+            conn_opts += f" --elasticsearch-url {elasticsearch_url}"
+        return (
+            "Reuse this query with other tarentula commands:\n"
+            f"  tarentula download {conn_opts} --query @{output_file}\n"
+            f"  tarentula export-by-query {conn_opts} --query @{output_file} --output-file similar_docs.csv"
+        )
+
+    @staticmethod
     def format_facet_lines(facet, buckets):
         """One line per non-zero bucket: value left-aligned, count right-aligned
         under a "facet:" header -- instead of one long comma-joined line that
@@ -639,6 +652,10 @@ class SimilarDocs(Command):
             with open(self.output_file, 'w') as f:
                 json.dump(query, f, indent=4)
                 print("Saved query to file %s" % self.output_file)
-        
+            print()
+            print(self.format_reuse_query_examples(
+                self.datashare_project, self.datashare_url,
+                self.datashare_client.elasticsearch_url, self.output_file))
+
         elif chat_answers['user_chat'] == 'No, give it up':
             print("Ok, giving up. Bye!")

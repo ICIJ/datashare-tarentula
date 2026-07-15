@@ -1,5 +1,6 @@
 import re
 import json
+import shutil
 import sys
 import inquirer
 
@@ -28,6 +29,18 @@ SIZE_RANGES = [
     ('> 1 MB', 1_000_000, None),
 ]
 SIZE_RANGE_BY_LABEL = {label: (gte, lt) for (label, gte, lt) in SIZE_RANGES}
+
+# Doc-picker row layout: every column except `blurb` is a fixed width, so the
+# table stays predictable regardless of terminal size. `blurb` absorbs
+# whatever width is left, floored at BLURB_MIN_WIDTH on narrow terminals.
+COL_SEP = '  '
+ID_WIDTH = 6
+TYPE_WIDTH = 18
+LANG_WIDTH = 10
+SIZE_WIDTH = 8
+NAME_WIDTH = 22
+BLURB_MIN_WIDTH = 20
+FALLBACK_TERMINAL_WIDTH = 80
 
 
 class SimilarDocs(Command):
@@ -193,6 +206,49 @@ class SimilarDocs(Command):
     @staticmethod
     def doc_name(doc):
         return doc['_source'].get('path', '').rsplit('/', 1)[-1] or doc['_id']
+
+    @staticmethod
+    def column_widths(total_width):
+        """Fixed per-column widths; only `blurb` grows with the terminal."""
+        fixed_width = (ID_WIDTH + TYPE_WIDTH + LANG_WIDTH + SIZE_WIDTH + NAME_WIDTH
+                       + 5 * len(COL_SEP))
+        blurb_width = max(BLURB_MIN_WIDTH, total_width - fixed_width)
+        return {'id': ID_WIDTH, 'type': TYPE_WIDTH, 'lang': LANG_WIDTH,
+                'size': SIZE_WIDTH, 'name': NAME_WIDTH, 'blurb': blurb_width}
+
+    @staticmethod
+    def format_header_row(widths):
+        return COL_SEP.join([
+            f"{'id':<{widths['id']}}",
+            f"{'type':<{widths['type']}}",
+            f"{'lang':<{widths['lang']}}",
+            f"{'size':>{widths['size']}}",
+            f"{'name':<{widths['name']}}",
+            'blurb',
+        ])
+
+    @staticmethod
+    def format_doc_row(doc, blurb, widths):
+        src = doc['_source']
+        size_kb = f"{(int(src.get('contentLength') or 0)) // 1024} KB"
+        return COL_SEP.join([
+            f"{doc['_id']:<{widths['id']}.{widths['id']}}",
+            f"{src.get('contentType', '?'):<{widths['type']}.{widths['type']}}",
+            f"{src.get('language', '?'):<{widths['lang']}.{widths['lang']}}",
+            f"{size_kb:>{widths['size']}}",
+            f"{SimilarDocs.doc_name(doc):<{widths['name']}.{widths['name']}}",
+            blurb[:widths['blurb']],  # last column: no padding, just cut
+        ])
+
+    @staticmethod
+    def build_doc_choices(docs, contents_by_id, widths):
+        """(row_string, doc) pairs, in `docs` order; row_string doubles as the checkbox
+        label and the lookup key back to its doc."""
+        choices = []
+        for doc in docs:
+            blurb = re.sub(r'\s+', ' ', contents_by_id.get(doc['_id'], '')).strip()
+            choices.append((SimilarDocs.format_doc_row(doc, blurb, widths), doc))
+        return choices
 
     def build_choices_from_docs(self, docs):
         return [f"{doc['_id'][:6]} - {self.doc_name(doc)}" for doc in docs]

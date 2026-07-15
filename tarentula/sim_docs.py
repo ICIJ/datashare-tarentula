@@ -278,7 +278,43 @@ class SimilarDocs(Command):
         answers = self.ask_user_to_select(name, question, [row for row, _ in choice_pairs])
 
         return [rows_to_docs[row] for row in answers[name]]
-    
+
+    NEXT_PAGE_CHOICE = '▸ Show next page of results'
+
+    def paginated_doc_picker(self, name, question, query_body, from_=DEFAULT_FROM, limit=DEFAULT_LIMIT):
+        """Like ask_user_to_select_docs, but the user can keep checking
+        NEXT_PAGE_CHOICE to browse further pages before submitting; picks
+        made on earlier pages are kept when later pages are shown."""
+        picked_by_id = {}
+        while True:
+            page_docs = self.query_all(query_body=query_body, from_=from_, limit=limit)
+            if not page_docs:
+                if from_ == DEFAULT_FROM:
+                    return list(picked_by_id.values())
+                print("No more results for the current query; wrapping to the first page.")
+                from_ = DEFAULT_FROM
+                continue
+
+            contents = {d['_id']: d['_source'].get('content') or ''
+                        for d in self.query_doc_content([doc['_id'] for doc in page_docs])}
+            widths = self.column_widths(
+                shutil.get_terminal_size(fallback=(FALLBACK_TERMINAL_WIDTH, 24)).columns)
+
+            print(self.format_header_row(widths))
+            choice_pairs = self.build_doc_choices(page_docs, contents, widths)
+            rows_to_docs = dict(choice_pairs)
+            row_choices = [row for row, _ in choice_pairs] + [self.NEXT_PAGE_CHOICE]
+            answers = self.ask_user_to_select(name, question, row_choices)[name]
+
+            for row in answers:
+                if row != self.NEXT_PAGE_CHOICE:
+                    doc = rows_to_docs[row]
+                    picked_by_id[doc['_id']] = doc
+
+            if self.NEXT_PAGE_CHOICE not in answers:
+                return list(picked_by_id.values())
+            from_ += limit
+
     def ask_user_to_choose(self, name, question, choices, default_idx=0):
 
         questions = [
@@ -438,7 +474,6 @@ class SimilarDocs(Command):
 
         loop_from = DEFAULT_FROM
         loop_limit = DEFAULT_LIMIT
-        num_docs_to_show = 10
 
         # Enter interactive loop
         chat_choices = [
@@ -453,32 +488,20 @@ class SimilarDocs(Command):
         while chat_answers['user_chat'] == 'No, keep going':
             try:
 
-                # 1 select interesting docs
-                selected_docs = self.ask_user_to_select_docs('first_docs', 'Which docs are you interested in?', documents)
+                # 1 select interesting docs (paginated: check "next page" to browse further)
+                selected_docs = self.paginated_doc_picker(
+                    'first_docs', 'Which docs are you interested in?', query, from_=loop_from, limit=loop_limit)
 
                 while len(selected_docs) < 2:
                     print("You need to select at least 2 documents to find commonalities, current selection: %s" % len(selected_docs))
 
-                    action = self.ask_user_to_choose(
-                        'more', 'What now?', ['Show more results', 'Exit'])['more']
+                    action = self.ask_user_to_choose('more', 'What now?', ['Try again', 'Exit'])['more']
                     if action == 'Exit':
                         print("Ok, exiting. Bye!")
                         return
 
-                    # increase search page
-                    loop_from += num_docs_to_show
-
-                    # show next page of results of query
-                    logger.debug("Querying next page of results at from=%s, limit=%s" % (loop_from, loop_limit))
-                    next_docs = self.query_all(query_body=query, from_=loop_from, limit=loop_limit)
-                    if not next_docs:
-                        print("No more results for the current query; wrapping to the first page.")
-                        loop_from = DEFAULT_FROM
-                        next_docs = self.query_all(query_body=query, from_=loop_from, limit=loop_limit)
-                    if not next_docs:
-                        continue  # query has no results at all: back to "What now?"
-
-                    selected_docs += self.ask_user_to_select_docs('next_docs', 'Which docs are you interested in?', next_docs)
+                    selected_docs = self.paginated_doc_picker(
+                        'first_docs', 'Which docs are you interested in?', query, from_=loop_from, limit=loop_limit)
 
                 # 2 find commonalities between them
                 full_docs = self.query_doc_content([doc['_id'] for doc in selected_docs])

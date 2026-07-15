@@ -250,27 +250,6 @@ class SimilarDocs(Command):
             choices.append((SimilarDocs.format_doc_row(doc, blurb, widths), doc))
         return choices
 
-    def build_choices_from_docs(self, docs):
-        return [f"{doc['_id'][:6]} - {self.doc_name(doc)}" for doc in docs]
-
-    def print_docs_table(self, docs):
-        """Metadata table + a blurb of each doc's text, so text docs are tellable apart.
-
-        ponytail: fetches full content for the shown page (~10 docs) just to cut a
-        blurb; switch to ES highlights if pages ever get big.
-        """
-        contents = {d['_id']: d['_source'].get('content') or ''
-                    for d in self.query_doc_content([doc['_id'] for doc in docs])}
-        print(f"{'id':<6}  {'type':<28.28}  {'lang':<8.8}  {'size':>8}  {'name':<40.40}  blurb")
-        for doc in docs:
-            src = doc['_source']
-            size_kb = f"{(int(src.get('contentLength') or 0)) // 1024} KB"
-            blurb = re.sub(r'\s+', ' ', contents.get(doc['_id'], '')).strip()[:80]
-            print(f"{doc['_id'][:6]}  {src.get('contentType', '?'):<28.28}  "
-                  f"{src.get('language', '?'):<8.8}  {size_kb:>8}  "
-                  f"{self.doc_name(doc):<40.40}  {blurb}")
-
-
     def ask_user_to_select(self, name, question, choices):
     
         questions = [
@@ -285,14 +264,20 @@ class SimilarDocs(Command):
         return answers or {name: []}
 
     def ask_user_to_select_docs(self, name, question, documents):
+        if not documents:
+            return []
 
-        self.print_docs_table(documents)
-        choices = self.build_choices_from_docs(documents)
-        answers = self.ask_user_to_select(name, question, choices)
-        sliced_ids = [answer.split(' - ')[0] for answer in answers[name]]
-        selected_docs = [doc for doc in documents if doc['_id'][:6] in sliced_ids]
+        contents = {d['_id']: d['_source'].get('content') or ''
+                    for d in self.query_doc_content([doc['_id'] for doc in documents])}
+        widths = self.column_widths(
+            shutil.get_terminal_size(fallback=(FALLBACK_TERMINAL_WIDTH, 24)).columns)
 
-        return selected_docs
+        print(self.format_header_row(widths))
+        choice_pairs = self.build_doc_choices(documents, contents, widths)
+        rows_to_docs = dict(choice_pairs)
+        answers = self.ask_user_to_select(name, question, [row for row, _ in choice_pairs])
+
+        return [rows_to_docs[row] for row in answers[name]]
     
     def ask_user_to_choose(self, name, question, choices, default_idx=0):
 

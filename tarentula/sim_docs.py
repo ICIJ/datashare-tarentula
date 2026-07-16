@@ -481,10 +481,13 @@ class SimilarDocs(Command):
         conn_opts = f"--datashare-project {datashare_project} --datashare-url {datashare_url}"
         if elasticsearch_url:
             conn_opts += f" --elasticsearch-url {elasticsearch_url}"
+        export_fields = ("path,metadata.tika_metadata_content_type,language,contentLength,"
+                          "metadata.tika_metadata_file_size,metadata.tika_metadata_creation_date,content")
         return (
             "Reuse this query with other tarentula commands:\n"
             f"  tarentula download {conn_opts} --query @{output_file}\n"
-            f"  tarentula export-by-query {conn_opts} --query @{output_file} --output-file similar_docs.csv"
+            f"  tarentula export-by-query {conn_opts} --query @{output_file} "
+            f"--output-file similar_docs.csv --source {export_fields}"
         )
 
     @staticmethod

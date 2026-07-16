@@ -125,6 +125,33 @@ class SimilarDocs(Command):
 
         return q
 
+    @staticmethod
+    def _find_more_like_this(node):
+        """Locate the more_like_this clause inside a query body, however deep
+        facet filters have nested it (build_facet_filter_query wraps in bool/must)."""
+        if isinstance(node, dict):
+            if 'more_like_this' in node:
+                return node['more_like_this']
+            for value in node.values():
+                found = SimilarDocs._find_more_like_this(value)
+                if found is not None:
+                    return found
+        elif isinstance(node, list):
+            for item in node:
+                found = SimilarDocs._find_more_like_this(item)
+                if found is not None:
+                    return found
+        return None
+
+    def refresh_unlike(self, query_body, unliked_ids, unliked_terms):
+        """Patch the query's more_like_this.unlike in place with this round's
+        exclusions, so the printed/saved query reflects marks just made instead
+        of only taking effect on the next rebuilt query."""
+        mlt = self._find_more_like_this(query_body)
+        if mlt is not None:
+            mlt['unlike'] = [{"_index": self.datashare_project, "_id": doc_id}
+                              for doc_id in unliked_ids] + list(unliked_terms)
+
     # function that queries for a document by id and returns the content
     def query_doc_content(self, doc_ids):
         index = self.datashare_project
@@ -268,41 +295,27 @@ class SimilarDocs(Command):
             choices.append((SimilarDocs.format_doc_row(doc, blurb, widths), doc))
         return choices
 
-    def ask_user_to_select(self, name, question, choices):
-    
+    def ask_user_to_select(self, name, question, choices, default=None):
+
         questions = [
             inquirer.Checkbox(name,
                 message=question,
                 choices=choices,
+                default=default,
             ),
         ]
         answers = inquirer.prompt(questions)
 
-        # ponytail: Ctrl-C makes prompt() return None; treat it as "nothing selected"
-        return answers or {name: []}
-
-    def ask_user_to_select_docs(self, name, question, documents):
-        if not documents:
-            return []
-
-        contents = {d['_id']: d['_source'].get('content') or ''
-                    for d in self.query_doc_content([doc['_id'] for doc in documents])}
-        terminal_width = shutil.get_terminal_size(fallback=(FALLBACK_TERMINAL_WIDTH, 24)).columns
-        widths = self.column_widths(self.content_width_for_checkbox(terminal_width))
-
-        print(' ' * CHECKBOX_PREFIX_WIDTH + self.format_header_row(widths))
-        choice_pairs = self.build_doc_choices(documents, contents, widths)
-        rows_to_docs = dict(choice_pairs)
-        answers = self.ask_user_to_select(name, question, [row for row, _ in choice_pairs])
-
-        return [rows_to_docs[row] for row in answers[name]]
+        # ponytail: Ctrl-C makes prompt() return None; keep the pre-checked defaults
+        return answers or {name: list(default or [])}
 
     NEXT_PAGE_CHOICE = '▸ Show next page of results'
 
     def paginated_doc_picker(self, name, question, query_body, from_=DEFAULT_FROM, limit=DEFAULT_LIMIT):
-        """Like ask_user_to_select_docs, but the user can keep checking
-        NEXT_PAGE_CHOICE to browse further pages before submitting; picks
-        made on earlier pages are kept when later pages are shown."""
+        """Checkbox doc picker where the user can keep checking NEXT_PAGE_CHOICE
+        to browse further pages before submitting. Picks made on earlier pages
+        are kept, shown pre-checked when a page is revisited (pagination wraps
+        around), and can be unchecked there to drop them."""
         picked_by_id = {}
         while True:
             page_docs = self.query_all(query_body=query_body, from_=from_, limit=limit)
@@ -320,14 +333,16 @@ class SimilarDocs(Command):
 
             print(' ' * CHECKBOX_PREFIX_WIDTH + self.format_header_row(widths))
             choice_pairs = self.build_doc_choices(page_docs, contents, widths)
-            rows_to_docs = dict(choice_pairs)
             row_choices = [row for row, _ in choice_pairs] + [self.NEXT_PAGE_CHOICE]
-            answers = self.ask_user_to_select(name, question, row_choices)[name]
+            defaults = [row for row, doc in choice_pairs if doc['_id'] in picked_by_id]
+            answers = self.ask_user_to_select(name, question, row_choices, default=defaults)[name]
 
-            for row in answers:
-                if row != self.NEXT_PAGE_CHOICE:
-                    doc = rows_to_docs[row]
+            # sync this page's checkboxes: check = keep/add, uncheck = drop
+            for row, doc in choice_pairs:
+                if row in answers:
                     picked_by_id[doc['_id']] = doc
+                else:
+                    picked_by_id.pop(doc['_id'], None)
 
             if self.NEXT_PAGE_CHOICE not in answers:
                 return list(picked_by_id.values())
@@ -497,12 +512,11 @@ class SimilarDocs(Command):
                 print('\n'.join(lines))
         print()
 
-    def narrow_and_fetch(self, query_body):
-        """Facet-filter the current query, then fetch and report the narrowed result set."""
+    def narrow_by_facets(self, query_body):
+        """Facet-filter the current query and report the narrowed match count."""
         query_body = self.filter_by_facets(query_body)
-        documents = self.query_all(query_body=query_body)
         print("Num of matches after filtering:", self.count_matches(query_body=query_body))
-        return query_body, documents
+        return query_body
 
     def start(self):
 
@@ -516,7 +530,7 @@ class SimilarDocs(Command):
         print("Num of matches:", self.count_matches())
 
         # Narrow the (often heterogeneous) first batch by facets before hand-picking.
-        query, documents = self.narrow_and_fetch(self.query_body)
+        query = self.narrow_by_facets(self.query_body)
 
         loop_from = DEFAULT_FROM
         loop_limit = DEFAULT_LIMIT
@@ -567,20 +581,22 @@ class SimilarDocs(Command):
                             break
             
                 if len(commonalities) > 0:
-                    # annotate each candidate with how many docs in the whole index
-                    # contain it: high counts = boilerplate that will broaden the query
                     if len(commonalities) > 30:
                         print(f"Showing the 30 longest of {len(commonalities)} commonalities found")
                         commonalities = commonalities[:30]
-                    labeled = {}
-                    for term in commonalities:
-                        n = self.count_matches(
-                            query_body={'query': {'match_phrase': {'content': term}}})
-                        labeled[f"{term}  [in {n} docs of the whole index]"] = term
+                    # rank by whole-index doc count: rare ones are the distinctive,
+                    # narrowing terms we're after; common ones are boilerplate that
+                    # would broaden the query, so push them to the bottom
+                    scored = [(term, self.count_matches(
+                        query_body={'query': {'match_phrase': {'content': term}}}))
+                        for term in commonalities]
+                    scored.sort(key=lambda term_count: term_count[1])
+                    labeled = {f"{term}  [in {n} docs of the whole index]": term for term, n in scored}
                     answers = self.ask_user_to_select(
                         'commonalities',
-                        'Common terms of your picks: use some to search again? '
-                        '(high doc counts = boilerplate, they will broaden the query)',
+                        'Common terms of your picks, rarest (most distinctive) first: use '
+                        'some to narrow the query? (high doc counts = boilerplate, they '
+                        'would broaden it instead)',
                         list(labeled))
                     answers['commonalities'] = [labeled[l] for l in answers['commonalities']]
                 else:
@@ -609,7 +625,7 @@ class SimilarDocs(Command):
                 )
 
                 # The MLT results are heterogeneous again: offer another facet-narrowing pass.
-                query, documents = self.narrow_and_fetch(query)
+                query = self.narrow_by_facets(query)
 
                 # precision proxy: how many of the docs the user picked still match?
                 still_matching = self.count_matches(query_body={'query': {'bool': {
@@ -617,10 +633,10 @@ class SimilarDocs(Command):
                 print(f"{still_matching}/{len(selected_ids)} of your selected docs still match")
 
                 # false positives feed the next round's MLT `unlike`
-                false_positives = self.ask_user_to_select_docs(
+                false_positives = self.paginated_doc_picker(
                     'false_positives',
                     f'{ANSI_RED}Mark false positives (excluded as "unlike" next round, none = skip){ANSI_RESET}',
-                    documents)
+                    query)
                 unliked_ids += [doc['_id'] for doc in false_positives if doc['_id'] not in unliked_ids]
 
                 # offer the salient terms of the false positives as exclusions
@@ -635,6 +651,10 @@ class SimilarDocs(Command):
                             'elsewhere). Exclude some from the query? (none = skip)',
                             list(candidates))
                         unliked_terms += [candidates[l] for l in picked['unliked_terms']]
+
+                # this round's exclusions only get baked into `query` on the next
+                # build_mlt_query call; patch them in now so status/save reflect them
+                self.refresh_unlike(query, unliked_ids, unliked_terms)
 
                 # show where the search stands before asking to continue or stop
                 self.print_status(query)

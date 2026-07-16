@@ -27,16 +27,45 @@ def test_size_ranges_are_or_ed_and_respect_bounds():
     assert q['query']['bool']['filter'][0]['bool']['minimum_should_match'] == 1
 
 
-def test_mlt_query_likes_docs_and_terms_and_unlikes_docs():
+def test_mlt_query_only_holds_doc_refs_terms_become_should_and_must_not():
     s = SimilarDocs.__new__(SimilarDocs)  # skip __init__: no live Datashare needed
     s.datashare_project = 'proj'
     s.max_query_terms, s.min_term_freq, s.min_doc_freq, s.min_word_length = 30, 1, 10, 4
     s.minimum_should_match = '30%'
-    mlt = s.build_mlt_query(['a'], ['common term'], unliked_docs=['b'],
-                            unliked_terms=['bad term'])['query']['more_like_this']
-    assert {'_index': 'proj', '_id': 'a'} in mlt['like']
-    assert 'common term' in mlt['like']
-    assert mlt['unlike'] == [{'_index': 'proj', '_id': 'b'}, 'bad term']
+    q = s.build_mlt_query(['a'], ['common term'], unliked_docs=['b'],
+                          unliked_terms=['bad term'])['query']['bool']
+    mlt = q['must'][0]['more_like_this']
+    assert q['must'] == [{'more_like_this': mlt}]
+    assert mlt['like'] == [{'_index': 'proj', '_id': 'a'}]
+    assert mlt['unlike'] == [{'_index': 'proj', '_id': 'b'}]
+    assert q['should'] == [{'match_phrase': {'content': 'common term'}}]
+    assert q['minimum_should_match'] == '30%'
+    assert q['must_not'] == [{'match_phrase': {'content': 'bad term'}}]
+
+
+def test_mlt_query_omits_should_and_must_not_when_no_terms():
+    s = SimilarDocs.__new__(SimilarDocs)
+    s.datashare_project = 'proj'
+    s.max_query_terms, s.min_term_freq, s.min_doc_freq, s.min_word_length = 30, 1, 10, 4
+    s.minimum_should_match = '30%'
+    q = s.build_mlt_query(['a'], [])['query']['bool']
+    assert 'should' not in q
+    assert 'minimum_should_match' not in q
+    assert 'must_not' not in q
+
+
+def test_refresh_unlike_patches_nested_facet_wrapped_query():
+    s = SimilarDocs.__new__(SimilarDocs)
+    s.datashare_project = 'proj'
+    s.max_query_terms, s.min_term_freq, s.min_doc_freq, s.min_word_length = 30, 1, 10, 4
+    s.minimum_should_match = '30%'
+    q = s.build_mlt_query(['a'], ['common term'])
+    q = SimilarDocs.build_facet_filter_query(q, content_types=['application/pdf'])
+    s.refresh_unlike(q, ['b', 'c'], ['bad term'])
+    bool_clause = SimilarDocs._find_owning_bool(q)
+    mlt = SimilarDocs._find_more_like_this(q)
+    assert mlt['unlike'] == [{'_index': 'proj', '_id': 'b'}, {'_index': 'proj', '_id': 'c'}]
+    assert bool_clause['must_not'] == [{'match_phrase': {'content': 'bad term'}}]
 
 
 def test_common_ngrams_uses_requested_n_for_all_docs():
@@ -59,7 +88,9 @@ if __name__ == '__main__':
     test_no_facets_returns_query_unchanged()
     test_content_type_and_language_become_terms_filters()
     test_size_ranges_are_or_ed_and_respect_bounds()
-    test_mlt_query_likes_docs_and_terms_and_unlikes_docs()
+    test_mlt_query_only_holds_doc_refs_terms_become_should_and_must_not()
+    test_mlt_query_omits_should_and_must_not_when_no_terms()
+    test_refresh_unlike_patches_nested_facet_wrapped_query()
     test_common_ngrams_uses_requested_n_for_all_docs()
     test_common_lines_and_ngrams_dont_crash_on_missing_content()
     print('ok')

@@ -100,28 +100,44 @@ class SimilarDocs(Command):
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
             sys.exit()
 
+    @staticmethod
+    def term_clause(term):
+        return {"match_phrase": {"content": term}}
+
     def build_mlt_query(self, sel_docs, liked_terms, unliked_docs=None, unliked_terms=None):
+        """`more_like_this` only ever holds doc refs (it's a fuzzy "find docs
+        shaped like these" signal) and is the query's sole `must`. Picked terms
+        don't get ANDed onto it -- with several picked terms that zeroes the
+        result set fast -- they're `should` clauses instead, gated by the same
+        `minimum_should_match` used to tune MLT itself: "match at least this
+        fraction of the terms", not all of them. Unliked terms stay a hard
+        `must_not`. Mixing raw strings into MLT's like/unlike, as before, just
+        feeds its term extractor diluted by max_query_terms/minimum_should_match,
+        so a doc could match without ever containing the term you picked."""
         def doc_ref(doc_id):
             return {"_index": self.datashare_project, "_id": doc_id}
-        like_query_section = [doc_ref(doc_id) for doc_id in sel_docs]
-        like_query_section += list(liked_terms)
 
-        q = {
-            "query": {
-                "more_like_this": {
-                    "like": like_query_section,
-                    "unlike": [doc_ref(doc_id) for doc_id in (unliked_docs or [])] + list(unliked_terms or []),
-                    # keep the seed docs in the results: the saved query must retrieve them too
-                    "include": True,
-                    "fields": [ "content" ],
-                    "min_term_freq": self.min_term_freq,
-                    "max_query_terms": self.max_query_terms,
-                    "min_doc_freq": self.min_doc_freq,
-                    "min_word_length": self.min_word_length,
-                    "minimum_should_match": self.minimum_should_match,
-                }
+        mlt = {
+            "more_like_this": {
+                "like": [doc_ref(doc_id) for doc_id in sel_docs],
+                "unlike": [doc_ref(doc_id) for doc_id in (unliked_docs or [])],
+                # keep the seed docs in the results: the saved query must retrieve them too
+                "include": True,
+                "fields": ["content"],
+                "min_term_freq": self.min_term_freq,
+                "max_query_terms": self.max_query_terms,
+                "min_doc_freq": self.min_doc_freq,
+                "min_word_length": self.min_word_length,
+                "minimum_should_match": self.minimum_should_match,
             }
         }
+
+        q = {"query": {"bool": {"must": [mlt]}}}
+        if liked_terms:
+            q["query"]["bool"]["should"] = [self.term_clause(term) for term in liked_terms]
+            q["query"]["bool"]["minimum_should_match"] = self.minimum_should_match
+        if unliked_terms:
+            q["query"]["bool"]["must_not"] = [self.term_clause(term) for term in unliked_terms]
 
         return q
 
@@ -143,14 +159,43 @@ class SimilarDocs(Command):
                     return found
         return None
 
+    @staticmethod
+    def _find_owning_bool(node):
+        """Locate the bool clause built by build_mlt_query -- the one whose
+        `must` holds the more_like_this clause directly -- however deep facet
+        filters have nested it."""
+        if isinstance(node, dict):
+            bool_clause = node.get('bool')
+            if isinstance(bool_clause, dict):
+                must = bool_clause.get('must', [])
+                if any(isinstance(item, dict) and 'more_like_this' in item for item in must):
+                    return bool_clause
+            for value in node.values():
+                found = SimilarDocs._find_owning_bool(value)
+                if found is not None:
+                    return found
+        elif isinstance(node, list):
+            for item in node:
+                found = SimilarDocs._find_owning_bool(item)
+                if found is not None:
+                    return found
+        return None
+
     def refresh_unlike(self, query_body, unliked_ids, unliked_terms):
-        """Patch the query's more_like_this.unlike in place with this round's
-        exclusions, so the printed/saved query reflects marks just made instead
-        of only taking effect on the next rebuilt query."""
+        """Patch the query's more_like_this.unlike doc refs and the owning
+        bool's must_not term clauses in place with this round's exclusions, so
+        the printed/saved query reflects marks just made instead of only
+        taking effect on the next rebuilt query."""
         mlt = self._find_more_like_this(query_body)
         if mlt is not None:
             mlt['unlike'] = [{"_index": self.datashare_project, "_id": doc_id}
-                              for doc_id in unliked_ids] + list(unliked_terms)
+                              for doc_id in unliked_ids]
+        bool_clause = self._find_owning_bool(query_body)
+        if bool_clause is not None:
+            if unliked_terms:
+                bool_clause['must_not'] = [self.term_clause(term) for term in unliked_terms]
+            else:
+                bool_clause.pop('must_not', None)
 
     # function that queries for a document by id and returns the content
     def query_doc_content(self, doc_ids):
@@ -333,7 +378,11 @@ class SimilarDocs(Command):
 
             print(' ' * CHECKBOX_PREFIX_WIDTH + self.format_header_row(widths))
             choice_pairs = self.build_doc_choices(page_docs, contents, widths)
-            row_choices = [row for row, _ in choice_pairs] + [self.NEXT_PAGE_CHOICE]
+            row_choices = [row for row, _ in choice_pairs]
+            # a partial page proves there's nothing more to fetch; only offer to
+            # page further when this page came back full (there may be more)
+            if len(page_docs) == limit:
+                row_choices += [self.NEXT_PAGE_CHOICE]
             defaults = [row for row, doc in choice_pairs if doc['_id'] in picked_by_id]
             answers = self.ask_user_to_select(name, question, row_choices, default=defaults)[name]
 
@@ -642,16 +691,19 @@ class SimilarDocs(Command):
                     query)
                 unliked_ids += [doc['_id'] for doc in false_positives if doc['_id'] not in unliked_ids]
 
-                # offer the salient terms of the false positives as exclusions
-                if false_positives:
-                    fp_ids = [d['_id'] for d in false_positives]
-                    candidates = {f"{t}  [in {c} of {len(fp_ids)} false positives]": t
-                                  for t, c in self.top_terms(fp_ids) if t not in unliked_terms}
+                # offer the salient terms of all unliked docs so far as exclusions,
+                # skipping any term that's also salient in your liked picks (a term
+                # shared by both sides isn't a discriminator, it'd just gut recall)
+                if unliked_ids:
+                    candidates = {f"{t}  [in {c} of {len(unliked_ids)} unliked docs]": t
+                                  for t, c in self.top_terms(unliked_ids)
+                                  if t not in unliked_terms and t not in liked_terms}
                     if candidates:
                         picked = self.ask_user_to_select(
                             'unliked_terms',
-                            'Salient terms of the false positives (frequent there, rare '
-                            'elsewhere). Exclude some from the query? (none = skip)',
+                            'Salient terms of the unliked docs (frequent there, rare '
+                            'elsewhere, absent from your liked terms). Exclude some as '
+                            'NOT clauses? (none = skip)',
                             list(candidates))
                         unliked_terms += [candidates[l] for l in picked['unliked_terms']]
 

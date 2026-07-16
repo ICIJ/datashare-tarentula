@@ -29,15 +29,16 @@ can feed back to any other tarentula command.
  top salient terms of your picks (significant_text) ──▶ add some to the query
         │
         ▼
- more_like_this query = your docs + chosen terms
+ query = more_like_this(your docs)  AND  (at least minimum_should_match of chosen terms)
         │
         ▼
  narrow the new results by facets again
  precision report: "N/M of your selected docs still match"
         │
         ▼
- mark false positives ──▶ excluded as `unlike` next round
- top terms of false positives ──▶ exclude some as negative terms
+ mark false positives ──▶ excluded as `unlike` docs next round
+ top terms of all unliked docs so far (minus anything in your liked terms)
+   ──▶ exclude some as NOT clauses
         │
         ▼
  status report: current query JSON + hit count + facet breakdown
@@ -112,10 +113,15 @@ page, wrapping around at the end) and **Exit** (leave cleanly, nothing saved).
 
 ### 4. Choose commonalities and query terms
 
-The command extracts lines (falling back to ngrams) shared by all your picks
-and asks which ones matter. Then it surfaces the **most salient terms** of your
-picks relative to the whole index (`significant_text`) and offers to add them
-to the query.
+The command extracts lines (falling back to ngrams) shared by all your picks,
+ranks them by whole-index rarity (rarest first — those are the distinctive,
+narrowing ones), and asks which matter. Then it surfaces the **most salient
+terms** of your picks relative to the whole index (`significant_text`) and
+offers to add them to the query. Both go in as `should` `match_phrase` clauses,
+gated by `--minimum-should-match` (match at least that fraction of picked
+terms, not all) — not blended into `more_like_this`, so a term you picked has
+to actually appear in the document rather than just nudge the fuzzy MLT score,
+but stacking several terms no longer ANDs the result set down to nothing.
 
 ### 5. Review results, mark false positives
 
@@ -127,9 +133,12 @@ Num of matches after filtering: 31
 ```
 
 The precision line tells you whether the derived query still captures your
-examples. Mark any wrong results as **false positives**: they are excluded as
-`unlike` documents next round, and their own salient terms are offered as
-negative terms to exclude.
+examples. Mark any wrong results as **false positives**: they're excluded as
+`unlike` documents in `more_like_this` from now on. Their salient terms — and
+those of every unliked doc marked so far, not just this round's — are then
+offered as exclusions; any term also salient among your liked picks is
+dropped from the offer first, since that wouldn't discriminate. Picked terms
+become `must_not` clauses, a hard exclusion rather than a fuzzy nudge.
 
 <!-- TODO capture: precision report + false-positive marking (test-corpus) -->
 ![Precision report and false positives](docs/captures/simdocs-04-false-positives.png)

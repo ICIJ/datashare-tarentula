@@ -9,6 +9,8 @@ set -euo pipefail
 DATA_DIR="${DATA_DIR:-$HOME/datasets/test-corpus}"
 PROJECT="${PROJECT:-test-corpus}"
 PORT="${PORT:-8080}"
+# Cap the Datashare JVM heap (ES heap is capped via jvm.options.d/heap.options)
+export DS_JAVA_OPTS="${DS_JAVA_OPTS:--Xmx1g}"
 
 if curl -sf "localhost:$PORT" >/dev/null 2>&1; then
     echo "Something already listens on :$PORT."

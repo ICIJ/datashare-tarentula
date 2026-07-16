@@ -117,11 +117,13 @@ The command extracts lines (falling back to ngrams) shared by all your picks,
 ranks them by whole-index rarity (rarest first — those are the distinctive,
 narrowing ones), and asks which matter. Then it surfaces the **most salient
 terms** of your picks relative to the whole index (`significant_text`) and
-offers to add them to the query. Both go in as `should` `match_phrase` clauses,
-gated by `--minimum-should-match` (match at least that fraction of picked
-terms, not all) — not blended into `more_like_this`, so a term you picked has
-to actually appear in the document rather than just nudge the fuzzy MLT score,
-but stacking several terms no longer ANDs the result set down to nothing.
+offers to add them to the query. Both go in as `should` `match_phrase`
+clauses — not blended into `more_like_this`, so a term you picked has to
+actually appear in the document rather than just nudge the fuzzy MLT score.
+How many of them are required is `--minimum-should-match`'s percentage
+applied to your picked terms and rounded up, floored at 1 so it can never
+silently disable itself (ES's own percentage handling would floor a small
+`should` list like this to 0 and require none of them).
 
 ### 5. Review results, mark false positives
 

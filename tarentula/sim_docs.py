@@ -1,5 +1,6 @@
 import re
 import json
+import math
 import shutil
 import sys
 import inquirer
@@ -104,16 +105,22 @@ class SimilarDocs(Command):
     def term_clause(term):
         return {"match_phrase": {"content": term}}
 
+    def terms_minimum_should_match(self, num_terms):
+        """--minimum-should-match's percentage applied to your picked terms,
+        rounded up and floored at 1: ES's own percentage handling floors to 0
+        on a small `should` list (e.g. floor(2 * 30%) = 0), which would
+        silently make a 2-term pick optional and let unrelated docs through
+        on MLT score alone."""
+        pct = float(str(self.minimum_should_match).rstrip('%')) / 100
+        return max(1, math.ceil(num_terms * pct))
+
     def build_mlt_query(self, sel_docs, liked_terms, unliked_docs=None, unliked_terms=None):
         """`more_like_this` only ever holds doc refs (it's a fuzzy "find docs
         shaped like these" signal) and is the query's sole `must`. Picked terms
-        don't get ANDed onto it -- with several picked terms that zeroes the
-        result set fast -- they're `should` clauses instead, gated by the same
-        `minimum_should_match` used to tune MLT itself: "match at least this
-        fraction of the terms", not all of them. Unliked terms stay a hard
-        `must_not`. Mixing raw strings into MLT's like/unlike, as before, just
-        feeds its term extractor diluted by max_query_terms/minimum_should_match,
-        so a doc could match without ever containing the term you picked."""
+        aren't mixed into it -- they're `should` clauses instead, gated by an
+        integer minimum (see terms_minimum_should_match) so a doc actually has
+        to contain enough of the terms you picked, rather than a term just
+        nudging MLT's own fuzzy scoring. Unliked terms stay a hard `must_not`."""
         def doc_ref(doc_id):
             return {"_index": self.datashare_project, "_id": doc_id}
 
@@ -135,7 +142,7 @@ class SimilarDocs(Command):
         q = {"query": {"bool": {"must": [mlt]}}}
         if liked_terms:
             q["query"]["bool"]["should"] = [self.term_clause(term) for term in liked_terms]
-            q["query"]["bool"]["minimum_should_match"] = self.minimum_should_match
+            q["query"]["bool"]["minimum_should_match"] = self.terms_minimum_should_match(len(liked_terms))
         if unliked_terms:
             q["query"]["bool"]["must_not"] = [self.term_clause(term) for term in unliked_terms]
 

@@ -39,8 +39,18 @@ def test_mlt_query_only_holds_doc_refs_terms_become_should_and_must_not():
     assert mlt['like'] == [{'_index': 'proj', '_id': 'a'}]
     assert mlt['unlike'] == [{'_index': 'proj', '_id': 'b'}]
     assert q['should'] == [{'match_phrase': {'content': 'common term'}}]
-    assert q['minimum_should_match'] == '30%'
+    assert q['minimum_should_match'] == 1  # ceil(1 * 30%) == 1
     assert q['must_not'] == [{'match_phrase': {'content': 'bad term'}}]
+
+
+def test_terms_minimum_should_match_floors_at_one():
+    s = SimilarDocs.__new__(SimilarDocs)
+    s.minimum_should_match = '30%'
+    # ES's own percentage handling would floor(2 * 30%) = 0, disabling the
+    # requirement entirely; ours must never go below 1.
+    assert s.terms_minimum_should_match(2) == 1
+    assert s.terms_minimum_should_match(1) == 1
+    assert s.terms_minimum_should_match(10) == 3
 
 
 def test_mlt_query_omits_should_and_must_not_when_no_terms():
@@ -89,6 +99,7 @@ if __name__ == '__main__':
     test_content_type_and_language_become_terms_filters()
     test_size_ranges_are_or_ed_and_respect_bounds()
     test_mlt_query_only_holds_doc_refs_terms_become_should_and_must_not()
+    test_terms_minimum_should_match_floors_at_one()
     test_mlt_query_omits_should_and_must_not_when_no_terms()
     test_refresh_unlike_patches_nested_facet_wrapped_query()
     test_common_ngrams_uses_requested_n_for_all_docs()

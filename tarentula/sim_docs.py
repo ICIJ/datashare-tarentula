@@ -19,6 +19,9 @@ DEFAULT_FROM = 0
 DEFAULT_LIMIT = 10
 DEFAULT_SIZE = 100
 MIN_COMMONALITIES_TO_OFFER = 2
+# int-valued more_like_this params worth tuning interactively; minimum_should_match
+# is a percentage string, not an int, so it's left out of this list.
+MLT_INT_PARAMS = ['max_query_terms', 'min_doc_freq', 'min_word_length', 'min_term_freq']
 ANSI_RED = '\033[31m'
 ANSI_RESET = '\033[0m'
 
@@ -147,6 +150,46 @@ class SimilarDocs(Command):
             q["query"]["bool"]["must_not"] = [self.term_clause(term) for term in unliked_terms]
 
         return q
+
+    @staticmethod
+    def mlt_param_candidates(current):
+        """3 candidate int values around current -- half, current, double --
+        deduped and floored at 1 (0 is not a valid more_like_this value)."""
+        return sorted({max(1, current // 2), current, current * 2})
+
+    def tune_mlt_params(self, sel_docs, liked_terms, unliked_docs, unliked_terms):
+        """Offer each tunable MLT int param one at a time: half/current/double,
+        each labeled with how many docs next round's query would hit at that
+        value, plus a custom option. Mutates self.<param> in place so the next
+        build_mlt_query call picks up the choice."""
+        gate = self.ask_user_to_choose(
+            'tune', 'Tune MLT parameters before the next round?', ['Skip', 'Yes, tune'])['tune']
+        if gate == 'Skip':
+            return
+
+        for name in MLT_INT_PARAMS:
+            current = getattr(self, name)
+            labeled = {}
+            for value in self.mlt_param_candidates(current):
+                setattr(self, name, value)
+                count = self.count_matches(query_body=self.build_mlt_query(
+                    sel_docs, liked_terms, unliked_docs=unliked_docs, unliked_terms=unliked_terms))
+                marker = '  (current)' if value == current else ''
+                labeled[f"{name} = {value}{marker}  -> {count} docs"] = value
+            setattr(self, name, current)
+
+            custom_label = f"Enter a custom value for {name}"
+            choice = self.ask_user_to_choose(name, f"Tune {name}?", list(labeled) + [custom_label])[name]
+            if choice == custom_label:
+                answer = inquirer.prompt([inquirer.Text(
+                    name, message=f"New value for {name}", default=str(current))])
+                try:
+                    setattr(self, name, int(answer[name]))
+                except (TypeError, ValueError):
+                    print(f"Invalid value, keeping {name} = {current}")
+                    setattr(self, name, current)
+            else:
+                setattr(self, name, labeled[choice])
 
     @staticmethod
     def _find_more_like_this(node):
@@ -558,8 +601,26 @@ class SimilarDocs(Command):
         count_width = max(len(str(c)) for _, c in shown)
         return [f"{facet}:"] + [f"  {v:<{value_width}}  {c:>{count_width}}" for v, c in shown]
 
+    def print_results_preview(self, query_body, limit=20):
+        """Preview table (metadata + blurb) of up to `limit` current results,
+        reusing the same row/column formatting as the doc pickers."""
+        docs = self.query_all(query_body=query_body, limit=limit)
+        if not docs:
+            return
+        contents = {d['_id']: d['_source'].get('content') or ''
+                    for d in self.query_doc_content([doc['_id'] for doc in docs])}
+        terminal_width = shutil.get_terminal_size(fallback=(FALLBACK_TERMINAL_WIDTH, 24)).columns
+        widths = self.column_widths(terminal_width)
+        print(f"Preview of {len(docs)} result(s):")
+        print(self.format_header_row(widths))
+        for doc in docs:
+            blurb = re.sub(r'\s+', ' ', contents.get(doc['_id'], '')).strip()
+            print(self.format_doc_row(doc, blurb, widths))
+        print()
+
     def print_status(self, query_body):
-        """Where the search stands: the query itself, hit count and facet breakdown."""
+        """Where the search stands: the query itself, hit count, facet breakdown
+        and a preview of current results."""
         print("\nCurrent query:")
         print(json.dumps(query_body, indent=2))
         print("Matches:", self.count_matches(query_body=query_body))
@@ -570,6 +631,7 @@ class SimilarDocs(Command):
                 print()
                 print('\n'.join(lines))
         print()
+        self.print_results_preview(query_body)
 
     def narrow_by_facets(self, query_body):
         """Facet-filter the current query and report the narrowed match count."""
@@ -713,6 +775,11 @@ class SimilarDocs(Command):
                             'NOT clauses? (none = skip)',
                             list(candidates))
                         unliked_terms += [candidates[l] for l in picked['unliked_terms']]
+
+                # let the user tweak MLT knobs for next round's query, scored by
+                # how many docs each candidate value would hit
+                self.tune_mlt_params(selected_ids, answers['commonalities'] + liked_terms,
+                                     unliked_ids, unliked_terms)
 
                 # this round's exclusions only get baked into `query` on the next
                 # build_mlt_query call; patch them in now so status/save reflect them

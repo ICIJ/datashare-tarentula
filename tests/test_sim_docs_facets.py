@@ -94,6 +94,13 @@ def test_common_lines_and_ngrams_dont_crash_on_missing_content():
     assert s.common_ngrams(docs, n=2) == []
 
 
+def test_mlt_param_candidates_are_half_current_double_deduped_and_floored():
+    assert SimilarDocs.mlt_param_candidates(30) == [15, 30, 60]
+    assert SimilarDocs.mlt_param_candidates(10) == [5, 10, 20]
+    # half(1) floors at 1, colliding with current -- dedup leaves 2 candidates
+    assert SimilarDocs.mlt_param_candidates(1) == [1, 2]
+
+
 if __name__ == '__main__':
     test_no_facets_returns_query_unchanged()
     test_content_type_and_language_become_terms_filters()
@@ -104,4 +111,5 @@ if __name__ == '__main__':
     test_refresh_unlike_patches_nested_facet_wrapped_query()
     test_common_ngrams_uses_requested_n_for_all_docs()
     test_common_lines_and_ngrams_dont_crash_on_missing_content()
+    test_mlt_param_candidates_are_half_current_double_deduped_and_floored()
     print('ok')

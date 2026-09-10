@@ -10,7 +10,7 @@ from requests.exceptions import HTTPError, ConnectionError
 from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC, CsrfState
 from tarentula.logger import logger
 
-DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/d/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
+DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/ds?/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
 
 
 class Tagger:

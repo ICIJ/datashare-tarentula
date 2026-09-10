@@ -135,6 +135,31 @@ class TestTagging(TestAbstract):
             self.assertEqual(tagger.tree['l7VnZZEzg2fr960NWWEG']['routing'], 'l7VnZZEzg2fr960NWWEG')
             self.assertEqual(tagger.tree['6VE7cVlWszkUd94XeuSd']['routing'], 'vZJQpKQYhcI577gJR0aN')
 
+    def test_tags_are_in_tree_with_ds_url(self):
+        with NamedTemporaryFile() as file:
+            file.write(b'tag,documentUrl\n'
+                       b'Antrodiaetidae,http://localhost:8080/#/ds/local-datashare/DWLOskax28jPQ2CjFrCo\n'
+                       b'Idiopidae,http://localhost:8080/#/ds/local-datashare/DWLOskax28jPQ2CjFrCo/'
+                       b'DWLOskax28jPQ2CjFrCo')
+            file.flush()
+            file.seek(0)
+            tagger = Tagger(self.datashare_url, self.datashare_project, 0, file.name)
+            self.assertIn('Antrodiaetidae', tagger.tree['DWLOskax28jPQ2CjFrCo']['tags'])
+            self.assertIn('Idiopidae', tagger.tree['DWLOskax28jPQ2CjFrCo']['tags'])
+
+    def test_routing_is_correct_with_ds_url(self):
+        with NamedTemporaryFile() as file:
+            file.write(b'tag,documentUrl\n'
+                       b'Actinopodidae,http://localhost:8080/#/ds/local-datashare/l7VnZZEzg2fr960NWWEG/'
+                       b'l7VnZZEzg2fr960NWWEG\n'
+                       b'Atracidae,http://localhost:8080/#/ds/local-datashare/6VE7cVlWszkUd94XeuSd/'
+                       b'vZJQpKQYhcI577gJR0aN')
+            file.flush()
+            file.seek(0)
+            tagger = Tagger(self.datashare_url, self.datashare_project, 0, file.name)
+            self.assertEqual(tagger.tree['l7VnZZEzg2fr960NWWEG']['routing'], 'l7VnZZEzg2fr960NWWEG')
+            self.assertEqual(tagger.tree['6VE7cVlWszkUd94XeuSd']['routing'], 'vZJQpKQYhcI577gJR0aN')
+
     def test_tags_are_all_created(self):
         with NamedTemporaryFile() as file:
             file.write(b'tag,documentId,routing\n'

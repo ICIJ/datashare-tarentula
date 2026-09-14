@@ -1,46 +1,79 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  pypi:
-    name: Publish to PyPI
+  release:
+    name: Bump version and tag
+    if: github.repository == 'ICIJ/datashare-tarentula'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      contents: read
+      contents: write
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      version: ${{ steps.release.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Poetry
-        run: pipx install poetry
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Build distribution
-        run: poetry build
+      # GitPython 3.1.60 dropped Actor.name_email_regex, which semantic-release
+      # still uses. Pinning both is what keeps the CLI from crashing on startup.
+      - name: Install Python Semantic Release
+        run: pip install 'python-semantic-release==9.21.2' 'gitpython<3.1.60'
+
+      - name: Python Semantic Release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release -v version
+
+      - name: Upload distributions
+        if: steps.release.outputs.released == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  pypi:
+    name: Publish to PyPI
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
   docker:
     name: Publish to Docker Hub
+    needs: release
+    if: needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Poetry
-        run: pipx install poetry
-
-      - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          ref: ${{ needs.release.outputs.version }}
 
       - uses: docker/setup-qemu-action@v3
 
@@ -52,4 +85,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push multi-arch image
-        run: make docker-publish
+        run: make docker-publish CURRENT_VERSION=${{ needs.release.outputs.version }}

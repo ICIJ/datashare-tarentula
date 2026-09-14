@@ -24,10 +24,12 @@ class TestAbstract(TestCase):
         cls.datashare_url = os.environ.get('TEST_DATASHARE_URL', 'http://localhost:8080')
         cls.datashare_client = DatashareClient(cls.datashare_url, cls.elasticsearch_url)
         cls.species_path = absolute_path('tests/fixtures/species.json')
+        cls.datashare_client.create_project(cls.datashare_project)
         cls.datashare_client.create(cls.datashare_project)
 
     @classmethod
     def tearDownClass(cls):
+        cls.datashare_client.delete_project(cls.datashare_project)
         cls.datashare_client.delete_index(cls.datashare_project)
 
     @property

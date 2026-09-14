@@ -14,10 +14,12 @@ class TestGraphRealTime(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.ds_client = DatashareClient(elasticsearch_url=cls.es_url)
+        cls.ds_client.create_project('test-datashare')
         cls.ds_client.create('test-datashare')
 
     @classmethod
     def tearDownClass(cls) -> None:
+        cls.ds_client.delete_project('test-datashare')
         cls.ds_client.delete_index('test-datashare')
 
     def test_field(self):

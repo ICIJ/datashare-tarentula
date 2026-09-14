@@ -62,6 +62,9 @@ jobs:
           sudo apt-get install -y "./datashare-${DATASHARE_VERSION}.deb"
 
       - name: Start Datashare in background
+        # The launcher runs the jar with $JAVA_HOME's java, and the runner defaults to Java 17
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
         run: nohup datashare -p test-datashare -u test > datashare.log 2>&1 &
 
       - name: Install project dependencies

@@ -1,8 +1,9 @@
 import csv
-import re
 from functools import cached_property
 from time import sleep
 from http.cookies import SimpleCookie
+from urllib.parse import urlparse
+import click
 from rich.progress import Progress
 import requests
 from requests.exceptions import HTTPError, ConnectionError
@@ -10,7 +11,15 @@ from requests.exceptions import HTTPError, ConnectionError
 from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC, CsrfState
 from tarentula.logger import logger
 
-DATASHARE_DOCUMENT_ROUTE = re.compile(r'/#/ds?/[a-zA-Z0-9_-]+/(\w+)(?:/(\w+))?$')
+DOCUMENT_ROUTE_PREFIXES = ('d', 'e', 'ds', 'dm')
+
+
+def parse_document_url(url):
+    fragment = urlparse(url).fragment.split('?')[0].split('#')[0]
+    segments = [segment for segment in fragment.split('/') if segment]
+    if len(segments) not in (3, 4) or segments[0] not in DOCUMENT_ROUTE_PREFIXES:
+        raise click.BadParameter(f'unsupported Datashare document URL: {url}')
+    return segments[2], segments[3] if len(segments) == 4 else None
 
 
 class Tagger:
@@ -49,18 +58,16 @@ class Tagger:
     def document_ids(self):
         return list(dict.fromkeys([row['documentId'] for row in self.csv_rows]))
 
-    @property
+    @cached_property
     def tree(self):
         tree = dict()
         for row in self.csv_rows:
-            # Extract row values
-            tag, document_id, routing = (row['tag'], row['documentId'],
-                                         row.get('routing', row['documentId']) or row['documentId'],)
-            # Append to an existing dictionary or create one
-            tree[document_id] = tree[document_id] if document_id in tree else dict(tags=set(), routing=routing,
-                                                                                   document_id=document_id)
-            # Tags are added to a set so they are unique
-            tree[document_id]['tags'].add(tag)
+            document_id = row['documentId']
+            leaf = tree.setdefault(document_id, dict(tags=set(), routing=None, document_id=document_id))
+            leaf['tags'].add(row['tag'])
+            leaf['routing'] = leaf['routing'] or row.get('routing')
+        for leaf in tree.values():
+            leaf['routing'] = leaf['routing'] or leaf['document_id']
         return tree
 
     @property
@@ -92,10 +99,12 @@ class Tagger:
         sleep(self.throttle / 1000)
 
     def sanitize_row(self, row):
-        if 'documentUrl' in row:
-            groups = DATASHARE_DOCUMENT_ROUTE.findall(row['documentUrl'])
-            if len(groups) > 0:
-                row['documentId'], row['routing'] = groups[0]
+        if row.get('documentUrl'):
+            document_id, routing = parse_document_url(row['documentUrl'])
+            row['documentId'] = document_id
+            row['routing'] = routing or row.get('routing')
+        if not row.get('documentId'):
+            raise click.BadParameter(f'row has no documentId and no usable documentUrl: {row}')
         return row
 
     def leaf_tagging_endpoint(self, leaf):

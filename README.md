@@ -15,17 +15,18 @@ Cli toolbelt for [Datashare](https://datashare.icij.org).
 Usage: tarentula [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  --syslog-address      TEXT    localhost   Syslog address
-  --syslog-port         INTEGER 514         Syslog port
-  --syslog-facility     TEXT    local7      Syslog facility
-  --stdout-loglevel     TEXT    ERROR       Change the default log level for stdout error handler
-  --help                                    Show this message and exit
-  --version                                 Show the installed version of Tarentula
+  --version               Show the version and exit.
+  --syslog-address TEXT   Syslog address
+  --syslog-port TEXT      Syslog port
+  --syslog-facility TEXT  Syslog facility
+  --stdout-loglevel TEXT  Change the default log level for stdout error
+                          handler
+  --help                  Show this message and exit.
 
 Commands:
   aggregate
-  count
   clean-tags-by-query
+  count
   download
   export-by-query
   list-metadata
@@ -46,14 +47,12 @@ Commands:
   - [Tagging](#tagging)
     - [CSV formats](#csv-formats)
   - [Tagging by Query](#tagging-by-query)
+  - [List Metadata](#list-metadata)
   - [Aggregate](#aggregate)
   - [Following your changes](#following-your-changes)
 - [Configuration File](#configuration-file)
 - [Testing](#testing)
 - [Releasing](#releasing)
-  - [1. Bump the version](#1-bump-the-version)
-  - [2. Push the commit and tag](#2-push-the-commit-and-tag)
-  - [3. Create a GitHub release](#3-create-a-github-release)
   - [Manual fallback](#manual-fallback)
 
 <!-- /TOC -->
@@ -61,13 +60,13 @@ Commands:
 
 ## Installation
 
-You can insatll Datashare Tarentula with your favorite package manager:
+You can install Datashare Tarentula with your favorite package manager:
 
 ```
 pip3 install --user tarentula
 ```
 
-Or alternativly with Docker:
+Or alternatively with Docker:
 
 ```
 docker run icij/datashare-tarentula
@@ -89,21 +88,20 @@ A command to just count the number of files matching a query.
 Usage: tarentula count [OPTIONS]
 
 Options:
-  --datashare-url           TEXT        Datashare URL
-  --datashare-project       TEXT        Datashare project
-  --elasticsearch-url       TEXT        You can additionally pass the Elasticsearch
-                                          URL in order to use scrollingcapabilities of
-                                          Elasticsearch (useful when dealing with a
-                                          lot of results)
-  --query                   TEXT        The query string to filter documents
-  --cookies                 TEXT        Key/value pair to add a cookie to each
-                                          request to the API. You can
-                                          separatesemicolons: key1=val1;key2=val2;...
-  --apikey                  TEXT        Datashare authentication apikey
-                                          in the downloaded document from the index
-  --traceback / --no-traceback          Display a traceback in case of error
-  --type [Document|NamedEntity]         Type of indexed documents to download
-  --help                                Show this message and exit
+  --apikey TEXT                  Datashare authentication apikey
+  --datashare-url TEXT           Datashare URL
+  --datashare-project TEXT       Datashare project
+  --elasticsearch-url TEXT       You can additionally pass the Elasticsearch
+                                 URL in order to use scrolling capabilities of
+                                 Elasticsearch (useful when dealing with a lot
+                                 of results)
+  --query TEXT                   The query string to filter documents
+  --cookies TEXT                 Key/value pair to add a cookie to each
+                                 request to the API. You can separate
+                                 semicolons: key1=val1;key2=val2;...
+  --traceback / --no-traceback   Display a traceback in case of error
+  --type [Document|NamedEntity]  Type of indexed documents to download
+  --help                         Show this message and exit.
 ```
 
 ### Clean Tags by Query
@@ -114,21 +112,20 @@ A command that uses Elasticsearch `update-by-query` feature to batch untag docum
 Usage: tarentula clean-tags-by-query [OPTIONS]
 
 Options:
-  --datashare-project       TEXT        Datashare project
-  --elasticsearch-url       TEXT        Elasticsearch URL which is used to perform
-                                          update by query
-  --cookies                 TEXT        Key/value pair to add a cookie to each
-                                          request to the API. You can
-                                          separatesemicolons: key1=val1;key2=val2;...
-  --apikey                  TEXT        Datashare authentication apikey
-  --traceback / --no-traceback          Display a traceback in case of error
+  --apikey TEXT                   Datashare authentication apikey
+  --datashare-project TEXT        Datashare project
+  --elasticsearch-url TEXT        Elasticsearch URL which is used to perform
+                                  update by query
+  --cookies TEXT                  Key/value pair to add a cookie to each
+                                  request to the API. You can separate
+                                  semicolons: key1=val1;key2=val2;...
   --wait-for-completion / --no-wait-for-completion
-                                        Create a Elasticsearch task to perform the
-                                          updateasynchronously
-  --query                   TEXT        Give a JSON query to filter documents that
-                                          will have their tags cleaned. It can be
-                                          afile with @path/to/file. Default to all.
-  --help                                Show this message and exit
+                                  Create a Elasticsearch task to perform the
+                                  update asynchronously
+  --query TEXT                    Give a JSON query to filter documents that
+                                  will have their tags cleaned. It can be a
+                                  file with @path/to/file. Default to all.
+  --help                          Show this message and exit.
 ```
 
 ### Download
@@ -143,25 +140,24 @@ Options:
   --datashare-url TEXT            Datashare URL
   --datashare-project TEXT        Datashare project
   --elasticsearch-url TEXT        You can additionally pass the Elasticsearch
-                                  URL in order to use scrollingcapabilities of
-                                  Elasticsearch (useful when dealing with a
+                                  URL in order to use scrolling capabilities
+                                  of Elasticsearch (useful when dealing with a
                                   lot of results)
-
   --query TEXT                    The query string to filter documents
   --destination-directory TEXT    Directory documents will be downloaded
   --throttle INTEGER              Request throttling (in ms)
   --cookies TEXT                  Key/value pair to add a cookie to each
-                                  request to the API. You can
-                                  separatesemicolons: key1=val1;key2=val2;...
-
+                                  request to the API. You can separate
+                                  semicolons: key1=val1;key2=val2;...
   --path-format TEXT              Downloaded document path template
   --scroll TEXT                   Scroll duration
   --source TEXT                   A comma-separated list of field to include
                                   in the downloaded document from the index
-
+  -l, --limit INTEGER             Limit the total results to return
   -f, --from INTEGER              Passed to the search it will bypass the
                                   first n documents
-  -l, --limit INTEGER             Limit the total results to return
+  --size INTEGER                  Size of the scroll request that powers the
+                                  operation.
   --sort-by TEXT                  Field to use to sort results
   --order-by [asc|desc]           Order to use to sort results
   --once / --not-once             Download file only once
@@ -172,7 +168,6 @@ Options:
   --type [Document|NamedEntity]   Type of indexed documents to download
   --help                          Show this message and exit.
 ```
-
 
 ### Export by Query
 
@@ -186,38 +181,34 @@ Options:
   --datashare-url TEXT            Datashare URL
   --datashare-project TEXT        Datashare project
   --elasticsearch-url TEXT        You can additionally pass the Elasticsearch
-                                  URL in order to use scrollingcapabilities of
-                                  Elasticsearch (useful when dealing with a
+                                  URL in order to use scrolling capabilities
+                                  of Elasticsearch (useful when dealing with a
                                   lot of results)
-
   --query TEXT                    The query string to filter documents
   --output-file TEXT              Path to the CSV file
   --throttle INTEGER              Request throttling (in ms)
   --cookies TEXT                  Key/value pair to add a cookie to each
-                                  request to the API. You can
-                                  separatesemicolons: key1=val1;key2=val2;...
-
+                                  request to the API. You can separate
+                                  semicolons: key1=val1;key2=val2;...
   --scroll TEXT                   Scroll duration
   --source TEXT                   A comma-separated list of field to include
                                   in the export
-
   --sort-by TEXT                  Field to use to sort results
   --order-by [asc|desc]           Order to use to sort results
   --traceback / --no-traceback    Display a traceback in case of error
   --progressbar / --no-progressbar
                                   Display a progressbar
-  --type [Document|NamedEntity]   Type of indexed documents to download
+  --type [Document|NamedEntity|Duplicate]
+                                  Type of indexed documents to download
+  --size INTEGER                  Size of the scroll request that powers the
+                                  operation.
   -f, --from INTEGER              Passed to the search it will bypass the
                                   first n documents
   -l, --limit INTEGER             Limit the total results to return
-  --size INTEGER                  Size of the scroll request that powers the
-                                  operation.
-
   --query-field / --no-query-field
                                   Add the query to the export CSV
   --help                          Show this message and exit.
 ```
-
 
 ### Tagging
 
@@ -227,14 +218,17 @@ A command to batch tag documents with a CSV file.
 Usage: tarentula tagging [OPTIONS] CSV_PATH
 
 Options:
-  --datashare-url       TEXT        http://localhost:8080   Datashare URL
-  --datashare-project   TEXT        local-datashare         Datashare project
-  --throttle            INTEGER     0                       Request throttling (in ms)
-  --cookies             TEXT        _Empty string_          Key/value pair to add a cookie to each request to the API. You can separate semicolons: key1=val1;key2=val2;...
-  --apikey              TEXT        None                    Datashare authentication apikey
-  --traceback / --no-traceback                              Display a traceback in case of error
-  --progressbar / --no-progressbar                          Display a progressbar
-  --help                                                    Show this message and exit
+  --apikey TEXT                   Datashare authentication apikey
+  --datashare-url TEXT            Datashare URL
+  --datashare-project TEXT        Datashare project
+  --throttle INTEGER              Request throttling (in ms)
+  --cookies TEXT                  Key/value pair to add a cookie to each
+                                  request to the API. You can separate
+                                  semicolons: key1=val1;key2=val2;...
+  --traceback / --no-traceback    Display a traceback in case of error
+  --progressbar / --no-progressbar
+                                  Display a progressbar
+  --help                          Show this message and exit.
 ```
 
 #### CSV formats
@@ -250,18 +244,20 @@ Atypidae,DbhveTJEwQfJL5Gn3Zgi,DbhveTJEwQfJL5Gn3Zgi
 Barychelidae,DbhveTJEwQfJL5Gn3Zgi,DbhveTJEwQfJL5Gn3Zgi
 ```
 
+When `routing` is missing, the `documentId` is used instead.
+
 Tagging with a `documentUrl`:
 
 ```csv
 tag,documentUrl
-Mecicobothriidae,http://localhost:8080/#/d/local-datashare/DbhveTJEwQfJL5Gn3Zgi/DbhveTJEwQfJL5Gn3Zgi
+Mecicobothriidae,http://localhost:8080/#/ds/local-datashare/DbhveTJEwQfJL5Gn3Zgi/DbhveTJEwQfJL5Gn3Zgi
 Microstigmatidae,http://localhost:8080/#/d/local-datashare/iuL6GUBpO7nKyfSSFaS0/iuL6GUBpO7nKyfSSFaS0
-Migidae,http://localhost:8080/#/d/local-datashare/BmovvXBisWtyyx6o9cuG/BmovvXBisWtyyx6o9cuG
-Nemesiidae,http://localhost:8080/#/d/local-datashare/vZJQpKQYhcI577gJR0aN/vZJQpKQYhcI577gJR0aN
-Paratropididae,http://localhost:8080/#/d/local-datashare/vYl1C4bsWphUKvXEBDhM/vYl1C4bsWphUKvXEBDhM
-Porrhothelidae,http://localhost:8080/#/d/local-datashare/fgCt6JLfHSl160fnsjRp/fgCt6JLfHSl160fnsjRp
-Theraphosidae,http://localhost:8080/#/d/local-datashare/WvwVvNjEDQJXkwHISQIu/WvwVvNjEDQJXkwHISQIu
+Migidae,http://localhost:8080/#/e/local-datashare/BmovvXBisWtyyx6o9cuG/BmovvXBisWtyyx6o9cuG
+Nemesiidae,http://localhost:8080/#/dm/local-datashare/vZJQpKQYhcI577gJR0aN/vZJQpKQYhcI577gJR0aN
+Paratropididae,http://localhost:8080/#/ds/local-datashare/vYl1C4bsWphUKvXEBDhM
 ```
+
+The `d`, `e`, `ds` and `dm` document routes are all accepted, with or without the trailing routing segment, and a query string is ignored. Any other URL shape stops the command with an error.
 
 ### Tagging by Query
 
@@ -273,49 +269,54 @@ To see an example of input file, refer to [this JSON](tests/fixtures/tags-by-con
 Usage: tarentula tagging-by-query [OPTIONS] JSON_PATH
 
 Options:
-  --datashare-project       TEXT        Datashare project
-  --elasticsearch-url       TEXT        Elasticsearch URL which is used to perform
-                                          update by query
-  --throttle                INTEGER     Request throttling (in ms)
-  --cookies                 TEXT        Key/value pair to add a cookie to each
-                                          request to the API. You can
-                                          separatesemicolons: key1=val1;key2=val2;...
-  --apikey                  TEXT        Datashare authentication apikey
-  --traceback / --no-traceback          Display a traceback in case of error
-  --progressbar / --no-progressbar      Display a progressbar
+  --apikey TEXT                   Datashare authentication apikey
+  --datashare-project TEXT        Datashare project
+  --elasticsearch-url TEXT        Elasticsearch URL which is used to perform
+                                  update by query
+  --throttle INTEGER              Request throttling (in ms)
+  --cookies TEXT                  Key/value pair to add a cookie to each
+                                  request to the API. You can separate
+                                  semicolons: key1=val1;key2=val2;...
+  --traceback / --no-traceback    Display a traceback in case of error
+  --progressbar / --no-progressbar
+                                  Display a progressbar
   --wait-for-completion / --no-wait-for-completion
-                                        Create a Elasticsearch task to perform the
-                                          updateasynchronously
-  --help                                Show this message and exit
+                                  Create a Elasticsearch task to perform the
+                                  update asynchronously
+  --scroll-size INTEGER           Size of the scroll request that powers the
+                                  operation.
+  --help                          Show this message and exit.
 ```
-
 
 ### List Metadata
 
 You can list the metadata from the mapping, optionally counting the number of occurrences of each field in the index, with the `--count` parameter. Counting the fields is disabled by default.
 
-It includes a `--filter_by` parameter to narrow retrieving metadata properties of specific sets of documents. For instance it can be used to get just emails related properties with: `--filter_by "contentType=message/rfc822"`
+It includes a `--filter-by` parameter to narrow retrieving metadata properties of specific sets of documents. For instance it can be used to get just emails related properties with: `--filter-by "contentType=message/rfc822"`
 
 ```
-$ tarentula list-metadata --help
 Usage: tarentula list-metadata [OPTIONS]
 
 Options:
+  --datashare-url TEXT           Datashare URL
   --datashare-project TEXT       Datashare project
   --elasticsearch-url TEXT       You can additionally pass the Elasticsearch
-                                 URL in order to use scrollingcapabilities of
+                                 URL in order to use scrolling capabilities of
                                  Elasticsearch (useful when dealing with a lot
                                  of results)
+  --apikey TEXT                  Datashare authentication apikey
+  --cookies TEXT                 Key/value pair to add a cookie to each
+                                 request to the API. You can separate
+                                 semicolons: key1=val1;key2=val2;...
+  --traceback / --no-traceback   Display a traceback in case of error
   --type [Document|NamedEntity]  Type of indexed documents to get metadata
-  --filter_by TEXT               Filter documents by pairs concatenated by
+  --filter-by, --filter_by TEXT  Filter documents by pairs concatenated by
                                  coma of field names and values separated by
-                                 =.Example "contentType=message/rfc822,content
-                                 Type=message/rfc822"
+                                 =. Example "contentType=message/rfc822,conten
+                                 tType=message/rfc822"
   --count / --no-count           Count or not the number of docs for each
                                  property found
-
   --help                         Show this message and exit.
-
 ```
 
 ### Aggregate
@@ -333,10 +334,7 @@ The possibilities are:
 - stats: returns a bunch of statistics for a given number type fields.
 - string_stats: returns a bunch of string statistics for a given string type fields.
 
-
-
 ```
-$ tarentula aggregate --help
 Usage: tarentula aggregate [OPTIONS]
 
 Options:
@@ -344,20 +342,21 @@ Options:
   --datashare-url TEXT            Datashare URL
   --datashare-project TEXT        Datashare project
   --elasticsearch-url TEXT        You can additionally pass the Elasticsearch
-                                  URL in order to use scrollingcapabilities of
-                                  Elasticsearch (useful when dealing with a
+                                  URL in order to use scrolling capabilities
+                                  of Elasticsearch (useful when dealing with a
                                   lot of results)
   --query TEXT                    The query string to filter documents
   --cookies TEXT                  Key/value pair to add a cookie to each
-                                  request to the API. You can
-                                  separatesemicolons: key1=val1;key2=val2;...
+                                  request to the API. You can separate
+                                  semicolons: key1=val1;key2=val2;...
   --traceback / --no-traceback    Display a traceback in case of error
   --type [Document|NamedEntity]   Type of indexed documents to download
-  --group_by TEXT                 Field to use to aggregate results
-  --operation_field TEXT          Field to run the operation on
+  --group-by, --group_by TEXT     Field to use to aggregate results
+  --operation-field, --operation_field TEXT
+                                  Field to run the operation on
   --run [count|nunique|date_histogram|sum|stats|string_stats|min|max|avg]
                                   Operation to run
-  --calendar_interval [year|month]
+  --calendar-interval, --calendar_interval [year|month]
                                   Calendar interval for date histogram
                                   aggregation
   --help                          Show this message and exit.
@@ -367,12 +366,15 @@ Options:
 
 When running Elasticsearch changes on big datasets, it could take a very long time. As we were curling ES to see if the task was still running well, we added a small utility to follow the changes. It makes a live graph of a provided ES indicator with a specified filter.
 
-It uses [mathplotlib](https://matplotlib.org/) and python3-tk.
+It uses [matplotlib](https://matplotlib.org/) and python3-tk. Neither is installed by the published package: run it from a clone, after `make install`.
+
+```
+poetry run python -m tarentula.graph_realtime
+```
 
 If you see the following message :
 
 ```
-$ graph_es
 graph_realtime.py:32: UserWarning: Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure
 ```
 
@@ -381,17 +383,18 @@ Then you have to install [tkinter](https://docs.python.org/3/library/tkinter.htm
 The command has the options below:
 
 ```
-$ graph_es --help
-Usage: graph_es [OPTIONS]
+Usage: python -m tarentula.graph_realtime [OPTIONS]
 
 Options:
-  --query               TEXT        Give a JSON query to filter documents. It can be
-                                      a file with @path/to/file. Default to all.
-  --index               TEXT        Elasticsearch index (default local-datashare)
-  --refresh-interval    INTEGER     Graph refresh interval in seconds (default 5s)
-  --field               TEXT        Field value to display over time (default "hits.total")
-  --elasticsearch-url   TEXT        Elasticsearch URL which is used to perform
-                                      update by query (default http://elasticsearch:9200)
+  --query TEXT                Give a JSON query to filter documents. It can be
+                              a file with @path/to/file. Default to all.
+  --index TEXT                Elasticsearch index (default local-datashare)
+  --refresh-interval INTEGER  Graph refresh interval in seconds (default 5)
+  --field TEXT                Field indicator to display over time (default
+                              hits.total.value)
+  --elasticsearch-url TEXT    Elasticsearch URL which is used to perform
+                              update by query
+  --help                      Show this message and exit.
 ```
 
 ## Configuration File
@@ -442,12 +445,23 @@ Finally, run the test
 make test
 ```
 
+Run `make help` to see every available target.
 
 ## Releasing
 
-Releases are automated. Every push to `main` runs the [`CI` workflow](.github/workflows/ci.yml); once it passes, the [`Release` workflow](.github/workflows/release.yml) works out the next version from the commit messages, bumps `pyproject.toml`, tags it, publishes the package to [PyPI](https://pypi.org/project/tarentula/) and pushes the multi-arch image to [Docker Hub](https://hub.docker.com/repository/docker/icij/datashare-tarentula).
+Releases are automated, nothing has to be run by hand.
 
-Nothing has to be run by hand. What decides the version is the commit subject, which follows [Conventional Commits](https://www.conventionalcommits.org/):
+Every push runs the [`CI` workflow](.github/workflows/ci.yml): lint, then the test suite against a real Datashare on Python 3.9 to 3.12. When that run is on `main` and it passes, it triggers the [`Release` workflow](.github/workflows/release.yml), which:
+
+1. Works out the next version from the commit messages with [Python Semantic Release](https://python-semantic-release.readthedocs.io/), bumps `pyproject.toml`, updates `CHANGELOG.md`, commits, tags and creates the GitHub release.
+2. Publishes the package to [PyPI](https://pypi.org/project/tarentula/) using trusted publishing, so no token is stored in the repository.
+3. Builds the `linux/amd64` and `linux/arm64` images from the new tag and pushes them to [Docker Hub](https://hub.docker.com/repository/docker/icij/datashare-tarentula), as `:<version>` and `:latest`.
+
+Tags are the bare version, `4.5.2`, not `v4.5.2`; the `v`-prefixed tags predate the automation and are ignored.
+
+Steps 2 and 3 only run when step 1 actually produced a version. The whole workflow is skipped outside the `ICIJ/datashare-tarentula` repository, so forks never publish.
+
+What decides the version is the commit subject, which follows [Conventional Commits](https://www.conventionalcommits.org/):
 
 | Commit subject | Release |
 | --- | --- |
@@ -456,13 +470,19 @@ Nothing has to be run by hand. What decides the version is the commit subject, w
 | `feat!: ...`, or any commit with a `BREAKING CHANGE:` footer | major |
 | `build:`, `chore:`, `ci:`, `docs:`, `refactor:`, `style:`, `test:` | none |
 
-Commits inside a squash-merged pull request are read too, so a squashed branch still releases what its commits say.
+Commits inside a squash-merged pull request are read too, so a squashed branch still releases what its commits say. Merge commits are ignored.
 
-Follow the run on the [Actions tab](https://github.com/ICIJ/datashare-tarentula/actions/workflows/release.yml). When no commit calls for a release, the workflow succeeds and publishes nothing. You can also start it by hand from that page ("Run workflow") if CI did not trigger it.
+Follow the run on the [Actions tab](https://github.com/ICIJ/datashare-tarentula/actions/workflows/release.yml). When no commit calls for a release, the workflow succeeds and publishes nothing. You can also start it by hand from that page ("Run workflow"), which always releases from `main` whatever branch you pick in the dropdown.
 
 ### Manual fallback
 
 If the CI workflow is unavailable, you can publish from your machine. This requires being a maintainer of the PyPI project and a member of the ICIJ organization on Docker Hub, with credentials configured locally.
+
+Bump the version yourself first, since nothing else will:
+
+```
+poetry version patch
+```
 
 Publish to PyPI:
 

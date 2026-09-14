@@ -1,8 +1,11 @@
 name: Release
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: release
@@ -11,27 +14,30 @@ concurrency:
 jobs:
   release:
     name: Bump version and tag
-    if: github.repository == 'ICIJ/datashare-tarentula'
+    if: >-
+      github.repository == 'ICIJ/datashare-tarentula' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write
     outputs:
       released: ${{ steps.release.outputs.released }}
       version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: .github/workflows/release.yml
 
-      # GitPython 3.1.60 dropped Actor.name_email_regex, which semantic-release
-      # still uses. Pinning both is what keeps the CLI from crashing on startup.
       - name: Install Python Semantic Release
-        run: pip install 'python-semantic-release==9.21.2' 'gitpython<3.1.60'
+        run: pip install 'python-semantic-release[build]==10.6.2'
 
       - name: Python Semantic Release
         id: release
@@ -65,7 +71,7 @@ jobs:
 
   docker:
     name: Publish to Docker Hub
-    needs: release
+    needs: [release, pypi]
     if: needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -73,7 +79,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.release.outputs.version }}
+          ref: ${{ needs.release.outputs.tag }}
 
       - uses: docker/setup-qemu-action@v3
 

@@ -36,9 +36,7 @@ tarentula = "tarentula.cli:cli"
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:tool.poetry.version"]
-build_command = "pip install build && python -m build"
+build_command = "python -m build"
 commit_message = "build: bump to {version}"
 tag_format = "{version}"
 
-[tool.semantic_release.branches.main]
-match = "main"

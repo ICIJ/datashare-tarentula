@@ -61,6 +61,10 @@ jobs:
           sudo apt-get update || true
           sudo apt-get install -y "./datashare-${DATASHARE_VERSION}.deb"
 
+      - name: Install Datashare's Elasticsearch
+        # Datashare downloads it on first start otherwise, which eats the startup wait budget
+        run: datashare-elasticsearch-setup.sh install
+
       - name: Start Datashare in background
         # The launcher runs the jar with $JAVA_HOME's java, and the runner defaults to Java 17
         env:
@@ -71,7 +75,7 @@ jobs:
         run: make install
 
       - name: Wait for Datashare to be up
-        # Datashare downloads its embedded Elasticsearch on first start, and answers 503 until the index is ready
+        # Datashare answers 503 until Elasticsearch is up and its index is ready
         run: wget --retry-connrefused --retry-on-http-error=503 --waitretry=5 --read-timeout=30 --timeout=30 -t 60 http://localhost:8080
 
       - name: Wait for Elasticsearch cluster to be ready

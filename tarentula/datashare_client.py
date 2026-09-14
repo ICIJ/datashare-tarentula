@@ -259,14 +259,25 @@ class DatashareClient:
         routing = id if routing is None else routing
         return urljoin(self.datashare_url, f'#/d/{index}/{id}/{routing}')
 
+    def create_project(self, name):
+        # Datashare only grants API access (tagging, etc.) to projects saved in its database.
+        url = urljoin(self.datashare_url, '/api/project') + '/'
+        return self._request('post', url, json={'name': name}, timeout=HTTP_REQUEST_TIMEOUT_SEC)
+
+    def delete_project(self, name):
+        url = urljoin(self.datashare_url, '/api/project/', name)
+        return self._request('delete', url, timeout=HTTP_REQUEST_TIMEOUT_SEC)
+
     @contextmanager
     def temporary_project(self, source=DATASHARE_DEFAULT_PROJECT, delete=True):
         project = None
         try:
             project = self.reindex(source)
+            self.create_project(project)
             yield project
         finally:
             if delete and project is not None:
+                self.delete_project(project)
                 self.delete_index(project)
 
     def scan_or_query_all(self, datashare_project, source_fields_names, sort_by, order_by, scroll, query_body, from_,

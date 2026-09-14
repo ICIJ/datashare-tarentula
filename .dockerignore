@@ -1,6 +1,6 @@
 .idea
 *.log
-venv
+.venv
 *.egg-info
 .eggs
 __pycache__

@@ -78,3 +78,7 @@ jobs:
         env:
           TEST_ELASTICSEARCH_URL: http://localhost:9200
         run: make test
+
+      - name: Show Datashare log
+        if: failure()
+        run: cat datashare.log

@@ -445,41 +445,20 @@ make test
 
 ## Releasing
 
-The releasing process uses [Poetry](https://python-poetry.org/) to manage versions, and a GitHub Actions workflow to publish both the Python package to [PyPI](https://pypi.org/project/tarentula/) and the multi-arch Docker image to [Docker Hub](https://hub.docker.com/repository/docker/icij/datashare-tarentula) whenever a GitHub release is published.
+Releases are automated. Every push to `main` runs the [`CI` workflow](.github/workflows/ci.yml); once it passes, the [`Release` workflow](.github/workflows/release.yml) works out the next version from the commit messages, bumps `pyproject.toml`, tags it, publishes the package to [PyPI](https://pypi.org/project/tarentula/) and pushes the multi-arch image to [Docker Hub](https://hub.docker.com/repository/docker/icij/datashare-tarentula).
 
-Each step below assumes you are on `master` with a clean working tree and that tests pass (`make test`).
+Nothing has to be run by hand. What decides the version is the commit subject, which follows [Conventional Commits](https://www.conventionalcommits.org/):
 
-### 1. Bump the version
+| Commit subject | Release |
+| --- | --- |
+| `fix: ...` or `perf: ...` | patch |
+| `feat: ...` | minor |
+| `feat!: ...`, or any commit with a `BREAKING CHANGE:` footer | major |
+| `build:`, `chore:`, `ci:`, `docs:`, `refactor:`, `style:`, `test:` | none |
 
-Pick the semver level that matches your changes and run the corresponding target. This bumps `pyproject.toml`, creates a commit, and tags the new version locally:
+Commits inside a squash-merged pull request are read too, so a squashed branch still releases what its commits say.
 
-```
-make bump-patch   # backwards-compatible bug fixes
-make bump-minor   # backwards-compatible features
-make bump-major   # breaking changes
-```
-
-On success, the target prints the next steps with the new tag filled in.
-
-### 2. Push the commit and tag
-
-```
-git push --follow-tags
-```
-
-This pushes the release commit along with the newly created tag to GitHub.
-
-### 3. Create a GitHub release
-
-Use the [GitHub CLI](https://cli.github.com/) to create a release with auto-generated notes from the commit history:
-
-```
-gh release create "$(git describe --tags --abbrev=0)" --generate-notes
-```
-
-Alternatively, open the [new release page](https://github.com/ICIJ/datashare-tarentula/releases/new) and select the tag manually.
-
-Publishing the release triggers the [`Release` workflow](.github/workflows/release.yml), which builds and publishes the package to PyPI and the multi-arch Docker image to Docker Hub. Watch the workflow run on the [Actions tab](https://github.com/ICIJ/datashare-tarentula/actions/workflows/release.yml) to make sure both jobs succeed.
+Follow the run on the [Actions tab](https://github.com/ICIJ/datashare-tarentula/actions/workflows/release.yml). When no commit calls for a release, the workflow succeeds and publishes nothing. You can also start it by hand from that page ("Run workflow") if CI did not trigger it.
 
 ### Manual fallback
 

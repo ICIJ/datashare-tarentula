@@ -1,9 +1,9 @@
 import json
-from http.cookies import SimpleCookie
 
+import click
 import requests
 
-from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC
+from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC, parse_cookies
 from tarentula.logger import logger
 
 
@@ -17,11 +17,14 @@ class TagsCleanerByQuery:
                  query: str = None):
         if query is None:
             self.query = {"query": {"match_all": {}}}
-        elif query.startswith('@'):
-            with open(query[1:], encoding='utf-8') as f:
-                self.query = json.loads(f.read())
         else:
-            self.query = json.loads(query)
+            if query.startswith('@'):
+                with open(query[1:], encoding='utf-8') as f:
+                    query = f.read()
+            try:
+                self.query = json.loads(query)
+            except json.JSONDecodeError as error:
+                raise click.BadParameter(f'query is not valid JSON ({error}): {query}') from error
         self.datashare_project = datashare_project
         self.elasticsearch_url = elasticsearch_url
         self.cookies_string = cookies
@@ -30,12 +33,7 @@ class TagsCleanerByQuery:
 
     @property
     def cookies(self):
-        cookies = SimpleCookie()
-        try:
-            cookies.load(self.cookies_string)
-            return {key: morsel.value for (key, morsel) in cookies.items()}
-        except (TypeError, AttributeError):
-            return {}
+        return parse_cookies(self.cookies_string)
 
     @property
     def headers(self):

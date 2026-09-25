@@ -2,7 +2,7 @@ from typing import Optional
 
 import pytest
 
-from json import loads
+from json import dumps, loads
 from click.testing import CliRunner
 
 from tarentula.cli import cli
@@ -137,6 +137,56 @@ class TestAggregate(TestAbstract):
         self.assertIn('buckets', data['aggregation-1'])
         self.assertEqual(2, len(data['aggregation-1']['buckets']))
         self.assertEqual(1, get_bucket(data, '2004-01-01T00:00:00.000Z', key='key_as_string')['doc_count'])
+
+    def test_aggregate_with_query_from_file_returns_aggregations(self):
+        self.index_documents([{"name": "foo", "type": "Document", "contentType": "audio/vorbis", "_id": "id1"},
+                              {"name": "bar", "type": "Document", "contentType": "audio/vorbis", "_id": "id2"},
+                              {"name": "baz", "type": "Document", "contentType": "audio/mp3", "_id": "id3"}
+                              ])
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            with open('query.json', 'w') as query_file:
+                query_file.write(dumps({"query": {"bool": {"must": [{"match": {"type": "Document"}}]}}}))
+            result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project,
+                                '--group_by', 'contentType',
+                                '--query', '@query.json'])
+
+        self.assertEqual(0, result.exit_code)
+        data = loads(result.output)
+        self.assertIsNotNone(data)
+        self.assertEqual(2, get_bucket(data, 'audio/vorbis')['doc_count'])
+        self.assertEqual(1, get_bucket(data, 'audio/mp3')['doc_count'])
+
+    def test_aggregate_without_group_by_falls_back_to_content_type(self):
+        self.index_documents([{"name": "foo", "type": "Document", "contentType": "audio/vorbis", "_id": "id1"},
+                              {"name": "bar", "type": "Document", "contentType": "audio/mp3", "_id": "id2"}
+                              ])
+        runner = CliRunner()
+
+        result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                            self.elasticsearch_url, '--datashare-project', self.datashare_project,
+                            '--query', '*'])
+
+        self.assertEqual(0, result.exit_code)
+        data = loads(result.output)
+        self.assertEqual(1, get_bucket(data, 'audio/vorbis')['doc_count'])
+        self.assertEqual(1, get_bucket(data, 'audio/mp3')['doc_count'])
+
+    def test_aggregate_elasticsearch_error_is_one_line_without_traceback(self):
+        self.index_documents([{"name": "foo", "type": "Document", "contentType": "audio/vorbis", "_id": "id1"}])
+        runner = CliRunner()
+
+        result = runner.invoke(cli, ['aggregate', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                            self.elasticsearch_url, '--datashare-project', self.datashare_project,
+                            '--no-traceback',
+                            '--run', 'nunique',
+                            '--query', '*'])
+
+        self.assertEqual(1, result.exit_code)
+        self.assertNotIn('Traceback', result.output)
+        self.assertIn('Elasticsearch error', result.output)
 
 
 def get_bucket(data: dict, key_value: str, aggregation_key: str = 'aggregation-1', key: str = "key") -> Optional[dict]:

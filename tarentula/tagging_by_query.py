@@ -1,13 +1,13 @@
 import json
 
 from functools import cached_property
-from http.cookies import SimpleCookie
 from time import sleep
-from requests.exceptions import HTTPError, ConnectionError
+from requests.exceptions import HTTPError, RequestException
 from rich.progress import Progress
+import click
 import requests
 
-from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC
+from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC, parse_cookies
 from tarentula.logger import logger
 
 
@@ -40,12 +40,7 @@ class TaggerByQuery:
 
     @property
     def cookies(self):
-        cookies = SimpleCookie()
-        try:
-            cookies.load(self.cookies_string)
-            return {key: morsel.value for (key, morsel) in cookies.items()}
-        except (TypeError, AttributeError):
-            return {}
+        return parse_cookies(self.cookies_string)
 
     @property
     def headers(self):
@@ -59,6 +54,8 @@ class TaggerByQuery:
     def tags(self):
         with open(self.json_path, 'r') as json_file:
             tags = json.loads(json_file.read())
+            if not isinstance(tags, dict):
+                raise click.BadParameter(f'{self.json_path} must hold a JSON object mapping each tag to a query')
             return tags
 
     @property
@@ -88,8 +85,9 @@ class TaggerByQuery:
         query = {
             "script": {
                 "source": """
-                    if( !ctx._source.containsKey("tags") ) {
-                        ctx._source.tags = [];
+                    def tags = ctx._source.tags;
+                    if( !(tags instanceof List) ) {
+                        ctx._source.tags = tags == null ? [] : [tags];
                     }
                     if( !ctx._source.tags.contains(params.tag) ) {
                         ctx._source.tags.add(params.tag);
@@ -121,6 +119,7 @@ class TaggerByQuery:
 
     def start(self):
         count = self.tags_count
+        failures = 0
         desc = f'This action will add {count} tag(s)'
         with Progress(disable=self.no_progressbar) as progress:
             task = progress.add_task(desc, total=count)
@@ -136,5 +135,12 @@ class TaggerByQuery:
                         logger.info('Task [%s] created for tag [%s]', result['task'], tag)
                     progress.advance(task)
                     self.sleep()
-                except (HTTPError, ConnectionError):
-                    logger.error('Unable to add tag [%s] (connection error)', tag, exc_info=self.traceback)
+                except HTTPError as error:
+                    failures += 1
+                    logger.error('Unable to add tag [%s] (HTTP %s): %s', tag,
+                                 error.response.status_code, error.response.text, exc_info=self.traceback)
+                except RequestException as error:
+                    failures += 1
+                    logger.error('Unable to add tag [%s]: %s', tag, error, exc_info=self.traceback)
+        if failures:
+            raise click.ClickException(f'{failures} of {count} tagging request(s) failed')

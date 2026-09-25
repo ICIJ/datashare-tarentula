@@ -1,14 +1,13 @@
 import csv
 from functools import cached_property
 from time import sleep
-from http.cookies import SimpleCookie
 from urllib.parse import urlparse
 import click
 from rich.progress import Progress
 import requests
-from requests.exceptions import HTTPError, ConnectionError
+from requests.exceptions import HTTPError, RequestException
 
-from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC, CsrfState
+from tarentula.datashare_client import HTTP_REQUEST_TIMEOUT_SEC, CsrfState, parse_cookies
 from tarentula.logger import logger
 
 DOCUMENT_ROUTE_PREFIXES = ('d', 'e', 'ds', 'dm')
@@ -72,12 +71,7 @@ class Tagger:
 
     @property
     def cookies(self):
-        cookies = SimpleCookie()
-        try:
-            cookies.load(self.cookies_string)
-            return {key: morsel.value for (key, morsel) in cookies.items()}
-        except (TypeError, AttributeError):
-            return {}
+        return parse_cookies(self.cookies_string)
 
     @property
     def headers(self):
@@ -105,6 +99,8 @@ class Tagger:
             row['routing'] = routing or row.get('routing')
         if not row.get('documentId'):
             raise click.BadParameter(f'row has no documentId and no usable documentUrl: {row}')
+        if not row.get('tag'):
+            raise click.BadParameter(f'row has no tag: {row}')
         return row
 
     def leaf_tagging_endpoint(self, leaf):
@@ -124,6 +120,7 @@ class Tagger:
         return summary
 
     def start(self):
+        failures = 0
         with Progress(disable=self.no_progressbar) as progress:
             desc = self.summarize()
             task = progress.add_task(desc, total=self.total_steps)
@@ -143,11 +140,15 @@ class Tagger:
                             logger.info('Added "%s" to document "%s"', tag, document_id)
                         self.sleep()
                     except HTTPError as error:
+                        failures += 1
                         response = error.response
                         logger.warning('Unable to add "%s" to document "%s" (HTTP %s): %s',
                                        tag, document_id, response.status_code, response.text,
                                        exc_info=self.traceback)
-                    except ConnectionError as error:
+                    except RequestException as error:
+                        failures += 1
                         logger.warning('Unable to add "%s" to document "%s": %s',
                                        tag, document_id, error, exc_info=self.traceback)
                     progress.advance(task)
+        if failures:
+            raise click.ClickException(f'{failures} of {self.total_steps} tagging request(s) failed')

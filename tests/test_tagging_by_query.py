@@ -1,4 +1,8 @@
+import json
+import os
+
 from click.testing import CliRunner
+from tempfile import mkdtemp
 
 from tarentula.cli import cli
 from .test_abstract import TestAbstract, absolute_path
@@ -79,3 +83,56 @@ class TestTaggingByQuery(TestAbstract):
         result = runner.invoke(cli, ['--stdout-loglevel', 'INFO', 'tagging-by-query', '--elasticsearch-url', self.elasticsearch_url, '--datashare-project', self.datashare_project, self.json_tags_path])
         self.assertNotIn('This action will add 8 tag(s)', result.output)
         self.assertEqual(result.output.count('Documents tagged with'), 16)  # logs + stdout
+
+
+class TestTaggingByQueryErrors(TestAbstract):
+    datashare_project = 'test-datashare-tagging-errors'
+    TAG_SHAPES = {'missing-tags': {'name': 'missing-tags'},
+                  'null-tags': {'name': 'null-tags', 'tags': None},
+                  'scalar-tags': {'name': 'scalar-tags', 'tags': 'spider'},
+                  'list-tags': {'name': 'list-tags', 'tags': []}}
+
+    def setUp(self):
+        for document_id, document in self.TAG_SHAPES.items():
+            self.datashare_client.index(index=self.datashare_project, document=document, id=document_id)
+        self.datashare_client.refresh(self.datashare_project)
+
+    def tearDown(self):
+        for document_id in self.TAG_SHAPES:
+            self.datashare_client.delete(index=self.datashare_project, id=document_id)
+        self.datashare_client.refresh(self.datashare_project)
+
+    def tags_file(self, tags):
+        path = os.path.join(mkdtemp(), 'tags.json')
+        with open(path, 'w') as file:
+            file.write(json.dumps(tags))
+        return path
+
+    def invoke(self, path):
+        return CliRunner().invoke(cli, ['tagging-by-query', '--elasticsearch-url', self.elasticsearch_url,
+                                        '--datashare-project', self.datashare_project, path])
+
+    def document_tags(self, document_id):
+        return self.datashare_client.document(self.datashare_project, document_id)['_source']['tags']
+
+    def test_a_null_or_scalar_tags_field_does_not_cancel_the_whole_run(self):
+        query = {'query': {'ids': {'values': list(self.TAG_SHAPES)}}}
+        self.invoke(self.tags_file({'audio-type': query}))
+        self.datashare_client.refresh(self.datashare_project)
+        for document_id in self.TAG_SHAPES:
+            self.assertIn('audio-type', self.document_tags(document_id), document_id)
+
+    def test_an_elasticsearch_error_is_not_reported_as_a_connection_error(self):
+        result = self.invoke(self.tags_file({'audio-type': {'match': {'name': 'list-tags'}}}))
+        self.assertNotIn('connection error', result.output)
+        self.assertIn('400', result.output)
+
+    def test_exit_code_is_not_zero_when_a_tagging_query_fails(self):
+        result = self.invoke(self.tags_file({'audio-type': {'match': {'name': 'list-tags'}}}))
+        self.assertNotEqual(result.exit_code, 0)
+
+    def test_a_tags_file_holding_a_list_is_a_readable_error(self):
+        path = self.tags_file(['audio-type', 'video-type'])
+        result = self.invoke(path)
+        self.assertNotIsInstance(result.exception, AttributeError)
+        self.assertIn(path, result.output)

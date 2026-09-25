@@ -63,3 +63,10 @@ class TestTagsCleanerByQuery(TestAbstract):
         TagsCleanerByQuery(self.datashare_project, self.elasticsearch_url).start()
         document = self.datashare_client.document(self.datashare_project, id='id')['_source']
         self.assertListEqual(document['tags'], [])
+
+    def test_a_non_json_query_is_a_readable_error(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['clean-tags-by-query', '--datashare-project', self.datashare_project,
+                                     '--elasticsearch-url', self.elasticsearch_url, '--query', 'tags:spider'])
+        self.assertNotIsInstance(result.exception, ValueError)
+        self.assertIn('tags:spider', result.output)

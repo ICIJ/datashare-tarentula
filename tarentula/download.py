@@ -1,16 +1,23 @@
 import json
 import shutil
 import sys
-from os import makedirs
-from os.path import join, dirname, basename, exists
+from os import makedirs, remove, replace, sep
+from os.path import join, dirname, basename, exists, realpath
 from time import sleep
+import click
 from requests.exceptions import HTTPError, ConnectionError
 from rich.progress import Progress
 from urllib3.exceptions import ProtocolError
 
 from tarentula.command import Command
-from tarentula.datashare_client import DatashareClient
+from tarentula.datashare_client import DatashareClient, elasticsearch_reason
 from tarentula.logger import logger
+
+PATH_FORMAT_PLACEHOLDERS = ('id', 'id_2b', 'id_4b', 'project', 'basename', 'parentDocument')
+
+
+class UnsafeDocumentPath(Exception):
+    pass
 
 
 class Download(Command):
@@ -55,6 +62,7 @@ class Download(Command):
         self.size = size
         self.sort_by = sort_by
         self.order_by = order_by
+        self.downloaded_paths = {}
         try:
             self.datashare_client = DatashareClient(datashare_url,
                                                     elasticsearch_url,
@@ -73,43 +81,46 @@ class Download(Command):
         sleep(self.throttle / 1000)
 
     def document_file_options(self, document):
+        source = document.get('_source', {})
         return {
             "id": document.get('_id'),
             "id_2b": document.get('_id')[0:2],
             "id_4b": document.get('_id')[2:4],
             "project": self.datashare_project,
-            "basename": basename(document.get('_source', {}).get("path", '')),
-            "parentDocument": document.get('_source', {}).get('parentDocument', None)
+            "basename": basename(source.get("path", '')) or document.get('_id'),
+            "parentDocument": source.get('parentDocument') or ''
         }
 
-    def raw_file_path(self, document, parents=True):
-        formatted_path = self.path_format.format(**self.document_file_options(document))
-        file_path = join(self.destination_directory, formatted_path)
+    def document_path(self, document, extension='', parents=True):
+        try:
+            formatted_path = self.path_format.format(**self.document_file_options(document))
+        except KeyError as exc:
+            raise click.BadParameter(f'unknown placeholder {exc.args[0]!r}, available placeholders are '
+                                     f'{", ".join(PATH_FORMAT_PLACEHOLDERS)}', param_hint='--path-format') from exc
+        file_path = realpath(join(self.destination_directory, formatted_path.lstrip(sep) + extension))
+        if not file_path.startswith(realpath(self.destination_directory) + sep):
+            raise UnsafeDocumentPath(f'{file_path} is outside {self.destination_directory}')
         if parents:
-            parents_path = dirname(file_path)
-            makedirs(parents_path, exist_ok=True)
+            makedirs(dirname(file_path), exist_ok=True)
         return file_path
 
+    def raw_file_path(self, document, parents=True):
+        return self.document_path(document, parents=parents)
+
     def indexed_document_path(self, document, parents=True):
-        formatted_path = self.path_format.format(**self.document_file_options(document))
-        formatted_path = '.'.join((formatted_path, 'json'))
-        file_path = join(self.destination_directory, formatted_path)
-        if parents:
-            parents_path = dirname(file_path)
-            makedirs(parents_path, exist_ok=True)
-        return file_path
+        return self.document_path(document, '.json', parents=parents)
 
     def count_matches(self):
         index = self.datashare_project
-        total_matched = self.datashare_client \
-            .count(index=index, query=self.query_body) \
-            .get('count')
-        total_matched = total_matched - self.from_ if total_matched >= self.from_ \
-            else total_matched
-        total_matched = total_matched if (self.limit == 0) or \
-                                         (self.limit > total_matched) \
-            else self.limit
-        return total_matched
+        try:
+            total_matched = self.datashare_client.count(index=index, query=self.query_body).get('count')
+        except HTTPError as exc:
+            logger.critical('Unable to count documents in %s: %s', index, elasticsearch_reason(exc),
+                            exc_info=self.traceback)
+            sys.exit(1)
+        if self.scroll is None:
+            total_matched = max(total_matched - self.from_, 0)
+        return min(total_matched, self.limit) if self.limit else total_matched
 
     def log_matches(self):
         index = self.datashare_project
@@ -128,7 +139,7 @@ class Download(Command):
             logger.info('Skipping existing document %s', document.get('_id'))
             return None
         # Skip non-downloadable file
-        if document.get('_source', {}).get('type', None) != self.type:
+        if document.get('_source', {}).get('type', None) != 'Document':
             logger.warning('Not a raw document. Skipping %s', id)
             return None
         logger.info('Downloading raw file %s', id)
@@ -142,15 +153,37 @@ class Download(Command):
         raw_file_path = self.raw_file_path(document)
         return exists(raw_file_path)
 
+    def warn_on_collision(self, file_path, id):
+        previous_id = self.downloaded_paths.setdefault(file_path, id)
+        if previous_id != id:
+            logger.warning('%s was already downloaded for document %s', file_path, previous_id)
+
     def save_raw_file(self, document, document_file_stream):
         file_path = self.raw_file_path(document)
-        with open(file_path, 'wb') as file:
-            shutil.copyfileobj(document_file_stream.raw, file)
+        self.warn_on_collision(file_path, document.get('_id'))
+        temporary_path = f'{file_path}.part'
+        try:
+            with open(temporary_path, 'wb') as file:
+                shutil.copyfileobj(document_file_stream.raw, file)
+            replace(temporary_path, file_path)
+        finally:
+            if exists(temporary_path):
+                remove(temporary_path)
 
     def save_indexed_document(self, indexed_document):
         file_path = self.indexed_document_path(indexed_document)
+        self.warn_on_collision(file_path, indexed_document.get('_id'))
         with open(file_path, 'w') as file:
             json.dump(indexed_document, file)
+
+    def download_document(self, document):
+        id = document.get('_id')
+        try:
+            self.download_raw_file(document)
+        except (HTTPError, ProtocolError):
+            logger.error('Unable to download document %s', id, exc_info=self.traceback)
+        self.save_indexed_document(document)
+        logger.info('Processed document %s', id)
 
     def start(self):
         count = self.log_matches()
@@ -164,11 +197,9 @@ class Download(Command):
                                                                         self.order_by, self.scroll, self.query_body,
                                                                         self.from_, self.limit, self.size):
                     try:
-                        self.download_raw_file(document)
-                        self.save_indexed_document(document)
-                        logger.info('Processed document %s', document.get('_id'))
-                    except HTTPError:
-                        logger.error('Unable to download document %s', document.get('_id'), exc_info=self.traceback)
+                        self.download_document(document)
+                    except UnsafeDocumentPath as exc:
+                        logger.error('Skipping document %s: %s', document.get('_id'), exc)
                     progress.advance(task)
                     self.sleep()
         except ProtocolError:

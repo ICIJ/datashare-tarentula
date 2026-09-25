@@ -9,7 +9,7 @@ from rich.progress import Progress
 from urllib3.exceptions import ProtocolError
 
 from tarentula.command import Command
-from tarentula.datashare_client import DatashareClient
+from tarentula.datashare_client import DatashareClient, elasticsearch_reason
 from tarentula.logger import logger
 
 
@@ -67,7 +67,7 @@ class ExportByQuery(Command):
 
     @property
     def source_fields(self):
-        return [self.source_field_params(f) for f in self.source.split(',')]
+        return [self.source_field_params(f) for f in self.source.split(',') if f.strip()]
 
     @property
     def source_fields_names(self):
@@ -88,7 +88,7 @@ class ExportByQuery(Command):
         return names
 
     def source_field_params(self, field):
-        field_params = field.strip().split(':')
+        field_params = [part.strip() for part in field.split(':')]
         field_name = field_params[0]
         field_default = field_params[1] if len(field_params) > 1 else ''
         return [field_name, field_default]
@@ -101,12 +101,9 @@ class ExportByQuery(Command):
         total_matched = self.datashare_client \
             .count(index=index, query=self.query_body) \
             .get('count')
-        total_matched = total_matched - self.from_ if total_matched >= self.from_ \
-            else total_matched
-        total_matched = total_matched if (self.limit == 0) or \
-                                         (self.limit > total_matched) \
-            else self.limit
-        return total_matched
+        if self.scroll is None:
+            total_matched = max(total_matched - self.from_, 0)
+        return min(total_matched, self.limit) if self.limit else total_matched
 
     def log_matches(self):
         index = self.datashare_project
@@ -140,7 +137,7 @@ class ExportByQuery(Command):
     def save_indexed_document(self, csvwriter, document, document_number):
         default_values = self.document_default_values(document, document_number)
         source_values = self.document_source_values(document)
-        csvwriter.writerow({**default_values, **source_values})
+        csvwriter.writerow({**source_values, **default_values})
 
     @contextmanager
     def create_csv_file(self):
@@ -152,9 +149,9 @@ class ExportByQuery(Command):
             yield writer
 
     def start(self):
-        count = self.log_matches()
-        desc = f'Exporting {count} document(s)'
         try:
+            count = self.log_matches()
+            desc = f'Exporting {count} document(s)'
             with Progress(disable=self.no_progressbar) as progress:
                 task = progress.add_task(desc, total=count)
                 documents = self.datashare_client.scan_or_query_all(self.datashare_project, self.source_fields_names,
@@ -174,3 +171,6 @@ class ExportByQuery(Command):
                 logger.info('Written documents metadata in %s', self.output_file)
         except ProtocolError:
             logger.error('Exception while exporting documents', exc_info=self.traceback)
+        except HTTPError as error:
+            logger.critical('Unable to search documents: %s', elasticsearch_reason(error), exc_info=self.traceback)
+            sys.exit(1)

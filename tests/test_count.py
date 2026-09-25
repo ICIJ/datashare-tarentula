@@ -39,3 +39,23 @@ class TestCount(TestAbstract):
                                 self.elasticsearch_url, '--datashare-project', self.datashare_project, '--query',
                                 '_id:6VEdcVlWszkUd94XeuSd'])
             self.assertEqual('1', self.extract_num_docs_from_response(result.output))
+
+    def test_count_on_missing_index_exits_non_zero(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['count', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                            self.elasticsearch_url, '--datashare-project', 'no-such-project', '--no-traceback',
+                            '--query', '*'])
+        self.assertEqual(1, result.exit_code)
+        self.assertNotIn('Number of matched elements', result.output)
+        self.assertIn('no such index', result.output)
+
+    def test_count_with_malformed_query_exits_non_zero(self):
+        with self.existing_species_documents():
+            runner = CliRunner()
+            result = runner.invoke(cli, ['count', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project,
+                                '--no-traceback', '--query', 'name:('])
+            self.assertEqual(1, result.exit_code)
+            self.assertNotIn('Number of matched elements', result.output)
+            self.assertNotIn('Traceback', result.output)
+            self.assertIn('Elasticsearch error', result.output)

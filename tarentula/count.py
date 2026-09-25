@@ -1,9 +1,9 @@
 import sys
 
-from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import ConnectionError as RequestsConnectionError, HTTPError
 
 from tarentula.command import Command
-from tarentula.datashare_client import DatashareClient
+from tarentula.datashare_client import DatashareClient, elasticsearch_reason
 from tarentula.logger import logger
 
 
@@ -44,6 +44,10 @@ class Count(Command):
         return count
 
     def start(self):
-        count = self.log_matches()
+        try:
+            count = self.log_matches()
+        except HTTPError as error:
+            logger.critical('Elasticsearch error: %s', elasticsearch_reason(error), exc_info=self.traceback)
+            sys.exit(1)
         logger.info('Number of matched elements: %s', count)
         print(f'Number of matched elements: {count}')

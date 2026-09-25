@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from json import loads
 
+import requests
 from click.testing import CliRunner
 
 from tarentula.cli import cli
@@ -101,3 +102,59 @@ class TestMetadataFields(TestAbstract):
         self.assertTrue(any(['name' in item['field'] for item in json_result]))
         self.assertTrue(any(['type' in item['field'] for item in json_result]))
         self.assertTrue(any(['contentType' in item['field'] for item in json_result]))
+
+    def test_filter_by_value_containing_a_comma_is_rejected(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['list-metadata',
+                                     '--elasticsearch-url', self.elasticsearch_url,
+                                     '--datashare-project', self.datashare_project,
+                                     '--filter_by', 'metadata.tika_metadata_dc_creator.keyword=Doe, John',
+                                     '--count'])
+        self.assertNotEqual(0, result.exit_code)
+        self.assertIn('John', result.output)
+
+    def test_filter_by_without_equal_sign_is_rejected(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['list-metadata',
+                                     '--elasticsearch-url', self.elasticsearch_url,
+                                     '--datashare-project', self.datashare_project,
+                                     '--filter_by', 'contentType:message/rfc822',
+                                     '--count'])
+        self.assertNotEqual(0, result.exit_code)
+        self.assertIn('contentType:message/rfc822', result.output)
+
+    def test_list_metadata_on_missing_project_exits_non_zero(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['list-metadata',
+                                     '--elasticsearch-url', self.elasticsearch_url,
+                                     '--datashare-project', 'no-such-project',
+                                     '--no-traceback'])
+        self.assertEqual(1, result.exit_code)
+        self.assertNotIn('Traceback', result.output)
+        self.assertIn('no such index', result.output)
+
+    def test_list_metadata_on_index_without_properties_prints_empty_list(self):
+        index = 'test-datashare-without-mapping'
+        requests.put(f'{self.elasticsearch_url}/{index}', timeout=30).raise_for_status()
+        try:
+            runner = CliRunner()
+            result = runner.invoke(cli, ['list-metadata',
+                                         '--elasticsearch-url', self.elasticsearch_url,
+                                         '--datashare-project', index])
+            self.assertEqual(0, result.exit_code)
+            self.assertEqual([], loads(result.output))
+        finally:
+            self.datashare_client.delete_index(index)
+
+    def test_list_metadata_with_unparsable_filter_value_exits_non_zero(self):
+        self.index_documents([{"name": "Antrodiaetidae", "type": "Document", "contentType": "audio/vnd.wave",
+                               "_id": "id1"}])
+        runner = CliRunner()
+        result = runner.invoke(cli, ['list-metadata',
+                                     '--elasticsearch-url', self.elasticsearch_url,
+                                     '--datashare-project', self.datashare_project,
+                                     '--filter_by', 'extractionDate=yesterday',
+                                     '--no-traceback', '--count'])
+        self.assertEqual(1, result.exit_code)
+        self.assertNotIn('Traceback', result.output)
+        self.assertIn('Elasticsearch error', result.output)

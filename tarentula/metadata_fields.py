@@ -1,11 +1,23 @@
 import sys
 from json import dumps
 
-from requests.exceptions import ConnectionError as RequestsConnectionError
+import click
+from requests.exceptions import ConnectionError as RequestsConnectionError, HTTPError
 
 from tarentula.datashare_client import DatashareClient, DATASHARE_DEFAULT_PROJECT, DATASHARE_DEFAULT_URL, \
-    ELASTICSEARCH_DEFAULT_URL
+    ELASTICSEARCH_DEFAULT_URL, elasticsearch_reason
 from tarentula.logger import logger
+
+
+def parse_filters(filter_by):
+    filters = []
+    for part in filter_by.split(','):
+        name, separator, value = part.partition('=')
+        if not separator:
+            raise click.BadParameter(f'cannot parse filter {part.strip()!r}, '
+                                     'expected "field=value" pairs separated by ","')
+        filters.append({"term": {name.strip(): value.strip()}})
+    return filters
 
 
 class MetadataFields:
@@ -28,14 +40,7 @@ class MetadataFields:
         self.type = type
         self.count = count
 
-        if filter_by and "=" in filter_by:
-            filters = filter_by.split(",")
-            filter_pairs = [map(str.strip, part.split("=", 1)) for part in filters if "=" in part]
-            self.query_filters = [
-                {"term": {f"{k}": f"{v}"}} for k, v in filter_pairs
-            ]
-        else:
-            self.query_filters = []
+        self.query_filters = parse_filters(filter_by) if filter_by else []
 
         try:
             self.datashare_client = DatashareClient(datashare_url,
@@ -70,7 +75,7 @@ class MetadataFields:
 
     def get_fields(self, mapping, field_stack):
         results = []
-        for field, properties in mapping[self.datashare_project]['mappings']['properties'].items():
+        for field, properties in mapping[self.datashare_project]['mappings'].get('properties', {}).items():
             complete_field_name = '.'.join(field_stack + [field])
 
             if 'type' in properties:
@@ -92,7 +97,9 @@ class MetadataFields:
         return results
 
     def start(self):
-        mapping = self.query_mappings()
-
-        fields = self.get_fields(mapping, [])
+        try:
+            fields = self.get_fields(self.query_mappings(), [])
+        except HTTPError as error:
+            logger.critical('Elasticsearch error: %s', elasticsearch_reason(error), exc_info=self.traceback)
+            sys.exit(1)
         print(dumps(fields))

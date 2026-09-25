@@ -1,10 +1,10 @@
 import json
 import sys
 
-from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import ConnectionError as RequestsConnectionError, HTTPError
 
 from tarentula.command import Command
-from tarentula.datashare_client import DatashareClient
+from tarentula.datashare_client import DatashareClient, elasticsearch_reason
 from tarentula.logger import logger
 
 
@@ -29,7 +29,7 @@ class Aggregate(Command):
         self.cookies_string = cookies
         self.apikey = apikey
         self.traceback = traceback
-        self.group_by = group_by
+        self.group_by = group_by or 'contentType'
         self.run = run
         self.operation_field = operation_field
         self.calendar_interval = calendar_interval
@@ -45,20 +45,19 @@ class Aggregate(Command):
             sys.exit(1)
 
     @property
-    def query_body_from_string(self):
-        return {
-            "aggs": {
-                "aggregation-1": self.agg_level_1,
-            },
-            "query": (super().query_body_from_string['query'])
-        }
+    def query_body(self):
+        return {**super().query_body, "aggs": {"aggregation-1": self.agg_level_1}}
 
     def aggregate_matches(self):
         index = self.datashare_project
         return self.datashare_client.query(index=index, query=self.query_body).get('aggregations')
 
     def start(self):
-        agg = self.aggregate_matches()
+        try:
+            agg = self.aggregate_matches()
+        except HTTPError as error:
+            logger.critical('Elasticsearch error: %s', elasticsearch_reason(error), exc_info=self.traceback)
+            sys.exit(1)
         print(json.dumps(agg, indent=4))
 
 

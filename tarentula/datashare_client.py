@@ -183,12 +183,17 @@ class DatashareClient:
         response.raise_for_status()
         return response.json()
 
-    def scan_all(self, scroll='10m', **kwargs):
+    def scan_all(self, scroll='10m', limit=0, **kwargs):
         response = self.query(scroll=scroll, **kwargs)
         scroll_id = response.get('_scroll_id')
+        num_yielded = 0
         try:
             while len(response['hits']['hits']) > 0:
-                yield from response['hits']['hits']
+                for hit in response['hits']['hits']:
+                    yield hit
+                    num_yielded += 1
+                    if limit and num_yielded >= limit:
+                        return
                 if '_scroll_id' not in response:
                     break
                 scroll_id = response['_scroll_id']
@@ -294,5 +299,5 @@ class DatashareClient:
         logger.info('Scrolling over document(s) metadata in %s', index)
         if from_ > 0:
             logger.warning('"from" will not be used when scrolling documents')
-        scroll_after_args = {'size': size, 'from': from_, 'limit': limit, 'sort': sort}
-        return self.scan_all(index=index, query=query_body, source=source, scroll=scroll, **scroll_after_args)
+        return self.scan_all(index=index, query=query_body, source=source, scroll=scroll, limit=limit,
+                             size=size, sort=sort)

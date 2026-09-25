@@ -106,3 +106,36 @@ class TestExportByQuery(TestAbstract):
             with open(output_file, newline='') as csv_file:
                 csv_reader = csv.DictReader(csv_file)
                 self.assertEqual(len(list(csv_reader)), 3)
+
+    def test_csv_file_with_scroll(self):
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output_file = join(tmp, 'output.csv')
+            runner = CliRunner()
+            runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project,
+                                '--scroll', '1m', '--size', 2, '--output-file', output_file])
+            with open(output_file, newline='') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                self.assertEqual(len(list(csv_reader)), 20)
+
+    def test_csv_file_with_scroll_and_limit(self):
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output_file = join(tmp, 'output.csv')
+            runner = CliRunner()
+            runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project,
+                                '--scroll', '1m', '--size', 2, '--limit', 3, '--output-file', output_file])
+            with open(output_file, newline='') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                self.assertEqual(len(list(csv_reader)), 3)
+
+    def test_csv_file_with_scroll_and_from(self):
+        with self.existing_species_documents(), TemporaryDirectory() as tmp:
+            output_file = join(tmp, 'output.csv')
+            runner = CliRunner()
+            runner.invoke(cli, ['export-by-query', '--datashare-url', self.datashare_url, '--elasticsearch-url',
+                                self.elasticsearch_url, '--datashare-project', self.datashare_project,
+                                '--scroll', '1m', '--size', 2, '--from', 5, '--output-file', output_file])
+            with open(output_file, newline='') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                self.assertEqual(len(list(csv_reader)), 20)

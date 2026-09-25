@@ -1,5 +1,6 @@
 from .test_abstract import TestAbstract
 from tarentula.config_file_reader import ConfigFileReader
+from tempfile import mkdtemp
 from unittest import mock
 
 import os
@@ -49,3 +50,18 @@ class TestConfigFileReader(TestAbstract):
         with self.working_directory('./tests/fixtures/'):
             reader = ConfigFileReader('syslog_address', 'here', section='logger')
             self.assertEqual(reader(), 'here')
+
+    def test_load_default_section_without_logger_section(self):
+        config_path = os.path.join(mkdtemp(), 'tarentula.ini')
+        with open(config_path, 'w') as config_file:
+            config_file.write('[DEFAULT]\nstdout_loglevel = DEBUG\n')
+        with mock.patch.dict(os.environ, {'TARENTULA_CONFIG': config_path}):
+            reader = ConfigFileReader('stdout_loglevel', 'ERROR', 'logger')
+            self.assertEqual(reader(), 'DEBUG')
+
+    def test_config_is_not_cached_across_directories(self):
+        reader = ConfigFileReader('datashare_url', 'http://localhost:8080')
+        with self.working_directory('./tests/fixtures/'):
+            first = reader()
+        second = reader()
+        self.assertEqual((first, second), ('http://here:8080', 'http://localhost:8080'))

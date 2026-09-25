@@ -1,5 +1,7 @@
 import json
 
+import click
+
 
 class Command:
     def __init__(self, query: str, type: str) -> None:
@@ -29,12 +31,15 @@ class Command:
 
     @property
     def query_body(self):
+        body = self.query_body_from_string
         if self.query.startswith('@'):
-            return self.query_body_from_file
-        return self.query_body_from_string
+            body['query']['bool']['must'][1] = self.query_body_from_file.get('query', self.query_body_from_file)
+        return body
 
     @property
     def query_body_from_file(self):
-        with open(self.query[1:]) as json_file:
-            query_body = json.load(json_file)
-        return query_body
+        try:
+            with open(self.query[1:]) as json_file:
+                return json.load(json_file)
+        except FileNotFoundError as exc:
+            raise click.BadParameter(f'no such query file: {self.query[1:]}', param_hint='--query') from exc

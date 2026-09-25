@@ -1,4 +1,3 @@
-from functools import cached_property
 from typing import Optional
 from pathlib import Path
 from os.path import join, isfile
@@ -14,20 +13,16 @@ class ConfigFileReader:
         self.section = section
 
     def __call__(self) -> Optional[str]:
-        if self.config_has_section:
-            return self.config[self.section].get(self.name, self.default_value)
-        return self.default_value
+        config = self.config
+        section = self.section if config.has_section(self.section) else 'DEFAULT'
+        return config[section].get(self.name, self.default_value)
 
-    @cached_property
+    @property
     def config(self):
         config = configparser.ConfigParser()
         if self.config_path is not None:
             config.read(self.config_path)
         return config
-
-    @property
-    def config_has_section(self):
-        return self.section == 'DEFAULT' or self.config.has_section(self.section)
 
     @property
     def config_path(self) -> Optional[str]:

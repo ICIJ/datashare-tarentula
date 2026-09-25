@@ -15,7 +15,11 @@ def default_log_formatter() -> logging.Formatter:
 
 def add_syslog_handler(address: str = 'localhost', port: int = 514, facility: int = LOG_LOCAL7) -> None:
     syslog_formatter = default_log_formatter()
-    syslog_handler = SysLogHandler(address = (address, port), facility = facility)
+    try:
+        syslog_handler = SysLogHandler(address = (address, port), facility = facility)
+    except OSError as error:
+        logger.warning('Unable to use syslog on %s:%s (%s)', address, port, error)
+        return
     syslog_handler.setLevel(logging.INFO)
     syslog_handler.setFormatter(syslog_formatter)
     logger.addHandler(syslog_handler)

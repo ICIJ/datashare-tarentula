@@ -1,6 +1,9 @@
 import os
+from types import SimpleNamespace
 from unittest import TestCase
+from unittest.mock import Mock
 
+import click
 import matplotlib.pyplot as plt
 
 from tarentula.datashare_client import DatashareClient
@@ -32,3 +35,13 @@ class TestGraphRealTime(TestCase):
         self.addCleanup(plt.close, 'all')
 
         self.assertEqual(ys, [0])
+
+    def test_unknown_field_raises_a_readable_error(self):
+        # GraphRealTime cannot be instantiated here: matplotlib 3.9 recurses on Python 3.14
+        graph = SimpleNamespace(query={"query": {"match_all": {}}}, field='hits.totals.value',
+                                elasticsearch_endpoint=f'{self.es_url}/test-datashare/_search?size=0',
+                                xs=[], ys=[], ax=Mock())
+
+        with self.assertRaises(click.BadParameter) as context:
+            GraphRealTime.add_point(graph, 0)
+        self.assertIn('hits.totals.value', str(context.exception))

@@ -1,4 +1,7 @@
 import logging
+
+from logging.handlers import SysLogHandler
+
 import click
 
 from tarentula.config_file_reader import ConfigFileReader
@@ -24,6 +27,23 @@ def validate_loglevel(ctx, param, value):
         raise click.BadParameter('must be a valid log level (CRITICAL, ERROR, WARNING, INFO, DEBUG or NOTSET)') from exc
 
 
+def validate_syslog_port(ctx, param, value):
+    # pylint: disable=unused-argument
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise click.BadParameter('must be a valid port number') from exc
+
+
+def validate_syslog_facility(ctx, param, value):
+    # pylint: disable=unused-argument
+    try:
+        return SysLogHandler.facility_names[value]
+    except KeyError as exc:
+        facilities = ', '.join(sorted(SysLogHandler.facility_names))
+        raise click.BadParameter(f'must be a valid syslog facility ({facilities})') from exc
+
+
 def validate_progressbar(ctx, param, value):
     # pylint: disable=unused-argument
     # If no value given, we activate the progress bar only when the
@@ -37,15 +57,17 @@ def validate_progressbar(ctx, param, value):
 @click.option('--syslog-address', help='Syslog address',
               default=ConfigFileReader('syslog_address', 'localhost', 'logger'))
 @click.option('--syslog-port', help='Syslog port',
-              default=ConfigFileReader('syslog_port', 514, 'logger'))
+              default=ConfigFileReader('syslog_port', 514, 'logger'),
+              callback=validate_syslog_port)
 @click.option('--syslog-facility', help='Syslog facility',
-              default=ConfigFileReader('syslog_facility', 'local7', 'logger'))
+              default=ConfigFileReader('syslog_facility', 'local7', 'logger'),
+              callback=validate_syslog_facility)
 @click.option('--stdout-loglevel', help='Change the default log level for stdout error handler',
               default=ConfigFileReader('stdout_loglevel', 'ERROR', 'logger'),
               callback=validate_loglevel)
 def cli(ctx, **options):
     # Configure Syslog handler
-    add_syslog_handler(options['syslog_address'], int(options['syslog_port']), options['syslog_facility'])
+    add_syslog_handler(options['syslog_address'], options['syslog_port'], options['syslog_facility'])
     add_stdout_handler(options['stdout_loglevel'])
     # Pass all option to context
     ctx.ensure_object(dict)

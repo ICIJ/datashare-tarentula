@@ -1,5 +1,6 @@
 import functools
 import json
+import operator
 from datetime import datetime
 
 import click
@@ -37,8 +38,11 @@ class GraphRealTime:
         # pylint: disable=invalid-name
         result = requests.post(self.elasticsearch_endpoint, json=self.query, timeout=10).json()
         x = datetime.now()
-        # call get on result while there are dots in self.field
-        y = functools.reduce(dict.get, [result] + self.field.split('.'))
+        try:
+            y = functools.reduce(operator.getitem, self.field.split('.'), result)
+        except (KeyError, TypeError) as error:
+            raise click.BadParameter(f'no "{self.field}" field in the Elasticsearch response',
+                                     param_hint='--field') from error
 
         self.xs.append(x)
         self.ys.append(y)

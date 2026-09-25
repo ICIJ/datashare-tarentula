@@ -1,14 +1,58 @@
+import re
+
 from contextlib import contextmanager
 from datetime import datetime
-from http.cookies import SimpleCookie
+from http.cookies import _unquote
 from uuid import uuid4
+import click
 import requests
 
 from tarentula.logger import logger
 
 
+COOKIE_NAME_PATTERN = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
+
+
+def split_cookie_pairs(cookies_string):
+    pairs, current, quoted, escaped = [], '', False, False
+    for char in cookies_string or '':
+        if escaped:
+            escaped = False
+        elif quoted and char == '\\':
+            escaped = True
+        elif char == '"':
+            quoted = not quoted
+        elif char in ';,' and not quoted:
+            pairs.append(current)
+            current = ''
+            continue
+        current += char
+    return pairs + [current]
+
+
+def parse_cookies(cookies_string):
+    cookies = {}
+    for pair in split_cookie_pairs(cookies_string):
+        name, separator, value = pair.strip().partition('=')
+        if not name:
+            continue
+        if not separator or not COOKIE_NAME_PATTERN.match(name):
+            raise click.BadParameter(f'cannot parse cookie {pair.strip()!r}, '
+                                     'expected "name=value" pairs separated by ";"')
+        cookies[name] = _unquote(value.strip())
+    return cookies
+
+
+def elasticsearch_reason(error):
+    try:
+        failure = error.response.json()['error']
+        return (failure.get('root_cause') or [failure])[0]['reason']
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return error
+
+
 def urljoin(*args):
-    return '/'.join(s.strip('/') for s in args if s is not None)
+    return '/'.join(str(s).strip('/') for s in args if s is not None)
 
 
 DATASHARE_DEFAULT_PROJECT = 'local-datashare'
@@ -43,7 +87,7 @@ class CsrfState:
         self.headers = {}
 
     def _merge(self, cookies, headers):
-        merged_cookies = {**self.cookies, **(cookies or {})}
+        merged_cookies = {**(cookies or {}), **self.cookies}
         merged_headers = {**(headers or {}), **self.headers} or None
         return merged_cookies, merged_headers
 
@@ -56,7 +100,7 @@ class CsrfState:
         if response.status_code == 403:
             new_cookies, new_headers = fetch_datashare_csrf(
                 self.datashare_url, headers=headers, cookies=cookies)
-            if new_cookies:
+            if new_cookies and new_cookies != self.cookies:
                 self.cookies = new_cookies
                 self.headers = new_headers
                 merged_cookies, merged_headers = self._merge(cookies, headers)
@@ -71,22 +115,23 @@ class DatashareClient:
         self.datashare_url = datashare_url
         self.datashare_project = datashare_project
         self.cookies_string = cookies
+        self.cookies = parse_cookies(cookies)
         self.apikey = apikey
         self.elasticsearch_url = elasticsearch_url
         self._csrf = CsrfState(datashare_url)
 
     def _request(self, method, url, **kwargs):
+        # pylint: disable=missing-timeout
+        # Datashare credentials (apikey, session and CSRF token) must not reach a third-party host.
+        if not url.startswith(self.datashare_url.rstrip('/')):
+            return requests.request(method, url, **kwargs)
         return self._csrf.request(method, url,
                                   cookies=self.cookies, headers=self.headers, **kwargs)
 
-    @property
-    def cookies(self):
-        cookies = SimpleCookie()
-        try:
-            cookies.load(self.cookies_string)
-            return {key: morsel.value for (key, morsel) in cookies.items()}
-        except (TypeError, AttributeError):
-            return {}
+    def _request_json(self, method, url, **kwargs):
+        response = self._request(method, url, **kwargs)
+        response.raise_for_status()
+        return response.json()
 
     @property
     def headers(self):
@@ -112,7 +157,7 @@ class DatashareClient:
         document.pop('_id', None)
         document.pop('_routing', None)
         if 'content' in document:
-            document['contentLength'] = len(document['content'])
+            document['contentLength'] = len(document['content'].encode('utf-8'))
         extraction_date = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
         document['extractionDate'] = extraction_date
         params = {'refresh': 'true'}
@@ -171,17 +216,15 @@ class DatashareClient:
         if source is not None:
             local_query.update({'_source': source})
         url = urljoin(self.elasticsearch_host, index, '/_search')
-        response = self._request('post', url, params={"q": q, "scroll": scroll},
-                                 json=local_query, timeout=HTTP_REQUEST_TIMEOUT_SEC)
-        response.raise_for_status()
-        return response.json()
+        return self._request_json('post', url, params={"q": q, "scroll": scroll},
+                                  json=local_query, timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def scroll(self, scroll_id, scroll=None):
         url = urljoin(self.elasticsearch_host, '/_search/scroll')
-        body = {"scroll_id": scroll_id, "scroll": scroll}
-        response = self._request('post', url, json=body, timeout=HTTP_REQUEST_TIMEOUT_SEC)
-        response.raise_for_status()
-        return response.json()
+        body = {"scroll_id": scroll_id}
+        if scroll is not None:
+            body["scroll"] = scroll
+        return self._request_json('post', url, json=body, timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def scan_all(self, scroll='10m', limit=0, **kwargs):
         response = self.query(scroll=scroll, **kwargs)
@@ -216,17 +259,18 @@ class DatashareClient:
         num_yielded = 0
         response = self.query(**kwargs)
         while len(response['hits']['hits']) > 0:
+            hits = response['hits']['hits']
 
-            yield from response['hits']['hits']
+            yield from hits
 
             # update size window for next iteration
-            num_yielded += len(response['hits']['hits'])
+            num_yielded += len(hits)
             if (limit != 0) and (kwargs['size'] + num_yielded > limit):
                 kwargs['size'] = limit - num_yielded
             if kwargs['size'] == 0:
                 break
 
-            last_item = response['hits']['hits'][-1]
+            last_item = hits[-1]
             if 'sort' in last_item:
                 search_after = last_item['sort']
                 search_after_args = {k: v for k, v in kwargs.items() if k != 'from'}
@@ -234,25 +278,25 @@ class DatashareClient:
             else:
                 if 'from' not in kwargs:
                     kwargs['from'] = 0
-                kwargs['from'] += kwargs['size']
+                kwargs['from'] += len(hits)
                 response = self.query(**kwargs)
 
     def mappings(self, index=DATASHARE_DEFAULT_PROJECT):
         url = urljoin(self.elasticsearch_host, index, '_mappings')
-        return self._request('get', url, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
+        return self._request_json('get', url, timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def count(self, index=DATASHARE_DEFAULT_PROJECT, query=None):
         if query is None:
             query = {'query': {'match_all': {}}}
-        body = {'query': query['query']}
+        body = {'query': query.get('query', query)}
         url = urljoin(self.elasticsearch_host, index, '_count')
-        return self._request('post', url, json=body, timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
+        return self._request_json('post', url, json=body, timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def document(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None, source=None):
         url = urljoin(self.elasticsearch_host, index, '/_doc/', id)
         params = {'routing': routing, '_source': source}
-        return self._request('get', url, params=params,
-                             timeout=HTTP_REQUEST_TIMEOUT_SEC).json()
+        return self._request_json('get', url, params=params,
+                                  timeout=HTTP_REQUEST_TIMEOUT_SEC)
 
     def download(self, index=DATASHARE_DEFAULT_PROJECT, id=None, routing=None):
         routing = routing or id
@@ -289,7 +333,8 @@ class DatashareClient:
                           limit, size):
         index = datashare_project
         source = source_fields_names
-        sort = {sort_by: order_by}
+        # A non-unique sort key makes search_after skip every document tying the last page's value.
+        sort = [{sort_by: order_by}, {'_doc': 'asc'}]
         if scroll is None:
             logger.info('Searching document(s) metadata in %s', index)
             return self.query_all(
